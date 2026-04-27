@@ -14,7 +14,9 @@ import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import me.eroi.lolidaily.muzei.model.Card
+import me.eroi.lolidaily.muzei.model.DailyReactResponse
 import me.eroi.lolidaily.muzei.model.DailyResponse
+import me.eroi.lolidaily.muzei.model.ReactionCount
 import com.google.android.apps.muzei.api.provider.Artwork
 import com.google.android.apps.muzei.api.provider.ProviderContract
 import kotlinx.serialization.builtins.MapSerializer
@@ -494,6 +496,7 @@ class LoliDailyArtWorker(
         private const val KEY_LAST_FETCH_TIME = "last_fetch_time"
         private const val KEY_REFILTER_ONLY = "refilter_only"
         const val KEY_IMAGE_DATES = "image_dates"
+        const val KEY_REACTIONS = "reactions"
 
         const val PROVIDER_AUTHORITY = "me.eroi.lolidaily.muzei.provider"
         private const val FILE_PROVIDER_AUTHORITY =
@@ -501,6 +504,8 @@ class LoliDailyArtWorker(
 
         private const val API_URL =
             "https://loliconey.tsuki.ga/api/v1/daily?badge=LC%20YJ-ES-NC-PG"
+        private const val REACT_API_URL =
+            "https://loliconey.tsuki.ga/api/v1/daily/react?badge=LC%20YJ-ES-NC-PG"
         private const val USER_AGENT = "LoliDaily/1.0 (Android)"
         private const val MAX_DOWNLOAD_RETRIES = 3
 
@@ -509,6 +514,18 @@ class LoliDailyArtWorker(
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
+
+        /** Map of reaction emoji value → Bangumi smiley URL for display. */
+        val EMOJI_URL_MAP = mapOf(
+            0 to "https://bgm.tv/img/smiles/tv/44.gif",
+            104 to "https://bgm.tv/img/smiles/tv/65.gif",
+            54 to "https://bgm.tv/img/smiles/tv/15.gif",
+            140 to "https://bgm.tv/img/smiles/tv/101.gif",
+            122 to "https://bgm.tv/img/smiles/tv/83.gif",
+            90 to "https://bgm.tv/img/smiles/tv/51.gif",
+            88 to "https://bgm.tv/img/smiles/tv/49.gif",
+            80 to "https://bgm.tv/img/smiles/tv/41.gif",
+        )
 
         private fun md5(input: String): String {
             val digest = MessageDigest.getInstance("MD5")
@@ -574,6 +591,74 @@ class LoliDailyArtWorker(
             val raw = prefs.getString(KEY_IMAGE_DATES, null) ?: return emptyMap()
             return try {
                 json.decodeFromString<Map<String, String>>(raw)
+            } catch (_: Exception) {
+                emptyMap()
+            }
+        }
+
+        /**
+         * Fetches reactions for the current daily batch from the API,
+         * maps them to image tokens, and caches in SharedPreferences.
+         *
+         * Safe to call on the main thread — blocks briefly for network I/O.
+         * Call from a coroutine or background thread in UI contexts.
+         */
+        fun fetchAndCacheReactions(context: Context) {
+            try {
+                val cacheFile = File(context.filesDir, "api_cache.json")
+                if (!cacheFile.exists()) return
+                val daily = json.decodeFromString<DailyResponse>(cacheFile.readText())
+                if (daily.cards.isEmpty()) return
+
+                val request = Request.Builder()
+                    .url(REACT_API_URL)
+                    .header("User-Agent", USER_AGENT)
+                    .get()
+                    .build()
+                val response = httpClient.newCall(request).execute()
+                if (!response.isSuccessful) {
+                    Log.w(TAG, "Reactions API returned ${response.code}")
+                    return
+                }
+                val body = response.body?.string() ?: return
+                val reactData = json.decodeFromString<DailyReactResponse>(body)
+
+                val tokenReactions = mutableMapOf<String, List<ReactionCount>>()
+                reactData.reactions.forEachIndexed { idx, reactionMap ->
+                    if (idx >= daily.cards.size) return@forEachIndexed
+                    val token = md5(daily.cards[idx].imgUrl)
+                    val counts = reactionMap
+                        .mapKeys { it.key.toInt() }
+                        .mapValues { it.value.size }
+                        .filter { it.value > 0 }
+                        .map { ReactionCount(it.key, it.value) }
+                        .sortedByDescending { it.count }
+                    if (counts.isNotEmpty()) {
+                        tokenReactions[token] = counts
+                    }
+                }
+
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                val serialized = json.encodeToString(
+                    serializer<Map<String, List<ReactionCount>>>(),
+                    tokenReactions,
+                )
+                prefs.edit().putString(KEY_REACTIONS, serialized).apply()
+                Log.d(TAG, "Cached reactions for ${tokenReactions.size} cards")
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to fetch reactions", e)
+            }
+        }
+
+        /**
+         * Loads cached per-image reaction counts as a JSON map
+         * (token → reaction counts) from SharedPreferences.
+         */
+        fun loadReactions(context: Context): Map<String, List<ReactionCount>> {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val raw = prefs.getString(KEY_REACTIONS, null) ?: return emptyMap()
+            return try {
+                json.decodeFromString<Map<String, List<ReactionCount>>>(raw)
             } catch (_: Exception) {
                 emptyMap()
             }

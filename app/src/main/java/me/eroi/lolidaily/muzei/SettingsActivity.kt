@@ -67,7 +67,7 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        loadPreview()
+        buildPreviews()
     }
 
     private fun loadState() {
@@ -86,7 +86,24 @@ class SettingsActivity : AppCompatActivity() {
 
     // ── Image preview with metadata ────────────────────────────────
 
+    /**
+     * Full refresh cycle: builds previews from current cache,
+     * then fetches fresh reactions in the background.
+     * Called on every onCreate / onResume.
+     */
     private fun loadPreview() {
+        buildPreviews()
+
+        // Background fetch — mirrors the JS lazy-load behaviour:
+        // reactions are fetched each time the gallery is opened
+        Thread {
+            LoliDailyArtWorker.fetchAndCacheReactions(this@SettingsActivity)
+            runOnUiThread { buildPreviews() }
+        }.start()
+    }
+
+    /** Builds previews from on-disk cache without triggering network. */
+    private fun buildPreviews() {
         val artworksDir = File(filesDir, "artworks")
         val files = artworksDir.listFiles()
             ?.filter { it.isFile && it.length() > 0 }
@@ -97,6 +114,7 @@ class SettingsActivity : AppCompatActivity() {
         val (cards, apiDate) = loadCachedDaily()
         val cardByToken = cards.associateBy { md5(it.imgUrl) }
         val dateMap = LoliDailyArtWorker.loadImageDates(this)
+        val reactionsMap = LoliDailyArtWorker.loadReactions(this)
 
         cachedPreviews = files.take(4).map { file ->
             val uri = FileProvider.getUriForFile(
@@ -117,6 +135,7 @@ class SettingsActivity : AppCompatActivity() {
                 sourceUrl = card?.sourceUrl ?: "",
                 artistUrl = card?.artistUrl ?: "",
                 date = dateMap[token] ?: apiDate,
+                reactions = reactionsMap[token] ?: emptyList(),
             )
         }
     }

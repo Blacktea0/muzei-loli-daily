@@ -69,7 +69,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
+import me.eroi.lolidaily.muzei.model.ReactionCount
 import kotlinx.coroutines.launch
 
 /**
@@ -224,6 +226,38 @@ private fun FilterOption(
     }
 }
 
+// ── Reaction Chip ──────────────────────────────────────────────
+
+/**
+ * Displays a single reaction emoji with its count as an inline chip.
+ * Emoji images are loaded from Bangumi smiley URLs via Coil disk cache.
+ */
+@Composable
+private fun ReactionChip(reaction: ReactionCount) {
+    val context = LocalContext.current
+    val emojiUrl = LoliDailyArtWorker.EMOJI_URL_MAP[reaction.emojiValue] ?: return
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        AsyncImage(
+            model = ImageRequest.Builder(context)
+                .data(emojiUrl)
+                .size(32)
+                .build(),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = "${reaction.count}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
 // ── Tab 1: Gallery ─────────────────────────────────────────────
 
 @Composable
@@ -347,6 +381,28 @@ private fun ArtworkCard(
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                     )
+                }
+            }
+
+            // Reactions overlay (bottom-start)
+            if (preview.reactions.isNotEmpty()) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(12.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                    tonalElevation = 2.dp,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        preview.reactions.forEach { reaction ->
+                            ReactionChip(reaction)
+                        }
+                    }
                 }
             }
         }
@@ -530,6 +586,28 @@ private fun FullscreenImageDialog(
                     )
                     .padding(horizontal = 12.dp, vertical = 6.dp),
             )
+
+            // Reactions overlay (bottom-end)
+            if (preview.reactions.isNotEmpty()) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                    tonalElevation = 2.dp,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        preview.reactions.forEach { reaction ->
+                            ReactionChip(reaction)
+                        }
+                    }
+                }
+            }
         }
     }
 }
