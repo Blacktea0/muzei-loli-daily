@@ -54,9 +54,8 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
@@ -352,48 +351,66 @@ private fun rememberPixelPainter(resId: Int): Painter {
     }
 }
 
+// ── Reaction Row (Telegram-style pill chips) ──────────────────
+
 /**
- * Displays a single reaction emoji with its count as an inline chip.
- * Emoji images are loaded from Bangumi smiley URLs via Coil disk cache.
- * When [onClick] is non-null, the chip is interactive and shows a pointer cursor.
+ * Renders reactions as a row of custom pill chips, mirroring
+ * Telegram's reaction bar: fully rounded, borderless, compact,
+ * with full control over internal spacing.
  */
 @Composable
-private fun ReactionChip(
-    reaction: ReactionCount,
-    onClick: (() -> Unit)? = null,
-    isUserReaction: Boolean = false,
+private fun ReactionRow(
+    reactions: List<ReactionCount>,
+    userEmoji: Int?,
+    token: String,
+    isLoggedIn: Boolean,
+    onReactionClick: (String, Int) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val resId = LoliDailyArtWorker.emojiResId(reaction.emojiValue) ?: return
-    val painter = rememberPixelPainter(resId)
+    val valid = reactions.mapNotNull { r ->
+        LoliDailyArtWorker.emojiResId(r.emojiValue)?.let { r to it }
+    }
+    if (valid.isEmpty()) return
 
     Row(
-        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(3.dp),
-        modifier = if (onClick != null) {
-            Modifier.clickable(
-                onClick = onClick,
-                role = androidx.compose.ui.semantics.Role.Button,
-            )
-        } else {
-            Modifier
-        },
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Image(
-            painter = painter,
-            contentDescription = null,
-            contentScale = ContentScale.Fit,
-            modifier = Modifier.size(18.dp),
-        )
-        Text(
-            text = "${reaction.count}",
-            style = MaterialTheme.typography.labelSmall,
-            color = if (isUserReaction)
-                MaterialTheme.colorScheme.onPrimaryContainer
-            else if (onClick != null)
-                MaterialTheme.colorScheme.primary
-            else
-                MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        for ((reaction, resId) in valid) {
+            val selected = reaction.emojiValue == userEmoji
+            val painter = rememberPixelPainter(resId)
+
+            val bg = if (selected) MaterialTheme.colorScheme.primaryContainer
+                     else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+            val contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                               else MaterialTheme.colorScheme.onSurfaceVariant
+
+            Surface(
+                onClick = { if (isLoggedIn) onReactionClick(token, reaction.emojiValue) },
+                shape = RoundedCornerShape(50),
+                color = bg,
+                modifier = Modifier.height(26.dp),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Image(
+                        painter = painter,
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(2.dp))
+                    Text(
+                        text = "${reaction.count}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = contentColor,
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -593,51 +610,16 @@ private fun ArtworkCard(
 
             // Reactions overlay (bottom-start)
             if (preview.reactions.isNotEmpty()) {
-                val token = preview.filename.substringBeforeLast('.')
-                Surface(
+                ReactionRow(
+                    reactions = preview.reactions,
+                    userEmoji = preview.userEmoji,
+                    token = preview.filename.substringBeforeLast('.'),
+                    isLoggedIn = isLoggedIn,
+                    onReactionClick = onReactionClick,
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(12.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                    tonalElevation = 2.dp,
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        preview.reactions.forEachIndexed { index, reaction ->
-                            val isHighlighted = reaction.emojiValue == preview.userEmoji
-                            val isFirst = index == 0
-                            val isLast = index == preview.reactions.lastIndex
-
-                            Box(
-                                modifier = if (isHighlighted)
-                                    Modifier
-                                        .background(
-                                            MaterialTheme.colorScheme.primaryContainer,
-                                            RoundedCornerShape(20.dp),
-                                        )
-                                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                                else
-                                    Modifier.padding(
-                                        start = if (isFirst) 10.dp else 0.dp,
-                                        end = if (isLast) 10.dp else 0.dp,
-                                        top = 6.dp,
-                                        bottom = 6.dp,
-                                    ),
-                            ) {
-                                ReactionChip(
-                                    reaction = reaction,
-                                    onClick = if (isLoggedIn) {
-                                        { onReactionClick(token, reaction.emojiValue) }
-                                    } else null,
-                                    isUserReaction = isHighlighted,
-                                )
-                            }
-                        }
-                    }
-                }
+                )
             }
         }
 
@@ -898,51 +880,16 @@ private fun FullscreenImageDialog(
 
             // Reactions overlay (bottom-end)
             if (preview.reactions.isNotEmpty()) {
-                val token = preview.filename.substringBeforeLast('.')
-                Surface(
+                ReactionRow(
+                    reactions = preview.reactions,
+                    userEmoji = preview.userEmoji,
+                    token = preview.filename.substringBeforeLast('.'),
+                    isLoggedIn = isLoggedIn,
+                    onReactionClick = onReactionClick,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(16.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-                    tonalElevation = 2.dp,
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        preview.reactions.forEachIndexed { index, reaction ->
-                            val isHighlighted = reaction.emojiValue == preview.userEmoji
-                            val isFirst = index == 0
-                            val isLast = index == preview.reactions.lastIndex
-
-                            Box(
-                                modifier = if (isHighlighted)
-                                    Modifier
-                                        .background(
-                                            MaterialTheme.colorScheme.primaryContainer,
-                                            RoundedCornerShape(20.dp),
-                                        )
-                                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                                else
-                                    Modifier.padding(
-                                        start = if (isFirst) 10.dp else 0.dp,
-                                        end = if (isLast) 10.dp else 0.dp,
-                                        top = 6.dp,
-                                        bottom = 6.dp,
-                                    ),
-                            ) {
-                                ReactionChip(
-                                    reaction = reaction,
-                                    onClick = if (isLoggedIn) {
-                                        { onReactionClick(token, reaction.emojiValue) }
-                                    } else null,
-                                    isUserReaction = isHighlighted,
-                                )
-                            }
-                        }
-                    }
-                }
+                )
             }
         }
     }
