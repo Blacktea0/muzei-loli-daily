@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Loli Daily for Muzei</string>
+    <string name="source_title">Loli Daily</string>
+    <string name="source_description">Daily artwork from the Loli Daily collection</string>
+
+    <!-- Settings: Tag Filter -->
+    <string name="section_tag_filter">Tag Filters</string>
+    <string name="label_show_all">Show all tags (no filter)</string>
+    <string name="label_tag_lc0">LC0</string>
+    <string name="label_tag_lc_es">LC ES</string>
+    <string name="hint_tags_applied">Changes take effect on next wallpaper refresh.</string>
+
+    <!-- Settings: Preview -->
+    <string name="section_cached_artwork">Cached Artwork</string>
+    <string name="hint_no_cache">No cached images yet.\nActivate this source in Muzei to fetch artwork.</string>
+    <string name="btn_refresh_now">Refresh Now</string>
+    <string name="toast_refresh_enqueued">Refresh enqueued — respecting current tag filter</string>
+</resources>

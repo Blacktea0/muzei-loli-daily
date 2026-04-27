@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:allowBackup="true"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.LoliDaily">
+
+        <!-- Settings activity — launched from Muzei's source config and app drawer -->
+        <activity
+            android:name="me.eroi.lolidaily.muzei.SettingsActivity"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- BroadcastReceiver for force-refresh command from Muzei -->
+        <receiver
+            android:name=".RefreshReceiver"
+            android:exported="false" />
+
+        <!-- Muzei Art Provider — discovered by the Muzei app -->
+        <provider
+            android:name=".LoliDailyArtProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="true"
+            android:label="@string/source_title"
+            android:description="@string/source_description"
+            android:permission="com.google.android.apps.muzei.api.ACCESS_PROVIDER">
+            <intent-filter>
+                <action android:name="com.google.android.apps.muzei.api.MuzeiArtProvider" />
+            </intent-filter>
+            <meta-data
+                android:name="settingsActivity"
+                android:value="me.eroi.lolidaily.muzei.SettingsActivity" />
+        </provider>
+
+        <!-- FileProvider — serves local cached images to Muzei -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!-- DocumentsProvider — allows Muzei to access artwork files -->
+        <provider
+            android:name="com.google.android.apps.muzei.api.provider.MuzeiArtDocumentsProvider"
+            android:authorities="${applicationId}.provider.documents"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:permission="android.permission.MANAGE_DOCUMENTS">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
+
+    </application>
+
+</manifest>

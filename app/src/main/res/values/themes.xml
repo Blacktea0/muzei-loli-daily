@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base theme for Compose-based activities.
+         Extends AppCompat.NoActionBar since Compose Scaffold
+         handles the top app bar. -->
+    <style name="Theme.LoliDaily" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- Compose M3 theme handles all window styling at runtime.
+             These are sensible defaults for edge-to-edge Compose. -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>
