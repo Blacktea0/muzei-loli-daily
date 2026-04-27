@@ -1,6 +1,7 @@
 package me.eroi.lolidaily.muzei
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.setContent
@@ -32,6 +33,7 @@ class SettingsActivity : AppCompatActivity() {
 
     private var selectedTags by mutableStateOf(emptySet<String>())
     private var cachedPreviews by mutableStateOf(emptyList<ArtworkPreview>())
+    private var isLoggedIn by mutableStateOf(false)
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -49,6 +51,19 @@ class SettingsActivity : AppCompatActivity() {
                         saveState()
                     },
                     cachedArtwork = cachedPreviews,
+                    isLoggedIn = isLoggedIn,
+                    onLogin = {
+                        startActivity(Intent(this, LoginActivity::class.java))
+                    },
+                    onLogout = {
+                        LoliDailyArtWorker.clearSession(this)
+                        LoginActivity.clearBgmCookies()
+                        isLoggedIn = false
+                        Toast.makeText(this, "Logged out", Toast.LENGTH_SHORT).show()
+                    },
+                    onReactionClick = { token, emojiValue ->
+                        handleReactionClick(token, emojiValue)
+                    },
                     onRefresh = {
                         LoliDailyArtWorker.enqueueLoad(this, forceRefresh = true)
                         Toast.makeText(
@@ -67,7 +82,27 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        isLoggedIn = LoliDailyArtWorker.loadSession(this) != null
         buildPreviews()
+    }
+
+    private fun handleReactionClick(token: String, emojiValue: Int) {
+        val cardIndex = LoliDailyArtWorker.getCardIndex(this, token) ?: return
+        Thread {
+            val ok = LoliDailyArtWorker.patchReaction(this, cardIndex, emojiValue)
+            if (ok) {
+                LoliDailyArtWorker.fetchAndCacheReactions(this)
+                runOnUiThread { buildPreviews() }
+            } else {
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        "Reaction failed — session may have expired",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }.start()
     }
 
     private fun loadState() {

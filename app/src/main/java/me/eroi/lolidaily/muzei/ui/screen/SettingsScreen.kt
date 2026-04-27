@@ -92,6 +92,10 @@ fun SettingsScreen(
     cachedArtwork: List<ArtworkPreview>,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
+    isLoggedIn: Boolean = false,
+    onLogin: () -> Unit = {},
+    onLogout: () -> Unit = {},
+    onReactionClick: (token: String, emojiValue: Int) -> Unit = { _, _ -> },
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
     val scope = rememberCoroutineScope()
@@ -127,13 +131,19 @@ fun SettingsScreen(
                 state = pagerState,
                 modifier = Modifier.fillMaxWidth().weight(1f),
             ) { page ->
-                when (page) {
+                 when (page) {
                     0 -> GalleryTab(
                         cachedArtwork = cachedArtwork,
+                        isLoggedIn = isLoggedIn,
+                        onLogin = onLogin,
+                        onReactionClick = onReactionClick,
                     )
                     1 -> PreferenceTab(
                         selectedTags = selectedTags,
                         onTagsChanged = onTagsChanged,
+                        isLoggedIn = isLoggedIn,
+                        onLogin = onLogin,
+                        onLogout = onLogout,
                     )
                 }
             }
@@ -147,7 +157,11 @@ fun SettingsScreen(
 private fun PreferenceTab(
     selectedTags: Set<String>,
     onTagsChanged: (Set<String>) -> Unit,
+    isLoggedIn: Boolean = false,
+    onLogin: () -> Unit = {},
+    onLogout: () -> Unit = {},
 ) {
+    val context = LocalContext.current
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -198,6 +212,53 @@ private fun PreferenceTab(
                 onClick = { onTagsChanged(setOf("LC ES")) },
             )
         }
+
+        item {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        }
+
+        item {
+            Text(
+                text = "Account",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+        }
+
+        item {
+            if (isLoggedIn) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Logged in to Bangumi",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    FilledTonalButton(onClick = onLogout) {
+                        Text("Logout")
+                    }
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Login to react to images",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    FilledTonalButton(onClick = onLogin) {
+                        Text("Login")
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -231,15 +292,27 @@ private fun FilterOption(
 /**
  * Displays a single reaction emoji with its count as an inline chip.
  * Emoji images are loaded from Bangumi smiley URLs via Coil disk cache.
+ * When [onClick] is non-null, the chip is interactive and shows a pointer cursor.
  */
 @Composable
-private fun ReactionChip(reaction: ReactionCount) {
+private fun ReactionChip(
+    reaction: ReactionCount,
+    onClick: (() -> Unit)? = null,
+) {
     val context = LocalContext.current
     val emojiUrl = LoliDailyArtWorker.EMOJI_URL_MAP[reaction.emojiValue] ?: return
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(3.dp),
+        modifier = if (onClick != null) {
+            Modifier.clickable(
+                onClick = onClick,
+                role = androidx.compose.ui.semantics.Role.Button,
+            )
+        } else {
+            Modifier
+        },
     ) {
         AsyncImage(
             model = ImageRequest.Builder(context)
@@ -253,7 +326,10 @@ private fun ReactionChip(reaction: ReactionCount) {
         Text(
             text = "${reaction.count}",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (onClick != null)
+                MaterialTheme.colorScheme.primary
+            else
+                MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -263,6 +339,9 @@ private fun ReactionChip(reaction: ReactionCount) {
 @Composable
 private fun GalleryTab(
     cachedArtwork: List<ArtworkPreview>,
+    isLoggedIn: Boolean = false,
+    onLogin: () -> Unit = {},
+    onReactionClick: (token: String, emojiValue: Int) -> Unit = { _, _ -> },
 ) {
     var fullscreenPreview by remember { mutableStateOf<ArtworkPreview?>(null) }
 
@@ -294,6 +373,9 @@ private fun GalleryTab(
                 ArtworkCard(
                     preview = preview,
                     onImageClick = { fullscreenPreview = preview },
+                    isLoggedIn = isLoggedIn,
+                    onLogin = onLogin,
+                    onReactionClick = onReactionClick,
                 )
             }
         }
@@ -303,6 +385,8 @@ private fun GalleryTab(
         FullscreenImageDialog(
             preview = preview,
             onDismiss = { fullscreenPreview = null },
+            isLoggedIn = isLoggedIn,
+            onReactionClick = onReactionClick,
         )
     }
 }
@@ -312,6 +396,9 @@ private fun GalleryTab(
 private fun ArtworkCard(
     preview: ArtworkPreview,
     onImageClick: () -> Unit,
+    isLoggedIn: Boolean = false,
+    onLogin: () -> Unit = {},
+    onReactionClick: (token: String, emojiValue: Int) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
     var showDetailDialog by remember { mutableStateOf(false) }
@@ -386,6 +473,7 @@ private fun ArtworkCard(
 
             // Reactions overlay (bottom-start)
             if (preview.reactions.isNotEmpty()) {
+                val token = preview.filename.substringBeforeLast('.')
                 Surface(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
@@ -400,7 +488,14 @@ private fun ArtworkCard(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         preview.reactions.forEach { reaction ->
-                            ReactionChip(reaction)
+                            ReactionChip(
+                                reaction = reaction,
+                                onClick = if (isLoggedIn) {
+                                    { onReactionClick(token, reaction.emojiValue) }
+                                } else {
+                                    null
+                                },
+                            )
                         }
                     }
                 }
@@ -532,6 +627,8 @@ private fun ArtworkCard(
 private fun FullscreenImageDialog(
     preview: ArtworkPreview,
     onDismiss: () -> Unit,
+    isLoggedIn: Boolean = false,
+    onReactionClick: (token: String, emojiValue: Int) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
 
@@ -589,6 +686,7 @@ private fun FullscreenImageDialog(
 
             // Reactions overlay (bottom-end)
             if (preview.reactions.isNotEmpty()) {
+                val token = preview.filename.substringBeforeLast('.')
                 Surface(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
@@ -603,7 +701,14 @@ private fun FullscreenImageDialog(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         preview.reactions.forEach { reaction ->
-                            ReactionChip(reaction)
+                            ReactionChip(
+                                reaction = reaction,
+                                onClick = if (isLoggedIn) {
+                                    { onReactionClick(token, reaction.emojiValue) }
+                                } else {
+                                    null
+                                },
+                            )
                         }
                     }
                 }

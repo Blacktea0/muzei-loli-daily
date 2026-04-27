@@ -24,6 +24,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import okio.buffer
 import okio.sink
 import okio.source
@@ -51,6 +53,18 @@ class LoliDailyArtWorker(
     context: Context,
     params: WorkerParameters,
 ) : Worker(context, params) {
+
+    /**
+     * Mirrors the JS session data structure: { token: "JWT", expiresAt: 1234567890000 }.
+     * Top-level nested so it's accessible as LoliDailyArtWorker.Session.
+     */
+    @kotlinx.serialization.Serializable
+    data class Session(
+        val token: String,
+        val expiresAt: Long,
+    ) {
+        val isValid: Boolean get() = token.isNotBlank() && expiresAt > System.currentTimeMillis()
+    }
 
     private val prefs: SharedPreferences by lazy {
         applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -497,6 +511,7 @@ class LoliDailyArtWorker(
         private const val KEY_REFILTER_ONLY = "refilter_only"
         const val KEY_IMAGE_DATES = "image_dates"
         const val KEY_REACTIONS = "reactions"
+        private const val KEY_LC_SESSION = "lc_session"
 
         const val PROVIDER_AUTHORITY = "me.eroi.lolidaily.muzei.provider"
         private const val FILE_PROVIDER_AUTHORITY =
@@ -661,6 +676,81 @@ class LoliDailyArtWorker(
                 json.decodeFromString<Map<String, List<ReactionCount>>>(raw)
             } catch (_: Exception) {
                 emptyMap()
+            }
+        }
+
+        // ── Session Management ──────────────────────────────────
+
+        /** Load the stored LC session from SharedPreferences, or null. */
+        fun loadSession(context: Context): Session? {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val raw = prefs.getString(KEY_LC_SESSION, null) ?: return null
+            return try {
+                val s = json.decodeFromString<Session>(raw)
+                if (s.isValid) s else null
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+        /** Persist a session to SharedPreferences. */
+        fun saveSession(context: Context, session: Session) {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val raw = json.encodeToString(Session.serializer(), session)
+            prefs.edit().putString(KEY_LC_SESSION, raw).apply()
+        }
+
+        /** Remove the stored session (logout). */
+        fun clearSession(context: Context) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit().remove(KEY_LC_SESSION).apply()
+        }
+
+        /**
+         * Find the index of a card (by image token) in the cached daily response.
+         * Needed because the PATCH reactions API uses card index, not token.
+         */
+        fun getCardIndex(context: Context, token: String): Int? {
+            val cacheFile = File(context.filesDir, "api_cache.json")
+            if (!cacheFile.exists()) return null
+            return try {
+                val daily = json.decodeFromString<DailyResponse>(cacheFile.readText())
+                daily.cards.indexOfFirst { md5(it.imgUrl) == token }.takeIf { it >= 0 }
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+        /**
+         * Submits a reaction to the LC API with the current session.
+         * Returns true if the request was accepted by the server.
+         */
+        fun patchReaction(
+            context: Context,
+            cardIndex: Int,
+            emojiValue: Int,
+        ): Boolean {
+            val session = loadSession(context) ?: return false
+            val body = "{\"react\":$emojiValue}".toRequestBody("application/json".toMediaType())
+
+            val request = Request.Builder()
+                .url("https://loliconey.tsuki.ga/api/v1/daily/react?cardTypeIdx=$cardIndex")
+                .header("Authorization", "Bearer ${session.token}")
+                .header("User-Agent", USER_AGENT)
+                .method("PATCH", body)
+                .build()
+
+            return try {
+                val response = httpClient.newCall(request).execute()
+                val ok = response.isSuccessful
+                response.close()
+                if (!ok) {
+                    Log.w(TAG, "Reaction PATCH returned ${response.code}")
+                }
+                ok
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to submit reaction", e)
+                false
             }
         }
     }

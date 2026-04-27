@@ -1,0 +1,247 @@
+package me.eroi.lolidaily.muzei
+
+import android.annotation.SuppressLint
+import android.graphics.Bitmap
+import android.os.Bundle
+import android.util.Log
+import android.view.ViewGroup
+import android.webkit.CookieManager
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import me.eroi.lolidaily.muzei.ui.theme.LoliDailyTheme
+
+class LoginActivity : ComponentActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        val existing = LoliDailyArtWorker.loadSession(this)
+        if (existing != null) {
+            Toast.makeText(this, "Already logged in", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+
+        setContent {
+            LoliDailyTheme {
+                LoginScreen(
+                    onSessionReceived = { session ->
+                        LoliDailyArtWorker.saveSession(this, session)
+                        Toast.makeText(this, "Logged in", Toast.LENGTH_SHORT).show()
+                        finish()
+                    },
+                    onClose = { finish() },
+                )
+            }
+        }
+    }
+
+    companion object {
+        const val OAUTH_URL = "https://loliconey.tsuki.ga/api/v1/oauth/request"
+
+        fun clearBgmCookies() {
+            val cm = CookieManager.getInstance()
+            cm.removeAllCookies(null)
+            cm.flush()
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+private fun LoginScreen(
+    onSessionReceived: (LoliDailyArtWorker.Session) -> Unit,
+    onClose: () -> Unit,
+) {
+    var isLoading by remember { mutableStateOf(true) }
+    var pageTitle by remember { mutableStateOf("Login to Bangumi") }
+    var statusMessage by remember { mutableStateOf("Connecting to Bangumi\u2026") }
+    var authDone by remember { mutableStateOf(false) }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    val webView = remember {
+        WebView(context).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+
+            CookieManager.getInstance().setAcceptCookie(true)
+            CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+
+            settings.apply {
+                javaScriptEnabled = true
+                domStorageEnabled = true
+                setSupportZoom(true)
+                builtInZoomControls = true
+                displayZoomControls = false
+                useWideViewPort = true
+                loadWithOverviewMode = true
+            }
+
+            webViewClient = object : WebViewClient() {
+
+                override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                    if (authDone) return
+                    isLoading = true
+                    statusMessage = when {
+                        url == null -> "Loading\u2026"
+                        url.contains("bgm.tv/") || url.contains("bangumi.tv/") || url.contains("chii.in/") ->
+                            "Authenticating with Bangumi\u2026"
+                        url.contains("oauth") -> "Waiting for authorization\u2026"
+                        url.contains("loliconey") || url.contains("lc-coney") -> "Processing\u2026"
+                        else -> "Redirecting\u2026"
+                    }
+                    Log.d("LoginActivity", "onPageStarted: $url")
+                }
+
+                override fun shouldOverrideUrlLoading(
+                    view: WebView?,
+                    request: WebResourceRequest?
+                ): Boolean {
+                    if (authDone) return true
+                    val url = request?.url?.toString() ?: return false
+                    Log.d("LoginActivity", "shouldOverrideUrlLoading: $url")
+
+                    if (url.contains("bgm-lcjs-session")) {
+                        authDone = true
+                        isLoading = false
+                        val token = request.url.getQueryParameter("bgm-lcjs-session")
+                        val expiresAt = request.url.getQueryParameter("expiresAt")?.toLongOrNull()
+
+                        if (token != null && expiresAt != null && expiresAt > System.currentTimeMillis()) {
+                            onSessionReceived(LoliDailyArtWorker.Session(token, expiresAt))
+                        } else {
+                            Toast.makeText(context, "Login failed", Toast.LENGTH_LONG).show()
+                            onClose()
+                        }
+                        return true
+                    }
+
+                    // bgm.tv drops redirect_uri when encoding chii_referer for the login flow.
+                    // After login, the redirect back to /oauth/authorize lacks redirect_uri,
+                    // causing "invalid_uri". Re-start the OAuth flow from LC instead.
+                    if (url.contains("bgm.tv/oauth/authorize") && !url.contains("redirect_uri")) {
+                        Log.d("LoginActivity", "Detected truncated OAuth — reloading from LC")
+                        view?.loadUrl(LoginActivity.OAUTH_URL)
+                        return true
+                    }
+
+                    return false
+                }
+
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    isLoading = false
+                    view?.title?.let { if (it.isNotBlank()) pageTitle = it }
+                }
+            }
+
+            loadUrl(LoginActivity.OAUTH_URL, mapOf("Referer" to "https://bgm.tv/"))
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = pageTitle,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = FontWeight.Medium,
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        if (webView.canGoBack()) webView.goBack() else onClose()
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { webView.reload() }) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { padding ->
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            if (isLoading) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    strokeCap = StrokeCap.Round,
+                )
+            }
+
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                AndroidView(
+                    factory = { webView },
+                    modifier = Modifier.fillMaxSize(),
+                )
+
+                if (isLoading && !authDone) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 3.dp,
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            text = statusMessage,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

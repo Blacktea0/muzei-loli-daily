@@ -20,6 +20,12 @@
             </intent-filter>
         </activity>
 
+        <!-- OAuth login — WebView-based Bangumi OAuth for reaction submission -->
+        <activity
+            android:name="me.eroi.lolidaily.muzei.LoginActivity"
+            android:exported="false"
+            android:label="Login to Bangumi" />
+
         <!-- BroadcastReceiver for force-refresh command from Muzei -->
         <receiver
             android:name=".RefreshReceiver"
