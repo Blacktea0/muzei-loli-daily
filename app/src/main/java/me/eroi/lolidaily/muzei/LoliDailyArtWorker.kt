@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
+import android.util.Base64
 import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.work.Constraints
@@ -21,14 +22,15 @@ import com.google.android.apps.muzei.api.provider.Artwork
 import com.google.android.apps.muzei.api.provider.ProviderContract
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.serializer
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
 import okio.buffer
 import okio.sink
 import okio.source
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.serializer
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
@@ -512,6 +514,11 @@ class LoliDailyArtWorker(
         const val KEY_IMAGE_DATES = "image_dates"
         const val KEY_REACTIONS = "reactions"
         private const val KEY_LC_SESSION = "lc_session"
+        private const val KEY_USER_REACTIONS = "user_reactions"
+        private const val KEY_BGM_USERNAME = "bgm_username"
+        private const val KEY_BGM_DOMAIN = "bgm_domain"
+
+        private const val DEFAULT_BGM_DOMAIN = "chii.in"
 
         const val PROVIDER_AUTHORITY = "me.eroi.lolidaily.muzei.provider"
         private const val FILE_PROVIDER_AUTHORITY =
@@ -530,7 +537,20 @@ class LoliDailyArtWorker(
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
 
-        /** Map of reaction emoji value → Bangumi smiley URL for display. */
+        /** Map of reaction emoji value → drawable resource ID. */
+        fun emojiResId(value: Int): Int? = when (value) {
+            0 -> R.drawable.reaction_44
+            104 -> R.drawable.reaction_65
+            54 -> R.drawable.reaction_15
+            140 -> R.drawable.reaction_101
+            122 -> R.drawable.reaction_83
+            90 -> R.drawable.reaction_51
+            88 -> R.drawable.reaction_49
+            80 -> R.drawable.reaction_41
+            else -> null
+        }
+
+        @Deprecated("Use emojiResId() with local drawable resources instead")
         val EMOJI_URL_MAP = mapOf(
             0 to "https://bgm.tv/img/smiles/tv/44.gif",
             104 to "https://bgm.tv/img/smiles/tv/65.gif",
@@ -659,6 +679,31 @@ class LoliDailyArtWorker(
                     tokenReactions,
                 )
                 prefs.edit().putString(KEY_REACTIONS, serialized).apply()
+
+                // Also record which emoji the current user selected per card
+                val username = loadUsername(context)
+                Log.d(TAG, "loadUsername = $username")
+                if (username != null) {
+                    val userReactions = mutableMapOf<String, Int>()
+                    reactData.reactions.forEachIndexed { idx, reactionMap ->
+                        if (idx >= daily.cards.size) return@forEachIndexed
+                        val token = md5(daily.cards[idx].imgUrl)
+                        for ((emojiKey, users) in reactionMap) {
+                            val matched = users.any { it.firstOrNull() == username }
+                            Log.d(TAG, "card=$idx emoji=$emojiKey users=$users matched=$matched username=$username")
+                            if (matched) {
+                                userReactions[token] = emojiKey.toInt()
+                                break
+                            }
+                        }
+                    }
+                    Log.d(TAG, "userReactions map = $userReactions")
+                    prefs.edit().putString(
+                        KEY_USER_REACTIONS,
+                        json.encodeToString(serializer<Map<String, Int>>(), userReactions)
+                    ).apply()
+                }
+
                 Log.d(TAG, "Cached reactions for ${tokenReactions.size} cards")
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to fetch reactions", e)
@@ -703,7 +748,67 @@ class LoliDailyArtWorker(
         /** Remove the stored session (logout). */
         fun clearSession(context: Context) {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .edit().remove(KEY_LC_SESSION).apply()
+                .edit()
+                .remove(KEY_LC_SESSION)
+                .remove(KEY_BGM_USERNAME)
+                .remove(KEY_USER_REACTIONS)
+                .apply()
+        }
+
+        /** Store the bgm.tv username extracted from the OAuth callback URL. */
+        fun saveUsername(context: Context, username: String) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit().putString(KEY_BGM_USERNAME, username).apply()
+        }
+
+        /** Load the stored bgm.tv username, or null. */
+        fun loadUsername(context: Context): String? {
+            return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(KEY_BGM_USERNAME, null)
+        }
+
+        /** Save the chosen Bangumi domain (bgm.tv / bangumi.tv / chii.in). */
+        fun saveDomain(context: Context, domain: String) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit().putString(KEY_BGM_DOMAIN, domain).apply()
+        }
+
+        /** Load the chosen Bangumi domain, defaulting to [DEFAULT_BGM_DOMAIN]. */
+        fun loadDomain(context: Context): String {
+            return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(KEY_BGM_DOMAIN, DEFAULT_BGM_DOMAIN) ?: DEFAULT_BGM_DOMAIN
+        }
+
+        /**
+         * Extracts the Bangumi username from a JWT session token.
+         * The JWT payload is expected to contain a "username" or "sub" claim.
+         */
+        fun getUsername(session: Session): String? {
+            return try {
+                val parts = session.token.split('.')
+                if (parts.size < 2) return null
+                val payload = String(Base64.decode(parts[1], Base64.DEFAULT))
+                val json = org.json.JSONObject(payload)
+                val name = json.optString("username", "").ifEmpty { null }
+                    ?: json.optString("sub", "").ifEmpty { null }
+                name
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+        /**
+         * Loads the user's own reaction map (token → emojiValue)
+         * for cards they have reacted to.
+         */
+        fun loadUserReactions(context: Context): Map<String, Int> {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val raw = prefs.getString(KEY_USER_REACTIONS, null) ?: return emptyMap()
+            return try {
+                json.decodeFromString<Map<String, Int>>(raw)
+            } catch (_: Exception) {
+                emptyMap()
+            }
         }
 
         /**
@@ -744,7 +849,24 @@ class LoliDailyArtWorker(
                 val response = httpClient.newCall(request).execute()
                 val ok = response.isSuccessful
                 response.close()
-                if (!ok) {
+
+                if (ok) {
+                    // Track locally so UI can show heart immediately
+                    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    val raw = prefs.getString(KEY_USER_REACTIONS, null)
+                    val map = if (raw != null) {
+                        try { json.decodeFromString<MutableMap<String, Int>>(raw).toMutableMap() }
+                        catch (_: Exception) { mutableMapOf() }
+                    } else mutableMapOf()
+                    val cacheFile = File(context.filesDir, "api_cache.json")
+                    val daily = json.decodeFromString<DailyResponse>(cacheFile.readText())
+                    val token = md5(daily.cards[cardIndex].imgUrl)
+                    map[token] = emojiValue
+                    prefs.edit().putString(
+                        KEY_USER_REACTIONS,
+                        json.encodeToString(serializer<Map<String, Int>>(), map)
+                    ).apply()
+                } else {
                     Log.w(TAG, "Reaction PATCH returned ${response.code}")
                 }
                 ok

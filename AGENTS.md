@@ -1,293 +1,132 @@
-# AGENTS.md — muzei-loli-daily
+# AGENTS.md
 
-## Project Identity
+Quick orientation for AI coding agents working in this repo.
 
-**muzei-loli-daily** is a [Muzei](https://github.com/romannurik/muzei) wallpaper plugin for Android that fetches daily artwork from the [Lolicommons](https://loliconey.tsuki.ga) collection and serves it to the Muzei Live Wallpaper app.
+## What this is
 
-- **Package:** `me.eroi.lolidaily.muzei`
-- **Language:** Kotlin 2.0.21
-- **Min SDK:** 24 | **Target SDK:** 35 | **Compile SDK:** 35
-- **AGP:** 8.13.2
-- **JVM Target:** 17
+An Android app that plugs into [Muzei Live Wallpaper](https://muzei.co/) as an
+art source. It pulls a daily batch of artwork from the Loli Commons API
+(`loliconey.tsuki.ga`) and feeds it to Muzei. It also lets the user react to
+cards via Bangumi (bgm.tv) OAuth.
 
----
+- Package: `me.eroi.lolidaily.muzei`
+- Min SDK 24, Target/Compile SDK 35, JVM 17
+- Kotlin + Jetpack Compose + Material 3
+- Single module: `:app`
+
+## Conventional Commits
+
+Follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/).
+
+```
+<type>[(<scope>)]: <description>
+```
+
+Types:
+- `feat` — new feature
+- `fix` — bug fix
+- `chore` — build tooling, deps, misc maintenance
+- `refactor` — code change that neither fixes a bug nor adds a feature
+- `docs` — documentation only
+- `style` — formatting, whitespace (no logic change)
+
+Scopes: `settings`, `worker`, `provider`, `auth`, `model`, `ui`, `api`. Omit if
+change spans multiple or doesn't fit one.
+
+Keep descriptions lowercase, imperative ("add" not "added"), no period at end.
+
+## Build & run
+
+```bash
+./gradlew assembleDebug         # build APK
+./gradlew installDebug          # build + install to connected device
+./gradlew lint                  # static analysis
+./gradlew build                 # full build (no tests defined yet)
+```
+
+There is no test source set yet. `local.properties` holds the SDK path and is
+git-ignored.
 
 ## Architecture
 
-```
-Muzei App (host)
-    │
-    │ discovers via <intent-filter>
-    ▼
-┌──────────────────────────────────────────┐
-│         LoliDailyArtProvider             │  ← MuzeiArtProvider (ContentProvider)
-│  - Registers Muzei command actions       │
-│  - Serves cached images via openFile()   │
-│  - Triggers Worker on load request       │
-└──────────────────────────────────────────┘
-    │
-    │ enqueues via WorkManager
-    ▼
-┌──────────────────────────────────────────┐
-│         LoliDailyArtWorker               │  ← WorkManager Worker
-│  - Fetches API JSON (daily cards)        │
-│  - Downloads all images (full cache)     │
-│  - Records per-image API dates           │
-│  - Filters by user tag preferences       │
-│  - Pushes matching artwork to Muzei      │
-│  - Supports refilter-only mode (no net)  │
-└──────────────────────────────────────────┘
-    │
-    │ reads SharedPreferences
-    ▼
-┌──────────────────────────────────────────┐
-│          SettingsActivity                │  ← AppCompatActivity + Compose
-│  - setContent { LoliDailyTheme { } }    │
-│  - Tag filter (radio buttons)            │
-│  - Cached image gallery preview          │
-│  - FAB refresh trigger                   │
-└──────────────────────────────────────────┘
+Three components fan out from `LoliDailyArtWorker`, which is the core:
 
-            RefreshReceiver               ← BroadcastReceiver (force-refresh)
-```
+- `LoliDailyArtProvider` (`MuzeiArtProvider`) — Muzei's entry point. On
+  `onLoadRequested` it just enqueues the worker. Also provides per-artwork
+  command actions (View Source / View Artist / Force Refresh).
+- `LoliDailyArtWorker` (`WorkManager` `Worker`) — fetches the daily JSON,
+  downloads images, writes them to `filesDir/artworks/`, filters by user's
+  selected tags, and pushes the result to Muzei via
+  `ProviderContract.getProviderClient(...).setArtwork(...)`.
+- `SettingsActivity` (Compose) — launched from Muzei's source config and the
+  app drawer. Tag filter, cached gallery, reaction buttons, Bangumi login.
 
-### Key Data Flow
+Supporting pieces:
 
-1. **API → Worker**: `LoliDailyArtWorker.doWork()` calls `GET https://loliconey.tsuki.ga/api/v1/daily?badge=LC%20YJ-ES-NC-PG`
-2. **Download All**: Worker downloads *all* images regardless of tag filter — the full daily batch is cached locally.
-3. **Tag Filter at Push Time**: Worker reads `SharedPreferences("lolidaily_prefs")` → key `enabled_tags` (`Set<String>`). Filters `Card` list by `card.tags` when pushing to Muzei.
-4. **Caching**: Images saved to `filesDir/artworks/{md5(url)}.{ext}`. API date check skips re-download when unchanged. JSON response cached to `filesDir/api_cache.json`.
-5. **Refilter Mode**: When user changes tags, `enqueueRefilter()` runs Worker with cached data only (no network). Applies new filter and pushes to Muzei immediately.
-6. **Muzei Integration**: Worker calls `ProviderContract.getProviderClient().setArtwork(artworks)` to replace the Muzei queue. Sends `NEXT_ARTWORK` broadcast on new daily batch.
-7. **Hourly Throttle**: API called at most once per hour unless force-refresh.
-8. **Per-Image Dates**: `recordImageDates()` stores `md5(imgUrl) → apiDate` map in SharedPreferences (`image_dates` key). Gallery reads this to display API dates per artwork.
+- `LoginActivity` — WebView OAuth flow against `loliconey.tsuki.ga`.
+- `RefreshReceiver` — broadcast handler for the Force Refresh command action.
+- `model/ApiModels.kt` — Kotlinx-serializable DTOs for the API.
+- `model/ArtworkPreview.kt` — UI model for the settings gallery.
 
----
-
-## File Map
+### Data flow
 
 ```
-app/src/main/
-├── AndroidManifest.xml                               ← All components + INTERNET permission
-├── java/me/eroi/lolidaily/muzei/
-│   ├── LoliDailyArtWorker.kt                         ← Core: API fetch, image download, cache, filter, push
-│   ├── LoliDailyArtProvider.kt                       ← Muzei provider: load trigger, command actions, openFile
-│   ├── SettingsActivity.kt                           ← Compose host: state management, prefs read/write, preview builder
-│   ├── RefreshReceiver.kt                            ← BroadcastReceiver for force-refresh
-│   └── model/
-│       ├── ApiModels.kt                              ← @Serializable: DailyResponse, Card, SuggestedBy
-│       └── ArtworkPreview.kt                         ← Data class: cached artwork URI + API metadata for gallery display
-├── java/me/eroi/lolidaily/muzei/ui/
-│   ├── screen/
-│   │   └── SettingsScreen.kt                         ← Compose UI: tabbed settings (Gallery + Preference)
-│   └── theme/
-│       ├── Theme.kt                                  ← LoliDailyTheme (dynamic color on API 31+)
-│       ├── Color.kt                                  ← Light/dark color schemes (warm amber-brown)
-│       └── Type.kt                                   ← Material3 typography scale
-├── res/
-│   ├── drawable/
-│   │   ├── ic_refresh.xml                            ← Vector: refresh icon
-│   │   ├── ic_person.xml                             ← Vector: artist icon
-│   │   └── ic_view_source.xml                        ← Vector: external link icon
-│   ├── values/
-│   │   ├── strings.xml                               ← String resources
-│   │   └── themes.xml                                ← AppCompat base theme (no action bar)
-│   └── xml/
-│       └── file_paths.xml                            ← FileProvider: "artworks/" directory
+Muzei → LoliDailyArtProvider.onLoadRequested
+      → LoliDailyArtWorker.enqueueLoad
+        → fetch /api/v1/daily (gated to once/hour, bypassed on force-refresh)
+        → cache JSON to filesDir/api_cache.json
+        → on new daily date: download all images to filesDir/artworks/<md5>.<ext>
+        → filter cards by KEY_ENABLED_TAGS
+        → ProviderClient.setArtwork(filtered)
+        → if new day: broadcast NEXT_ARTWORK to net.nurik.roman.muzei
 ```
 
-### ArtworkPreview Model
+Tokens are MD5 of `card.imgUrl`. That's how `Artwork` rows, cached files, and
+reaction lookups are all keyed.
 
-```kotlin
-// model/ArtworkPreview.kt
-data class ArtworkPreview(
-    val uri: Uri,               // FileProvider URI to cached image
-    val filename: String,       // e.g. "d41d8cd9.jpg"
-    val artistName: String,
-    val comment: String,
-    val tags: String,
-    val characterNames: List<String>,
-    val sourceUrl: String,
-    val artistUrl: String,
-    val date: String,           // API response date (e.g. "2026-04-25")
-)
-```
+### Tag filter behaviour
 
-Populated in `SettingsActivity.loadPreview()` from cached API response (`api_cache.json`) and per-image date map (`image_dates` prefs key).
+All images for the day are downloaded regardless of filter — the filter is
+applied at push time. Changing the filter in Settings calls
+`enqueueRefilter()`, which re-pushes from cached data without hitting the
+network. Tags currently surfaced in UI: `LC0`, `LC YJ`, `LC ES`. The full list
+is whatever the API returns; the strings file (`res/values/strings.xml`) only
+labels the ones we expose.
 
----
+### Reactions
 
-### SharedPreferences Contract
+Reactions come from `/api/v1/daily/react` and are submitted via
+`PATCH /api/v1/daily/react?cardTypeIdx=<index>`. The PATCH API uses card index,
+not token — see `getCardIndex(...)`. Auth is a Bearer JWT obtained via the
+WebView OAuth flow and persisted in SharedPreferences as
+`LoliDailyArtWorker.Session`.
 
-All keys defined in `LoliDailyArtWorker.companion`. File: `"lolidaily_prefs"` (MODE_PRIVATE).
+Emoji IDs (e.g. `0`, `54`, `104`...) map to bgm.tv smiley GIFs; we ship local
+copies in `res/drawable/reaction_*.gif`. The map lives in
+`LoliDailyArtWorker.emojiResId(...)`.
 
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `enabled_tags` | `Set<String>` | null / empty | Tag filter; empty = show all |
-| `force_refresh` | `Boolean` | false | WorkManager input — bypass API date cache |
-| `refilter_only` | `Boolean` | false | WorkManager input — skip network, use cache |
-| `last_api_date` | `String` | null | Cached API `date` field (latest batch) |
-| `last_fetch_time` | `Long` | 0 | Timestamp of last API call (hourly throttle) |
-| `image_dates` | `String` (JSON) | null | JSON `Map<String, String>`: `{md5(imgUrl): "2026-04-25", ...}` — per-image API date |
+## Reference
 
----
+### Muzei API
 
-## Dependencies
+- Official API docs: https://api.muzei.co/
+- GitHub repo: https://github.com/muzei/muzei (Apache 2.0)
+- MuzeiArtProvider: https://api.muzei.co/reference/com.google.android.apps.muzei.api.provider/-muzei-art-provider/index.html
+- ProviderContract: https://api.muzei.co/reference/com.google.android.apps.muzei.api.provider/-provider-contract/index.html
+- ProviderClient: https://api.muzei.co/reference/com.google.android.apps.muzei.api.provider/-provider-client/index.html
+- Artwork: https://api.muzei.co/reference/com.google.android.apps.muzei.api.provider/-artwork/index.html
+- Example sources: https://github.com/muzei/muzei/tree/main/example-unsplash
 
-```kotlin
-// build.gradle.kts (app)
+**Latest**: `com.google.android.apps.muzei:muzei-api:3.4.2` (2024-06-16).
+Two API surfaces: **Provider API** (`com.google.android.apps.muzei.api.provider`)
+for building sources, **Contract API** (`com.google.android.apps.muzei.api`) for
+reading wallpaper state.
 
-// Compose (BOM 2024.12.01)
-implementation("androidx.compose.ui:ui")
-implementation("androidx.compose.ui:ui-graphics")
-implementation("androidx.compose.material3:material3")
-implementation("androidx.compose.material:material-icons-extended")
-implementation("androidx.activity:activity-compose:1.9.3")
-implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
-implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+### Material Design 3 (Compose)
 
-// Image loading
-implementation("io.coil-kt.coil3:coil-compose:3.0.4")
-implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")
+- M3 design spec: https://m3.material.io/
+- Compose M3 developer guide: https://developer.android.com/develop/ui/compose/designsystems/material3
+- M3 theming codelab: https://developer.android.com/codelabs/m3-design-theming
 
-// Core
-implementation("androidx.core:core-ktx:1.15.0")
-implementation("androidx.appcompat:appcompat:1.7.1")
-implementation("com.google.android.apps.muzei:muzei-api:3.4.2")
-implementation("com.squareup.okhttp3:okhttp:4.12.0")
-implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
-implementation("androidx.work:work-runtime-ktx:2.10.0")
-implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-```
-
----
-
-## Conventions
-
-### Naming
-- Activity/Provider/Worker: `PascalCase.kt`
-- Compose screens: `PascalCase.kt` in `ui/screen/`
-- Theme files: `PascalCase.kt` in `ui/theme/`
-- Resource IDs (strings): `snake_case`
-- Vector drawables: `ic_*.xml`
-- Constants: `SCREAMING_SNAKE_CASE`
-
-### UI — Compose + Material 3
-- Full Compose UI — no XML layouts.
-- `LoliDailyTheme` wraps all content. Dynamic color (Material You) on API 31+, warm amber-brown fallback palette.
-- `SettingsScreen` is a stateless composable — all state owned by `SettingsActivity`.
-- Tabbed layout: `TabRow` + `HorizontalPager` (Gallery tab, Preference tab).
-- Image loading: Coil `AsyncImage` with `ImageRequest.Builder(context).data(uri)`.
-- `Scaffold` with `TopAppBar` and `FloatingActionButton` (Gallery tab only).
-- Gallery: `ArtworkCard` with hero image, date badge overlay, tag badge, artist + comment, detail dialog, fullscreen zoom.
-
-### State Management
-- `SettingsActivity`: Direct SharedPreferences + Compose `mutableStateOf`. No ViewModel.
-- Worker reads SharedPreferences on each execution. No live push from settings.
-- Tag change triggers `enqueueRefilter()` — lightweight, no-network re-push.
-- Gallery date display: `SettingsActivity.loadPreview()` builds `ArtworkPreview` from cached files, reads `image_dates` prefs map, falls back to API response `date` field.
-
-### Error Handling
-- Worker returns `Result.retry()` on network/parse failures (WorkManager retries with backoff).
-- Image download: 3 retries with exponential backoff (1s, 4s, 9s).
-- File integrity: magic byte validation for JPEG, PNG, WebP, GIF, BMP.
-- Logging via `android.util.Log` with tags: `LoliDailyWorker`, `LoliDailyProvider`, `RefreshReceiver`.
-- No user-facing error UI (Toast for refresh confirmation only).
-
-### Muzei Integration
-- `LoliDailyArtProvider` extends `MuzeiArtProvider`.
-- Command actions: View Source, View Artist (parsed from artwork metadata JSON), Force Refresh.
-- `openFile()` serves cached images directly from `filesDir/artworks/`.
-- `<meta-data android:name="settingsActivity">` points to `SettingsActivity` — this class name is part of the Muzei contract and must not change.
-- Provider authority: `${applicationId}.provider` (resolves to `me.eroi.lolidaily.muzei.provider`).
-
----
-
-## Build & Run
-
-```bash
-# Build debug APK
-./gradlew assembleDebug
-
-# Install on device
-./gradlew installDebug
-
-# Build release (ProGuard enabled)
-./gradlew assembleRelease
-
-# Run tests (currently none)
-./gradlew test
-
-# Lint
-./gradlew lint
-```
-
-**Debugging:**
-- Log filter: `adb logcat -s LoliDailyWorker:* LoliDailyProvider:* RefreshReceiver:*`
-- SettingsActivity is the LAUNCHER activity — can be opened directly from app drawer.
-- Requires Muzei app installed on device for wallpaper integration to work.
-
----
-
-## API Notes
-
-- **Endpoint:** `https://loliconey.tsuki.ga/api/v1/daily?badge=LC%20YJ-ES-NC-PG`
-- **Response model:** `DailyResponse { cards: List<Card>, date: String }`
-- **Card model:** `Card { imgUrl, tags, artistName, artistUrl, characterNames, characterIds, sourceUrl, comment, suggestedBy }`
-- **SuggestedBy model:** `SuggestedBy { nickname, username }`
-- **Tag filtering:** Worker checks `card.tags` (single String) against `enabled_tags` Set. Empty set = no filter.
-- **Token:** MD5 hash of `imgUrl` — used for deduplication and cache filenames.
-- **User-Agent:** `LoliDaily/1.0 (Android)`
-- **Hourly throttle:** `last_fetch_time` prefs key; skipped on force-refresh.
-- **JSON cache:** Full API response cached to `filesDir/api_cache.json` for refilter-only mode.
-- **Per-image dates:** Stored in `image_dates` SharedPreferences key as JSON `Map<String, String>`. Populated by `recordImageDates()` when new daily batch arrives. Gallery falls back to `api_cache.json` date when per-image entry is missing.
-
----
-
-## Commit Convention
-
-This project follows [Conventional Commits](https://www.conventionalcommits.org/).
-
-### Format
-
-```
-<type>(<scope>): <description>
-
-[optional body]
-```
-
-### Types
-
-| Type | When |
-|---|---|
-| `feat` | New feature or functionality |
-| `fix` | Bug fix |
-| `refactor` | Code restructuring without behavior change |
-| `style` | Formatting, whitespace, lint fixes (no logic change) |
-| `perf` | Performance improvement |
-| `docs` | Documentation only |
-| `chore` | Build, deps, tooling, maintenance |
-| `test` | Adding or updating tests |
-
-### Scope
-
-Use one of: `worker`, `provider`, `settings`, `ui`, `theme`, `build`, `deps`
-
-### Examples
-
-```
-feat(worker): cache all cards and filter by tag at push time
-fix(worker): retry failed image downloads with integrity validation
-fix(settings): use API response date instead of file hash in gallery overlay
-refactor(settings): replace checkboxes with radio buttons in filter tab
-style(ui): add swipe-to-switch tabs with HorizontalPager
-chore(build): add Compose BOM and Material3 dependencies
-docs: add commit convention to AGENTS.md
-```
-
-### Rules
-
-- Description must use **imperative mood** ("add", not "added" or "adds")
-- First line max **72 characters**
-- Separate subject from body with a blank line
-- Do **not** end subject with a period
+Key Compose M3 entry points: `MaterialTheme`, `ColorScheme`, `Typography`,
+`Shapes`. Theme builder tools at https://m3.material.io/theme-builder.

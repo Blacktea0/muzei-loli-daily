@@ -1,9 +1,12 @@
 package me.eroi.lolidaily.muzei.ui.screen
 
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,7 +32,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
@@ -38,14 +44,19 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
@@ -55,6 +66,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,10 +76,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
@@ -99,6 +116,8 @@ fun SettingsScreen(
     onLogin: () -> Unit = {},
     onLogout: () -> Unit = {},
     onReactionClick: (token: String, emojiValue: Int) -> Unit = { _, _ -> },
+    bgmDomain: String = "chii.in",
+    onDomainChanged: (String) -> Unit = {},
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
     val scope = rememberCoroutineScope()
@@ -148,6 +167,8 @@ fun SettingsScreen(
                         isLoggedIn = isLoggedIn,
                         onLogin = onLogin,
                         onLogout = onLogout,
+                        bgmDomain = bgmDomain,
+                        onDomainChanged = onDomainChanged,
                     )
                 }
             }
@@ -164,6 +185,8 @@ private fun PreferenceTab(
     isLoggedIn: Boolean = false,
     onLogin: () -> Unit = {},
     onLogout: () -> Unit = {},
+    bgmDomain: String = "chii.in",
+    onDomainChanged: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
     LazyColumn(
@@ -231,6 +254,15 @@ private fun PreferenceTab(
         }
 
         item {
+            Text(
+                text = "Login via: $bgmDomain",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+        }
+
+        item {
             if (isLoggedIn) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -247,6 +279,7 @@ private fun PreferenceTab(
                     }
                 }
             } else {
+                var showDomainPicker by remember { mutableStateOf(false) }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -257,9 +290,21 @@ private fun PreferenceTab(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    FilledTonalButton(onClick = onLogin) {
+                    FilledTonalButton(onClick = { showDomainPicker = true }) {
                         Text("Login")
                     }
+                }
+
+                if (showDomainPicker) {
+                    DomainPickerDialog(
+                        currentDomain = bgmDomain,
+                        onDomainSelected = { domain ->
+                            showDomainPicker = false
+                            onDomainChanged(domain)
+                            onLogin()
+                        },
+                        onDismiss = { showDomainPicker = false },
+                    )
                 }
             }
         }
@@ -294,6 +339,20 @@ private fun FilterOption(
 // ── Reaction Chip ──────────────────────────────────────────────
 
 /**
+ * Loads a drawable resource as a pixel-art [Painter] with
+ * nearest-neighbour filtering (no anti-aliasing), suitable
+ * for low-resolution emoji GIFs.
+ */
+@Composable
+private fun rememberPixelPainter(resId: Int): Painter {
+    val context = LocalContext.current
+    return remember(resId) {
+        val bitmap = BitmapFactory.decodeResource(context.resources, resId)
+        BitmapPainter(bitmap.asImageBitmap(), filterQuality = FilterQuality.None)
+    }
+}
+
+/**
  * Displays a single reaction emoji with its count as an inline chip.
  * Emoji images are loaded from Bangumi smiley URLs via Coil disk cache.
  * When [onClick] is non-null, the chip is interactive and shows a pointer cursor.
@@ -302,9 +361,10 @@ private fun FilterOption(
 private fun ReactionChip(
     reaction: ReactionCount,
     onClick: (() -> Unit)? = null,
+    isUserReaction: Boolean = false,
 ) {
-    val context = LocalContext.current
-    val emojiUrl = LoliDailyArtWorker.EMOJI_URL_MAP[reaction.emojiValue] ?: return
+    val resId = LoliDailyArtWorker.emojiResId(reaction.emojiValue) ?: return
+    val painter = rememberPixelPainter(resId)
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -318,11 +378,8 @@ private fun ReactionChip(
             Modifier
         },
     ) {
-        AsyncImage(
-            model = ImageRequest.Builder(context)
-                .data(emojiUrl)
-                .size(32)
-                .build(),
+        Image(
+            painter = painter,
             contentDescription = null,
             contentScale = ContentScale.Fit,
             modifier = Modifier.size(18.dp),
@@ -330,11 +387,53 @@ private fun ReactionChip(
         Text(
             text = "${reaction.count}",
             style = MaterialTheme.typography.labelSmall,
-            color = if (onClick != null)
+            color = if (isUserReaction)
+                MaterialTheme.colorScheme.onPrimaryContainer
+            else if (onClick != null)
                 MaterialTheme.colorScheme.primary
             else
                 MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+// ── Domain Picker Dialog ───────────────────────────────────────
+
+@Composable
+private fun DomainPickerDialog(
+    currentDomain: String,
+    onDomainSelected: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val domains = listOf("chii.in", "bgm.tv", "bangumi.tv")
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(
+                    text = "Choose login site",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                )
+                domains.forEach { domain ->
+                    val selected = domain == currentDomain
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onDomainSelected(domain) }
+                            .padding(vertical = 12.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = selected, onClick = null)
+                        Spacer(Modifier.width(12.dp))
+                        Text(domain, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -504,19 +603,38 @@ private fun ArtworkCard(
                     tonalElevation = 2.dp,
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        preview.reactions.forEach { reaction ->
-                            ReactionChip(
-                                reaction = reaction,
-                                onClick = if (isLoggedIn) {
-                                    { onReactionClick(token, reaction.emojiValue) }
-                                } else {
-                                    null
-                                },
-                            )
+                        preview.reactions.forEachIndexed { index, reaction ->
+                            val isHighlighted = reaction.emojiValue == preview.userEmoji
+                            val isFirst = index == 0
+                            val isLast = index == preview.reactions.lastIndex
+
+                            Box(
+                                modifier = if (isHighlighted)
+                                    Modifier
+                                        .background(
+                                            MaterialTheme.colorScheme.primaryContainer,
+                                            RoundedCornerShape(20.dp),
+                                        )
+                                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                                else
+                                    Modifier.padding(
+                                        start = if (isFirst) 10.dp else 0.dp,
+                                        end = if (isLast) 10.dp else 0.dp,
+                                        top = 6.dp,
+                                        bottom = 6.dp,
+                                    ),
+                            ) {
+                                ReactionChip(
+                                    reaction = reaction,
+                                    onClick = if (isLoggedIn) {
+                                        { onReactionClick(token, reaction.emojiValue) }
+                                    } else null,
+                                    isUserReaction = isHighlighted,
+                                )
+                            }
                         }
                     }
                 }
@@ -590,44 +708,48 @@ private fun ArtworkCard(
             // Action row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Detail button
-                FilledTonalButton(onClick = { showDetailDialog = true }) {
-                    Text("Details")
+                // Info button → opens detail dialog
+                FilledTonalIconButton(onClick = { showDetailDialog = true }) {
+                    Icon(Icons.Default.Info, contentDescription = "Artwork details")
                 }
 
-                // Icon buttons for external links
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (preview.sourceUrl.isNotBlank()) {
-                        FilledTonalIconButton(
-                            onClick = {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, Uri.parse(preview.sourceUrl))
-                                )
-                            },
-                        ) {
-                            Icon(
-                                Icons.Default.Image,
-                                contentDescription = "View source image",
-                            )
+                // Reaction heart button → opens reaction picker or prompts login
+                val token = preview.filename.substringBeforeLast('.')
+                var showReactionPicker by remember { mutableStateOf(false) }
+                val hasReacted = preview.userEmoji != null
+
+                FilledTonalIconButton(
+                    onClick = {
+                        if (!isLoggedIn) {
+                            Toast.makeText(context, "Login to Bangumi to react", Toast.LENGTH_SHORT).show()
+                        } else if (hasReacted) {
+                            onReactionClick(token, preview.userEmoji!!)
+                        } else {
+                            showReactionPicker = true
                         }
-                    }
-                    if (preview.artistUrl.isNotBlank()) {
-                        FilledTonalIconButton(
-                            onClick = {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, Uri.parse(preview.artistUrl))
-                                )
-                            },
-                        ) {
-                            Icon(
-                                Icons.Default.Person,
-                                contentDescription = "View artist page",
-                            )
-                        }
-                    }
+                    },
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        contentColor = if (hasReacted) MaterialTheme.colorScheme.error
+                                       else MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                ) {
+                    Icon(
+                        if (hasReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "React",
+                    )
+                }
+
+                if (showReactionPicker && isLoggedIn) {
+                    ReactionPickerDialog(
+                        onDismiss = { showReactionPicker = false },
+                        onEmojiSelected = { value ->
+                            onReactionClick(token, value)
+                            showReactionPicker = false
+                        },
+                    )
                 }
             }
         }
@@ -639,6 +761,75 @@ private fun ArtworkCard(
             preview = preview,
             onDismiss = { showDetailDialog = false },
         )
+    }
+}
+
+// ── Reaction Picker Dialog ────────────────────────────────────
+
+/**
+ * Grid overlay of 8 Bangumi reaction emojis.
+ * Selecting one dismisses the dialog and fires [onEmojiSelected].
+ */
+@Composable
+private fun ReactionPickerDialog(
+    onDismiss: () -> Unit,
+    onEmojiSelected: (Int) -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "Reactions",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                )
+
+                val emojis = LoliDailyArtWorker.run {
+                    listOf(0, 104, 54, 140, 122, 90, 88, 80)
+                }
+
+                for (row in emojis.chunked(4)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(vertical = 4.dp),
+                    ) {
+                        row.forEach { value ->
+                            val resId = LoliDailyArtWorker.emojiResId(value) ?: return@forEach
+                            val painter = rememberPixelPainter(resId)
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .clickable { onEmojiSelected(value) }
+                                    .padding(8.dp),
+                            ) {
+                                Image(
+                                    painter = painter,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.size(40.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                Text(
+                    text = "Tap an emoji to react",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 
@@ -717,19 +908,38 @@ private fun FullscreenImageDialog(
                     tonalElevation = 2.dp,
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        preview.reactions.forEach { reaction ->
-                            ReactionChip(
-                                reaction = reaction,
-                                onClick = if (isLoggedIn) {
-                                    { onReactionClick(token, reaction.emojiValue) }
-                                } else {
-                                    null
-                                },
-                            )
+                        preview.reactions.forEachIndexed { index, reaction ->
+                            val isHighlighted = reaction.emojiValue == preview.userEmoji
+                            val isFirst = index == 0
+                            val isLast = index == preview.reactions.lastIndex
+
+                            Box(
+                                modifier = if (isHighlighted)
+                                    Modifier
+                                        .background(
+                                            MaterialTheme.colorScheme.primaryContainer,
+                                            RoundedCornerShape(20.dp),
+                                        )
+                                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                                else
+                                    Modifier.padding(
+                                        start = if (isFirst) 10.dp else 0.dp,
+                                        end = if (isLast) 10.dp else 0.dp,
+                                        top = 6.dp,
+                                        bottom = 6.dp,
+                                    ),
+                            ) {
+                                ReactionChip(
+                                    reaction = reaction,
+                                    onClick = if (isLoggedIn) {
+                                        { onReactionClick(token, reaction.emojiValue) }
+                                    } else null,
+                                    isUserReaction = isHighlighted,
+                                )
+                            }
                         }
                     }
                 }

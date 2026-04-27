@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
@@ -34,11 +35,13 @@ class SettingsActivity : AppCompatActivity() {
     private var selectedTags by mutableStateOf(emptySet<String>())
     private var cachedPreviews by mutableStateOf(emptyList<ArtworkPreview>())
     private var isLoggedIn by mutableStateOf(false)
+    private var bgmDomain by mutableStateOf("chii.in")
 
     private val json = Json { ignoreUnknownKeys = true }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
 
         loadState()
 
@@ -59,7 +62,13 @@ class SettingsActivity : AppCompatActivity() {
                         LoliDailyArtWorker.clearSession(this)
                         LoginActivity.clearBgmCookies()
                         isLoggedIn = false
+                        buildPreviews()
                         Toast.makeText(this, "Logged out", Toast.LENGTH_SHORT).show()
+                    },
+                    bgmDomain = bgmDomain,
+                    onDomainChanged = { domain ->
+                        bgmDomain = domain
+                        LoliDailyArtWorker.saveDomain(this, domain)
                     },
                     onReactionClick = { token, emojiValue ->
                         handleReactionClick(token, emojiValue)
@@ -82,8 +91,15 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        val wasLoggedIn = isLoggedIn
         isLoggedIn = LoliDailyArtWorker.loadSession(this) != null
-        buildPreviews()
+
+        if (!wasLoggedIn && isLoggedIn) {
+            // Just logged in — full refresh to fetch user reactions
+            loadPreview()
+        } else {
+            buildPreviews()
+        }
     }
 
     private fun handleReactionClick(token: String, emojiValue: Int) {
@@ -110,6 +126,7 @@ class SettingsActivity : AppCompatActivity() {
             LoliDailyArtWorker.KEY_ENABLED_TAGS, null
         )
         selectedTags = enabledTags ?: emptySet()
+        bgmDomain = LoliDailyArtWorker.loadDomain(this)
     }
 
     private fun saveState() {
@@ -149,6 +166,7 @@ class SettingsActivity : AppCompatActivity() {
         val cardByToken = cards.associateBy { md5(it.imgUrl) }
         val dateMap = LoliDailyArtWorker.loadImageDates(this)
         val reactionsMap = LoliDailyArtWorker.loadReactions(this)
+        val userReactionsMap = LoliDailyArtWorker.loadUserReactions(this)
 
         cachedPreviews = files.take(4).map { file ->
             val uri = FileProvider.getUriForFile(
@@ -170,6 +188,7 @@ class SettingsActivity : AppCompatActivity() {
                 artistUrl = card?.artistUrl ?: "",
                 date = dateMap[token] ?: apiDate,
                 reactions = reactionsMap[token] ?: emptyList(),
+                userEmoji = userReactionsMap[token],
             )
         }.sortedBy { preview ->
             // LC0 → LC YJ → LC ES → others
