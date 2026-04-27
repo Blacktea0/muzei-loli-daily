@@ -42,6 +42,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -51,6 +52,8 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -137,6 +140,7 @@ fun SettingsScreen(
                         isLoggedIn = isLoggedIn,
                         onLogin = onLogin,
                         onReactionClick = onReactionClick,
+                        onRefresh = onRefresh,
                     )
                     1 -> PreferenceTab(
                         selectedTags = selectedTags,
@@ -336,47 +340,64 @@ private fun ReactionChip(
 
 // ── Tab 1: Gallery ─────────────────────────────────────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GalleryTab(
     cachedArtwork: List<ArtworkPreview>,
     isLoggedIn: Boolean = false,
     onLogin: () -> Unit = {},
     onReactionClick: (token: String, emojiValue: Int) -> Unit = { _, _ -> },
+    onRefresh: () -> Unit = {},
 ) {
     var fullscreenPreview by remember { mutableStateOf<ArtworkPreview?>(null) }
+    var isRefreshing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
-    if (cachedArtwork.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "No cached images yet.\nActivate this source in Muzei to fetch artwork.",
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(32.dp),
-            )
-        }
-    } else {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
-                top = 16.dp,
-                bottom = 88.dp,
-            ),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            items(cachedArtwork.take(4)) { preview ->
-                ArtworkCard(
-                    preview = preview,
-                    onImageClick = { fullscreenPreview = preview },
-                    isLoggedIn = isLoggedIn,
-                    onLogin = onLogin,
-                    onReactionClick = onReactionClick,
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            onRefresh()
+            scope.launch {
+                kotlinx.coroutines.delay(4000)
+                isRefreshing = false
+            }
+        },
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        if (cachedArtwork.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "No cached images yet.\nActivate this source in Muzei to fetch artwork.",
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(32.dp),
                 )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 16.dp,
+                    bottom = 88.dp,
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                items(cachedArtwork.take(4)) { preview ->
+                    ArtworkCard(
+                        preview = preview,
+                        onImageClick = { fullscreenPreview = preview },
+                        isLoggedIn = isLoggedIn,
+                        onLogin = onLogin,
+                        onReactionClick = onReactionClick,
+                    )
+                }
             }
         }
     }

@@ -142,7 +142,6 @@ class SettingsActivity : AppCompatActivity() {
         val artworksDir = File(filesDir, "artworks")
         val files = artworksDir.listFiles()
             ?.filter { it.isFile && it.length() > 0 }
-            ?.sortedByDescending { it.lastModified() }
             ?: emptyList()
 
         // Load cached API response to get Card metadata
@@ -172,6 +171,14 @@ class SettingsActivity : AppCompatActivity() {
                 date = dateMap[token] ?: apiDate,
                 reactions = reactionsMap[token] ?: emptyList(),
             )
+        }.sortedBy { preview ->
+            // LC0 → LC YJ → LC ES → others
+            when (preview.tags) {
+                "LC0" -> 0
+                "LC YJ" -> 1
+                "LC ES" -> 2
+                else -> 3
+            }
         }
     }
 
