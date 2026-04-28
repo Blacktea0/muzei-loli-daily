@@ -14,6 +14,9 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
+import kotlinx.coroutines.runBlocking
+import me.eroi.lolidaily.muzei.db.DatabaseProvider
+import me.eroi.lolidaily.muzei.db.EntityMapper
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyReactResponse
 import me.eroi.lolidaily.muzei.model.DailyResponse
@@ -97,6 +100,7 @@ class LoliDailyArtWorker(
 
                     if (isNewDay && cards.isNotEmpty()) {
                         downloadNewImages(cards, forceDownload = forceRefresh)
+                        saveCardsMetadata(cards, fetchedDate)
                         recordImageDates(cards, fetchedDate)
                         prefs.edit().putString(KEY_LAST_API_DATE, fetchedDate).apply()
                         Log.d(TAG, "New day ($fetchedDate) — downloaded ${cards.size} images")
@@ -202,6 +206,27 @@ class LoliDailyArtWorker(
             json.decodeFromString<Map<String, String>>(raw)
         } catch (_: Exception) {
             emptyMap()
+        }
+    }
+
+    // ── Room metadata persistence ──────────────────────────────────────
+
+    /** Batch-upserts all cards into Room so metadata survives API rotation. */
+    private fun saveCardsMetadata(cards: List<Card>, date: String) {
+        try {
+            val entities = cards.mapNotNull { card ->
+                if (card.imgUrl.isBlank()) return@mapNotNull null
+                EntityMapper.cardToEntity(card, md5(card.imgUrl), date)
+            }
+            if (entities.isEmpty()) return
+            runBlocking {
+                DatabaseProvider.getInstance(applicationContext)
+                    .cachedArtworkDao()
+                    .upsertAll(entities)
+            }
+            Log.d(TAG, "Saved ${entities.size} artwork metadata rows to Room")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save artwork metadata to Room", e)
         }
     }
 

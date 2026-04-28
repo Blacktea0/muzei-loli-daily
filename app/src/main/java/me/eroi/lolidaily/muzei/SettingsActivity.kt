@@ -1,8 +1,11 @@
 package me.eroi.lolidaily.muzei
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
@@ -11,6 +14,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.FileProvider
+import com.google.android.apps.muzei.api.MuzeiContract
+import kotlinx.coroutines.runBlocking
+import me.eroi.lolidaily.muzei.db.DatabaseProvider
+import me.eroi.lolidaily.muzei.db.EntityMapper
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyResponse
@@ -36,6 +43,8 @@ class SettingsActivity : AppCompatActivity() {
     private var cachedPreviews by mutableStateOf(emptyList<ArtworkPreview>())
     private var isLoggedIn by mutableStateOf(false)
     private var bgmDomain by mutableStateOf("chii.in")
+    private var isSourceActivated by mutableStateOf(false)
+    private var isMuzeiInstalled by mutableStateOf(false)
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -44,6 +53,7 @@ class SettingsActivity : AppCompatActivity() {
         enableEdgeToEdge()
 
         loadState()
+        loadSourceStatus()
 
         setContent {
             LoliDailyTheme {
@@ -82,6 +92,9 @@ class SettingsActivity : AppCompatActivity() {
                         ).show()
                         window.decorView.postDelayed({ loadPreview() }, 5000)
                     },
+                    isSourceActivated = isSourceActivated,
+                    isMuzeiInstalled = isMuzeiInstalled,
+                    onOpenMuzei = { openMuzei() },
                 )
             }
         }
@@ -93,6 +106,7 @@ class SettingsActivity : AppCompatActivity() {
         super.onResume()
         val wasLoggedIn = isLoggedIn
         isLoggedIn = LoliDailyArtWorker.loadSession(this) != null
+        loadSourceStatus()
 
         if (!wasLoggedIn && isLoggedIn) {
             // Just logged in — full refresh to fetch user reactions
@@ -136,6 +150,47 @@ class SettingsActivity : AppCompatActivity() {
         LoliDailyArtWorker.enqueueRefilter(this)
     }
 
+    // ── Source activation ───────────────────────────────────────────
+
+    private fun loadSourceStatus() {
+        isSourceActivated = MuzeiContract.Sources.isProviderSelected(
+            this, LoliDailyArtWorker.PROVIDER_AUTHORITY
+        )
+        isMuzeiInstalled = packageManager.getLaunchIntentForPackage(MUZEI_PACKAGE) != null
+    }
+
+    private fun openMuzei() {
+        try {
+            startActivity(
+                MuzeiContract.Sources.createChooseProviderIntent(
+                    LoliDailyArtWorker.PROVIDER_AUTHORITY
+                )
+            )
+        } catch (_: ActivityNotFoundException) {
+            val launchIntent = packageManager.getLaunchIntentForPackage(MUZEI_PACKAGE)
+            if (launchIntent != null) {
+                startActivity(launchIntent)
+            } else {
+                Toast.makeText(this, "Muzei not installed — opening Play Store", Toast.LENGTH_SHORT).show()
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(
+                        "https://play.google.com/store/apps/details?id=$MUZEI_PACKAGE")))
+                } catch (_: Exception) {
+                    try {
+                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(
+                            "market://details?id=$MUZEI_PACKAGE")))
+                    } catch (_: Exception) {
+                        Toast.makeText(this, "No app store available", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
+    companion object {
+        private const val MUZEI_PACKAGE = "net.nurik.roman.muzei"
+    }
+
     // ── Image preview with metadata ────────────────────────────────
 
     /**
@@ -161,12 +216,15 @@ class SettingsActivity : AppCompatActivity() {
             ?.filter { it.isFile && it.length() > 0 }
             ?: emptyList()
 
-        // Load cached API response to get Card metadata
+        // Load cached API response to get Card metadata for current day
         val (cards, apiDate) = loadCachedDaily()
         val cardByToken = cards.associateBy { md5(it.imgUrl) }
         val dateMap = LoliDailyArtWorker.loadImageDates(this)
         val reactionsMap = LoliDailyArtWorker.loadReactions(this)
         val userReactionsMap = LoliDailyArtWorker.loadUserReactions(this)
+
+        // Fallback: load persisted metadata from Room for tokens missing from api_cache
+        val roomFieldsByToken = loadRoomArtworkFields()
 
         cachedPreviews = files.take(4).map { file ->
             val uri = FileProvider.getUriForFile(
@@ -176,17 +234,18 @@ class SettingsActivity : AppCompatActivity() {
             )
             val token = file.nameWithoutExtension
             val card = cardByToken[token]
+            val roomFields = roomFieldsByToken[token]
 
             ArtworkPreview(
                 uri = uri,
                 filename = file.name,
-                artistName = card?.artistName ?: "",
-                comment = card?.comment ?: "",
-                tags = card?.tags ?: "",
-                characterNames = card?.characterNames ?: emptyList(),
-                sourceUrl = card?.sourceUrl ?: "",
-                artistUrl = card?.artistUrl ?: "",
-                date = dateMap[token] ?: apiDate,
+                artistName = card?.artistName ?: roomFields?.artistName ?: "",
+                comment = card?.comment ?: roomFields?.comment ?: "",
+                tags = card?.tags ?: roomFields?.tags ?: "",
+                characterNames = card?.characterNames ?: roomFields?.characterNames ?: emptyList(),
+                sourceUrl = card?.sourceUrl ?: roomFields?.sourceUrl ?: "",
+                artistUrl = card?.artistUrl ?: roomFields?.artistUrl ?: "",
+                date = dateMap[token] ?: roomFields?.date ?: apiDate,
                 reactions = reactionsMap[token] ?: emptyList(),
                 userEmoji = userReactionsMap[token],
             )
@@ -198,6 +257,23 @@ class SettingsActivity : AppCompatActivity() {
                 "LC ES" -> 2
                 else -> 3
             }
+        }
+    }
+
+    /** Loads all Room-persisted artwork fields, keyed by token. */
+    private fun loadRoomArtworkFields(): Map<String, EntityMapper.CardFields> {
+        return try {
+            val entities = runBlocking {
+                DatabaseProvider.getInstance(this@SettingsActivity)
+                    .cachedArtworkDao()
+                    .getAll()
+            }
+            entities.associate { entity ->
+                entity.token to EntityMapper.entityToCardFields(entity)
+            }
+        } catch (e: Exception) {
+            Log.w("SettingsActivity", "Failed to load artwork metadata from Room", e)
+            emptyMap()
         }
     }
 

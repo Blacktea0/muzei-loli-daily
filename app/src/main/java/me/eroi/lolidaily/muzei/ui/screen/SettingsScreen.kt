@@ -4,9 +4,9 @@ import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
@@ -82,8 +83,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
@@ -92,6 +93,7 @@ import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.ReactionCount
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 /**
  * Material 3 Compose settings screen for the Loli Daily Muzei plugin.
@@ -117,6 +119,9 @@ fun SettingsScreen(
     onReactionClick: (token: String, emojiValue: Int) -> Unit = { _, _ -> },
     bgmDomain: String = "chii.in",
     onDomainChanged: (String) -> Unit = {},
+    isSourceActivated: Boolean = false,
+    isMuzeiInstalled: Boolean = false,
+    onOpenMuzei: () -> Unit = {},
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
     val scope = rememberCoroutineScope()
@@ -168,6 +173,9 @@ fun SettingsScreen(
                         onLogout = onLogout,
                         bgmDomain = bgmDomain,
                         onDomainChanged = onDomainChanged,
+                        isSourceActivated = isSourceActivated,
+                        isMuzeiInstalled = isMuzeiInstalled,
+                        onOpenMuzei = onOpenMuzei,
                     )
                 }
             }
@@ -186,6 +194,9 @@ private fun PreferenceTab(
     onLogout: () -> Unit = {},
     bgmDomain: String = "chii.in",
     onDomainChanged: (String) -> Unit = {},
+    isSourceActivated: Boolean = false,
+    isMuzeiInstalled: Boolean = false,
+    onOpenMuzei: () -> Unit = {},
 ) {
     val context = LocalContext.current
     LazyColumn(
@@ -307,6 +318,28 @@ private fun PreferenceTab(
                 }
             }
         }
+
+        item {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        }
+
+        item {
+            Text(
+                text = "Source Status",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+        }
+
+        item {
+            SourceStatusRow(
+                isSourceActivated = isSourceActivated,
+                isMuzeiInstalled = isMuzeiInstalled,
+            ) {
+                onOpenMuzei()
+            }
+        }
     }
 }
 
@@ -335,19 +368,110 @@ private fun FilterOption(
     }
 }
 
-// ── Reaction Chip ──────────────────────────────────────────────
+// ── Source Status Row ──────────────────────────────────────────
 
 /**
- * Loads a drawable resource as a pixel-art [Painter] with
- * nearest-neighbour filtering (no anti-aliasing), suitable
- * for low-resolution emoji GIFs.
+ * Displays whether this plugin is active in Muzei.
+ * - Activated: green check
+ * - Not activated: warning icon, tap to open Muzei
+ * - Muzei not installed: info + tap to open Play Store
  */
 @Composable
-private fun rememberPixelPainter(resId: Int): Painter {
+private fun SourceStatusRow(
+    isSourceActivated: Boolean,
+    isMuzeiInstalled: Boolean,
+    onClick: () -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+
+    val icon: androidx.compose.ui.graphics.vector.ImageVector
+    val label: String
+    val subLabel: String
+    val tint: androidx.compose.ui.graphics.Color
+
+    if (!isMuzeiInstalled) {
+        icon = Icons.Default.Info
+        label = "Muzei not installed"
+        subLabel = "Get it on Play Store"
+        tint = colors.onSurfaceVariant
+    } else if (isSourceActivated) {
+        icon = Icons.Default.Favorite
+        label = "Enabled in Muzei"
+        subLabel = "Tap to open Muzei"
+        tint = colors.primary
+    } else {
+        icon = Icons.Default.FavoriteBorder
+        label = "Not enabled"
+        subLabel = "Select this source in Muzei"
+        tint = colors.error
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(24.dp),
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = tint,
+            )
+            Text(
+                text = subLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp),
+        )
+    }
+}
+
+// ── Pixel Emoji Rendering ──────────────────────────────────────
+
+/**
+ * Decodes a drawable resource at native resolution with density
+ * scaling disabled, returning a crisp [ImageBitmap] suitable for
+ * pixel-art nearest-neighbour upscaling.
+ */
+@Composable
+private fun rememberPixelBitmap(resId: Int): ImageBitmap {
     val context = LocalContext.current
     return remember(resId) {
-        val bitmap = BitmapFactory.decodeResource(context.resources, resId)
-        BitmapPainter(bitmap.asImageBitmap(), filterQuality = FilterQuality.None)
+        val opts = BitmapFactory.Options().apply { inScaled = false }
+        val bitmap = BitmapFactory.decodeResource(context.resources, resId, opts)
+        bitmap.asImageBitmap()
+    }
+}
+
+/**
+ * Renders a pixel-art emoji drawable with nearest-neighbour
+ * filtering via [Canvas], preserving blocky edges regardless
+ * of display size.
+ */
+@Composable
+private fun PixelEmoji(resId: Int, modifier: Modifier = Modifier) {
+    val imageBitmap = rememberPixelBitmap(resId)
+    Canvas(modifier = modifier) {
+        drawImage(
+            image = imageBitmap,
+            dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
+            filterQuality = FilterQuality.None,
+        )
     }
 }
 
@@ -379,7 +503,6 @@ private fun ReactionRow(
     ) {
         for ((reaction, resId) in valid) {
             val selected = reaction.emojiValue == userEmoji
-            val painter = rememberPixelPainter(resId)
 
             val bg = if (selected) MaterialTheme.colorScheme.primaryContainer
                      else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
@@ -396,10 +519,8 @@ private fun ReactionRow(
                     modifier = Modifier.padding(horizontal = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Image(
-                        painter = painter,
-                        contentDescription = null,
-                        contentScale = ContentScale.Fit,
+                    PixelEmoji(
+                        resId = resId,
                         modifier = Modifier.size(20.dp),
                     )
                     Spacer(Modifier.width(2.dp))
@@ -785,18 +906,15 @@ private fun ReactionPickerDialog(
                     ) {
                         row.forEach { value ->
                             val resId = LoliDailyArtWorker.emojiResId(value) ?: return@forEach
-                            val painter = rememberPixelPainter(resId)
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
                                     .clickable { onEmojiSelected(value) }
                                     .padding(8.dp),
                             ) {
-                                Image(
-                                    painter = painter,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Fit,
-                                    modifier = Modifier.size(40.dp),
+                                PixelEmoji(
+                                    resId = resId,
+                                    modifier = Modifier.size(36.dp),
                                 )
                             }
                         }
