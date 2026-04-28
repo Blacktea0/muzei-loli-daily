@@ -1,8 +1,12 @@
 package me.eroi.lolidaily.muzei.ui.screen
 
 import android.content.Intent
+import android.content.ContentValues
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.widget.Toast
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -40,6 +44,7 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -1015,6 +1020,51 @@ private fun FullscreenImageDialog(
 
 // ── Artwork Detail Dialog ──────────────────────────────────────
 
+/**
+ * Copies the artwork file to the public Pictures/LoliDaily directory
+ * via [MediaStore], compatible with API 24+.
+ */
+private fun exportArtwork(context: android.content.Context, preview: ArtworkPreview) {
+    try {
+        val resolver = context.contentResolver
+        val mimeType = if (preview.filename.endsWith(".png", true)) "image/png"
+            else if (preview.filename.endsWith(".gif", true)) "image/gif"
+            else if (preview.filename.endsWith(".webp", true)) "image/webp"
+            else "image/jpeg"
+
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, preview.filename)
+            put(MediaStore.Images.Media.MIME_TYPE, mimeType)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/LoliDaily")
+                put(MediaStore.Images.Media.IS_PENDING, 1)
+            }
+        }
+
+        val outputUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+            ?: run {
+                Toast.makeText(context, "Failed to create export file", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+        resolver.openInputStream(preview.uri)?.use { input ->
+            resolver.openOutputStream(outputUri)?.use { output ->
+                input.copyTo(output)
+            }
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            contentValues.clear()
+            contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
+            resolver.update(outputUri, contentValues, null, null)
+        }
+
+        Toast.makeText(context, "Saved to Pictures/LoliDaily", Toast.LENGTH_SHORT).show()
+    } catch (e: Exception) {
+        Toast.makeText(context, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ArtworkDetailDialog(
@@ -1148,40 +1198,38 @@ private fun ArtworkDetailDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    FilledTonalIconButton(onClick = { exportArtwork(context, preview) }) {
+                        Icon(
+                            Icons.Default.Save,
+                            contentDescription = "Export artwork",
+                        )
+                    }
                     if (preview.sourceUrl.isNotBlank()) {
-                        FilledTonalButton(
+                        FilledTonalIconButton(
                             onClick = {
                                 context.startActivity(
                                     Intent(Intent.ACTION_VIEW, Uri.parse(preview.sourceUrl))
                                 )
                             },
-                            modifier = Modifier.weight(1f),
                         ) {
                             Icon(
                                 Icons.Default.Image,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
+                                contentDescription = "View source",
                             )
-                            Spacer(Modifier.width(6.dp))
-                            Text("Source")
                         }
                     }
                     if (preview.artistUrl.isNotBlank()) {
-                        FilledTonalButton(
+                        FilledTonalIconButton(
                             onClick = {
                                 context.startActivity(
                                     Intent(Intent.ACTION_VIEW, Uri.parse(preview.artistUrl))
                                 )
                             },
-                            modifier = Modifier.weight(1f),
                         ) {
                             Icon(
                                 Icons.Default.Person,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
+                                contentDescription = "View artist",
                             )
-                            Spacer(Modifier.width(6.dp))
-                            Text("Artist")
                         }
                     }
                 }
