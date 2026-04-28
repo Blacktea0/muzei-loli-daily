@@ -104,6 +104,7 @@ import coil3.request.ImageRequest
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.ReactionCount
+import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
 import java.io.File
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -133,6 +134,8 @@ fun SettingsScreen(
     isSourceActivated: Boolean = false,
     isMuzeiInstalled: Boolean = false,
     onOpenMuzei: () -> Unit = {},
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    onThemeModeChanged: (ThemeMode) -> Unit = {},
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
     val scope = rememberCoroutineScope()
@@ -194,6 +197,8 @@ fun SettingsScreen(
                         isSourceActivated = isSourceActivated,
                         isMuzeiInstalled = isMuzeiInstalled,
                         onOpenMuzei = onOpenMuzei,
+                        themeMode = themeMode,
+                        onThemeModeChanged = onThemeModeChanged,
                     )
                 }
             }
@@ -215,6 +220,8 @@ private fun PreferenceTab(
     isSourceActivated: Boolean = false,
     isMuzeiInstalled: Boolean = false,
     onOpenMuzei: () -> Unit = {},
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    onThemeModeChanged: (ThemeMode) -> Unit = {},
 ) {
     val context = LocalContext.current
     val showBanner = (!isMuzeiInstalled || !isSourceActivated)
@@ -310,6 +317,44 @@ private fun PreferenceTab(
                 isMuzeiInstalled = isMuzeiInstalled,
                 onClick = onOpenMuzei,
             )
+        }
+
+        // ── Theme ────────────────────────────────
+        item {
+            SectionTitle("THEME")
+        }
+
+        item {
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = RoundedCornerShape(16.dp),
+            ) {
+                Column(modifier = Modifier.padding(4.dp)) {
+                    ThemeOption(
+                        label = "Follow system",
+                        selected = themeMode == ThemeMode.SYSTEM,
+                        onClick = { onThemeModeChanged(ThemeMode.SYSTEM) },
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+                    ThemeOption(
+                        label = "Light",
+                        selected = themeMode == ThemeMode.LIGHT,
+                        onClick = { onThemeModeChanged(ThemeMode.LIGHT) },
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant,
+                    )
+                    ThemeOption(
+                        label = "Dark",
+                        selected = themeMode == ThemeMode.DARK,
+                        onClick = { onThemeModeChanged(ThemeMode.DARK) },
+                    )
+                }
+            }
         }
     }
 }
@@ -409,6 +454,17 @@ private fun SetupBanner(
             }
         }
     }
+}
+
+// ── Theme Option ─────────────────────────────────────────────────
+
+@Composable
+private fun ThemeOption(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    FilterOption(label = label, selected = selected, onClick = onClick)
 }
 
 // ── Section Title ───────────────────────────────────────────────

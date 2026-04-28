@@ -23,6 +23,7 @@ import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyResponse
 import me.eroi.lolidaily.muzei.ui.screen.SettingsScreen
 import me.eroi.lolidaily.muzei.ui.theme.LoliDailyTheme
+import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.security.MessageDigest
@@ -45,6 +46,7 @@ class SettingsActivity : AppCompatActivity() {
     private var bgmDomain by mutableStateOf("chii.in")
     private var isSourceActivated by mutableStateOf(false)
     private var isMuzeiInstalled by mutableStateOf(false)
+    private var themeMode by mutableStateOf(ThemeMode.SYSTEM)
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -56,7 +58,7 @@ class SettingsActivity : AppCompatActivity() {
         loadSourceStatus()
 
         setContent {
-            LoliDailyTheme {
+            LoliDailyTheme(themeMode = themeMode) {
                 SettingsScreen(
                     selectedTags = selectedTags,
                     onTagsChanged = { newTags ->
@@ -95,6 +97,11 @@ class SettingsActivity : AppCompatActivity() {
                     isSourceActivated = isSourceActivated,
                     isMuzeiInstalled = isMuzeiInstalled,
                     onOpenMuzei = { openMuzei() },
+                    themeMode = themeMode,
+                    onThemeModeChanged = { mode ->
+                        themeMode = mode
+                        saveThemeMode(mode)
+                    },
                 )
             }
         }
@@ -141,6 +148,7 @@ class SettingsActivity : AppCompatActivity() {
         )
         selectedTags = enabledTags ?: emptySet()
         bgmDomain = LoliDailyArtWorker.loadDomain(this)
+        themeMode = loadThemeMode()
     }
 
     private fun saveState() {
@@ -148,6 +156,19 @@ class SettingsActivity : AppCompatActivity() {
             .putStringSet(LoliDailyArtWorker.KEY_ENABLED_TAGS, selectedTags)
             .apply()
         LoliDailyArtWorker.enqueueRefilter(this)
+    }
+
+    private fun loadThemeMode(): ThemeMode {
+        val stored = prefs.getString(KEY_THEME_MODE, null) ?: return ThemeMode.SYSTEM
+        return try {
+            ThemeMode.valueOf(stored)
+        } catch (_: IllegalArgumentException) {
+            ThemeMode.SYSTEM
+        }
+    }
+
+    private fun saveThemeMode(mode: ThemeMode) {
+        prefs.edit().putString(KEY_THEME_MODE, mode.name).apply()
     }
 
     // ── Source activation ───────────────────────────────────────────
@@ -189,6 +210,7 @@ class SettingsActivity : AppCompatActivity() {
 
     companion object {
         private const val MUZEI_PACKAGE = "net.nurik.roman.muzei"
+        private const val KEY_THEME_MODE = "theme_mode"
     }
 
     // ── Image preview with metadata ────────────────────────────────
