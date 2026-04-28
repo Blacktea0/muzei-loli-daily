@@ -104,6 +104,7 @@ import coil3.request.ImageRequest
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.ReactionCount
+import java.io.File
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -1422,11 +1423,25 @@ private fun exportArtwork(context: android.content.Context, preview: ArtworkPrev
         else if (preview.filename.endsWith(".webp", true)) "image/webp"
         else "image/jpeg"
 
+        val relativePath = Environment.DIRECTORY_PICTURES + "/LoliDaily"
+
+        // Check for existing file on disk
+        val destDir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "LoliDaily")
+        } else {
+            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "LoliDaily")
+        }
+        val destFile = File(destDir, preview.filename)
+        if (destFile.exists()) {
+            Toast.makeText(context, "Already exported", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val contentValues = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, preview.filename)
             put(MediaStore.Images.Media.MIME_TYPE, mimeType)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/LoliDaily")
+                put(MediaStore.Images.Media.RELATIVE_PATH, relativePath)
                 put(MediaStore.Images.Media.IS_PENDING, 1)
             }
         }
