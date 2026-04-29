@@ -47,6 +47,7 @@ class SettingsActivity : AppCompatActivity() {
     private var isSourceActivated by mutableStateOf(false)
     private var isMuzeiInstalled by mutableStateOf(false)
     private var themeMode by mutableStateOf(ThemeMode.SYSTEM)
+    private var showDebugSettings by mutableStateOf(false)
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -58,51 +59,58 @@ class SettingsActivity : AppCompatActivity() {
         loadSourceStatus()
 
         setContent {
-            LoliDailyTheme(themeMode = themeMode) {
-                SettingsScreen(
-                    selectedTags = selectedTags,
-                    onTagsChanged = { newTags ->
-                        selectedTags = newTags
-                        saveState()
-                    },
-                    cachedArtwork = cachedPreviews,
-                    isLoggedIn = isLoggedIn,
-                    onLogin = {
-                        startActivity(Intent(this, LoginActivity::class.java))
-                    },
-                    onLogout = {
-                        LoliDailyArtWorker.clearSession(this)
-                        LoginActivity.clearBgmCookies()
-                        isLoggedIn = false
-                        buildPreviews()
-                        Toast.makeText(this, "Logged out", Toast.LENGTH_SHORT).show()
-                    },
-                    bgmDomain = bgmDomain,
-                    onDomainChanged = { domain ->
-                        bgmDomain = domain
-                        LoliDailyArtWorker.saveDomain(this, domain)
-                    },
-                    onReactionClick = { token, emojiValue ->
-                        handleReactionClick(token, emojiValue)
-                    },
-                    onRefresh = {
-                        LoliDailyArtWorker.enqueueLoad(this, forceRefresh = true)
-                        Toast.makeText(
-                            this,
-                            "Refresh enqueued — respecting current tag filter",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        window.decorView.postDelayed({ loadPreview() }, 5000)
-                    },
-                    isSourceActivated = isSourceActivated,
-                    isMuzeiInstalled = isMuzeiInstalled,
-                    onOpenMuzei = { openMuzei() },
-                    themeMode = themeMode,
-                    onThemeModeChanged = { mode ->
-                        themeMode = mode
-                        saveThemeMode(mode)
-                    },
+            if (showDebugSettings) {
+                DebugSettingsScreen(
+                    onBack = { showDebugSettings = false }
                 )
+            } else {
+                LoliDailyTheme(themeMode = themeMode) {
+                    SettingsScreen(
+                        selectedTags = selectedTags,
+                        onTagsChanged = { newTags ->
+                            selectedTags = newTags
+                            saveState()
+                        },
+                        cachedArtwork = cachedPreviews,
+                        isLoggedIn = isLoggedIn,
+                        onLogin = {
+                            startActivity(Intent(this, LoginActivity::class.java))
+                        },
+                        onLogout = {
+                            LoliDailyArtWorker.clearSession(this)
+                            LoginActivity.clearBgmCookies()
+                            isLoggedIn = false
+                            buildPreviews()
+                            Toast.makeText(this, "Logged out", Toast.LENGTH_SHORT).show()
+                        },
+                        bgmDomain = bgmDomain,
+                        onDomainChanged = { domain ->
+                            bgmDomain = domain
+                            LoliDailyArtWorker.saveDomain(this, domain)
+                        },
+                        onReactionClick = { token, emojiValue ->
+                            handleReactionClick(token, emojiValue)
+                        },
+                        onRefresh = {
+                            LoliDailyArtWorker.enqueueLoad(this, forceRefresh = true)
+                            Toast.makeText(
+                                this,
+                                "Refresh enqueued — respecting current tag filter",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            window.decorView.postDelayed({ loadPreview() }, 5000)
+                        },
+                        isSourceActivated = isSourceActivated,
+                        isMuzeiInstalled = isMuzeiInstalled,
+                        onOpenMuzei = { openMuzei() },
+                        themeMode = themeMode,
+                        onThemeModeChanged = { mode ->
+                            themeMode = mode
+                            saveThemeMode(mode)
+                        },
+                        onOpenDebug = { showDebugSettings = true },
+                    )
+                }
             }
         }
 

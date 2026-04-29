@@ -138,6 +138,7 @@ fun SettingsScreen(
     onOpenMuzei: () -> Unit = {},
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChanged: (ThemeMode) -> Unit = {},
+    onOpenDebug: () -> Unit = {},
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
     val scope = rememberCoroutineScope()
@@ -153,6 +154,15 @@ fun SettingsScreen(
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                 ),
+                actions = {
+                    IconButton(onClick = onOpenDebug) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = "Debug Settings",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
             )
         },
         floatingActionButton = {

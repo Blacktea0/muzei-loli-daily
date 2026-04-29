@@ -151,9 +151,15 @@ class LoliDailyArtWorker(
      * Returns true if the API should be called now.
      * Always true for force-refresh or if cached data is from a different date.
      * Otherwise, if we already fetched today (GMT+8 07:21), skip API call.
+     * Debug option: skip cache forces API call regardless of date.
      */
     private fun shouldFetchApi(forceRefresh: Boolean): Boolean {
         if (forceRefresh) return true
+        
+        // Debug: skip cache if enabled
+        val skipCache = prefs.getBoolean("debug_skip_cache", false)
+        if (skipCache) return true
+        
         val cached = loadCachedResponse()
         // No cache or cached date differs from today (GMT+8 07:21) — fetch immediately
         return cached == null || cached.date != currentDateFormatted()
@@ -567,9 +573,27 @@ class LoliDailyArtWorker(
             "me.eroi.lolidaily.muzei.fileprovider"
 
         private val API_URL
-            get() = "${BuildConfig.API_BASE_URL}/api/v1/daily?badge=LC%20YJ-ES-NC-PG"
+            get() = run {
+                val prefs = LoliDailyArtWorker.getPrefs(applicationContext)
+                val useMock = prefs?.getBoolean("debug_use_mock_api", false) ?: false
+                if (useMock) {
+                    prefs.getString("debug_mock_api_url", null) ?: 
+                        "${BuildConfig.API_BASE_URL}/api/v1/daily?badge=LC%20YJ-ES-NC-PG"
+                } else {
+                    "${BuildConfig.API_BASE_URL}/api/v1/daily?badge=LC%20YJ-ES-NC-PG"
+                }
+            }
         private val REACT_API_URL
-            get() = "${BuildConfig.API_BASE_URL}/api/v1/daily/react?badge=LC%20YJ-ES-NC-PG"
+            get() = run {
+                val prefs = LoliDailyArtWorker.getPrefs(applicationContext)
+                val useMock = prefs?.getBoolean("debug_use_mock_api", false) ?: false
+                if (useMock) {
+                    prefs.getString("debug_mock_api_url", null)?.replace("/daily", "/daily/react") ?: 
+                        "${BuildConfig.API_BASE_URL}/api/v1/daily/react?badge=LC%20YJ-ES-NC-PG"
+                } else {
+                    "${BuildConfig.API_BASE_URL}/api/v1/daily/react?badge=LC%20YJ-ES-NC-PG"
+                }
+            }
         private const val USER_AGENT = "LoliDaily/1.0 (Android)"
         private const val MAX_DOWNLOAD_RETRIES = 3
 
