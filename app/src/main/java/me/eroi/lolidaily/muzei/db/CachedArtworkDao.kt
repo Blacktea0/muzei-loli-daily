@@ -27,4 +27,8 @@ interface CachedArtworkDao {
     /** Delete all rows (e.g. for cache cleanup). */
     @Query("DELETE FROM cached_artworks")
     suspend fun deleteAll()
+
+    /** Delete rows by token list. */
+    @Query("DELETE FROM cached_artworks WHERE token IN (:tokens)")
+    suspend fun deleteByTokens(tokens: List<String>)
 }

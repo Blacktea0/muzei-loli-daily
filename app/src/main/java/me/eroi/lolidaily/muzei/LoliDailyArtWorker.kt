@@ -43,9 +43,10 @@ import java.util.concurrent.TimeUnit
  * and keeps the Muzei queue in sync with the user's tag preferences.
  *
  * Strategy:
- * - API is called at most once per hour (or on force-refresh).
- *   The lightweight JSON is always fetched; images are downloaded
- *   only when the API date changes (new daily batch).
+ * - API is called when the date changes, on force-refresh, or when
+ *   debug_skip_cache is enabled.  Images are downloaded whenever the
+ *   API returns new cards; stale files from earlier same-day fetches
+ *   are automatically cleaned up.
  * - **All** images are downloaded regardless of the user's tag
  *   filter — the full daily batch is cached locally.
  * - Tag filtering happens at push time: every execution re-reads
@@ -86,8 +87,12 @@ class LoliDailyArtWorker(
 
             // ── Step 1: Obtain card data ──────────────────────────
             if (!refilterOnly && shouldFetchApi(forceRefresh)) {
-                // Read cached date BEFORE writing new response
-                val cachedDate = loadCachedResponse()?.date
+                // Read cached data BEFORE overwriting with new response
+                val cachedResponse = loadCachedResponse()
+                val cachedDate = cachedResponse?.date
+                val cachedTokens = cachedResponse?.cards
+                    ?.mapNotNull { if (it.imgUrl.isNotBlank()) md5(it.imgUrl) else null }
+                    ?.toSet() ?: emptySet()
 
                 // Call the API (normal cycle / force-refresh)
                 val fetched = fetchDailyResponse()
@@ -100,12 +105,23 @@ class LoliDailyArtWorker(
 
                     isNewDay = forceRefresh || cachedDate == null || cachedDate != fetchedDate
 
-                    if (isNewDay && cards.isNotEmpty()) {
+                    if (cards.isNotEmpty()) {
+                        if (!isNewDay) {
+                            // Same date but possibly different data — clean stale tokens
+                            val newTokens = cards.mapNotNull {
+                                if (it.imgUrl.isNotBlank()) md5(it.imgUrl) else null
+                            }.toSet()
+                            val staleTokens = cachedTokens - newTokens
+                            if (staleTokens.isNotEmpty()) {
+                                Log.d(TAG, "Same date ($fetchedDate) — cleaning ${staleTokens.size} stale artworks")
+                                cleanupStaleArtworks(staleTokens.toList())
+                            }
+                        }
                         downloadNewImages(cards, forceDownload = forceRefresh)
                         saveCardsMetadata(cards, fetchedDate)
                         recordImageDates(cards, fetchedDate)
                         prefs.edit().putString(KEY_LAST_API_DATE, fetchedDate).apply()
-                        Log.d(TAG, "New day ($fetchedDate) — downloaded ${cards.size} images")
+                        Log.d(TAG, "Synced ${cards.size} artworks for $fetchedDate (newDay=$isNewDay)")
                     }
                 }
             }
@@ -248,6 +264,51 @@ class LoliDailyArtWorker(
             if (card.imgUrl.isBlank()) continue
             val token = md5(card.imgUrl)
             downloadImage(card.imgUrl, token, dir, forceDownload)
+        }
+    }
+
+    // ── Stale artwork cleanup ─────────────────────────────────────
+
+    /** Removes artwork files, date records, and Room rows for tokens no longer in the current batch. */
+    private fun cleanupStaleArtworks(staleTokens: List<String>) {
+        val dir = ensureArtworksDir()
+
+        // 1. Delete stale image files
+        for (token in staleTokens) {
+            val prefix = "$token."
+            dir.listFiles { f -> f.name.startsWith(prefix) }
+                ?.forEach { file ->
+                    if (file.delete()) {
+                        Log.d(TAG, "Cleaned stale artwork file: ${file.name}")
+                    }
+                }
+        }
+
+        // 2. Remove stale entries from image_dates SharedPreferences
+        val dates = loadImageDatesInternal().toMutableMap()
+        var datesChanged = false
+        for (token in staleTokens) {
+            if (dates.remove(token) != null) {
+                datesChanged = true
+            }
+        }
+        if (datesChanged) {
+            prefs.edit()
+                .putString(KEY_IMAGE_DATES, json.encodeToString(
+                        MapSerializer(serializer<String>(), serializer<String>()), dates))
+                .apply()
+        }
+
+        // 3. Remove stale rows from Room
+        try {
+            runBlocking {
+                DatabaseProvider.getInstance(applicationContext)
+                    .cachedArtworkDao()
+                    .deleteByTokens(staleTokens)
+            }
+            Log.d(TAG, "Cleaned ${staleTokens.size} stale Room rows")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to clean stale Room rows", e)
         }
     }
 
