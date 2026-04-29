@@ -22,6 +22,7 @@ import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyResponse
 import me.eroi.lolidaily.muzei.ui.screen.SettingsScreen
+import me.eroi.lolidaily.muzei.ui.screen.DebugSettingsScreen
 import me.eroi.lolidaily.muzei.ui.theme.LoliDailyTheme
 import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
 import kotlinx.serialization.json.Json

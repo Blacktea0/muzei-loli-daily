@@ -45,6 +45,17 @@ function readFixture(name) {
 app.get("/api/v1/daily", (_req, res) => {
   const fixture = readFixture("daily");
   if (fixture) {
+    // 每次调用都给图片 URL 加随机参数，模拟"新图片"
+    const mockId = Date.now() + "_" + Math.random().toString(36).substring(2, 10);
+    fixture.cards.forEach(card => {
+      if (card.imgUrl) {
+        const sep = card.imgUrl.includes("?") ? "&" : "?";
+        card.imgUrl = card.imgUrl + sep + "mock=" + mockId;
+      }
+    });
+    // 更新日期为今天，模拟"换日"
+    fixture.date = new Date().toISOString().split("T")[0];
+    console.log(`[mock] Returning daily with mockId=${mockId}, date=${fixture.date}`);
     res.json(fixture);
   } else {
     res.status(404).json({ error: "fixture not found: daily.json" });
