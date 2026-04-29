@@ -1,6 +1,7 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
+const Jimp = require("jimp");
 
 const app = express();
 const PORT = process.env.PORT || 50303;
@@ -41,18 +42,48 @@ function readFixture(name) {
   return null;
 }
 
+// Helper: build full base URL from request
+function getBaseUrl(req) {
+  const host = req.get("host") || `localhost:${PORT}`;
+  return `${req.protocol}://${host}`;
+}
+
+// GET /api/v1/mock-image?t=1700000000 — returns a random-colour PNG with timestamp
+app.get("/api/v1/mock-image", async (_req, res) => {
+  const W = 1080, H = 1920;
+  const r = Math.floor(Math.random() * 200) + 30;
+  const g = Math.floor(Math.random() * 200) + 30;
+  const b = Math.floor(Math.random() * 200) + 30;
+  const bg = `rgb(${r},${g},${b})`;
+  const textColour = (r + g + b) / 3 > 127 ? Jimp.rgbaToInt(0, 0, 0, 255) : Jimp.rgbaToInt(255, 255, 255, 255);
+  const bgInt = Jimp.rgbaToInt(r, g, b, 255);
+  const ts = _req.query.t || new Date().toISOString().replace("T", " ").substring(0, 19);
+
+  const image = new Jimp(W, H, bgInt);
+  const font = await Jimp.loadFont(Jimp.FONT_SANS_128_BLACK);
+  image.print(font, 0, 0, { text: ts, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER, alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE }, W, H);
+
+  const pngBuf = await image.getBufferAsync(Jimp.MIME_PNG);
+
+  console.log(`[mock] Serving mock image (bg=${bg}, ts=${ts}, size=${pngBuf.length} bytes)`);
+  res.setHeader("Content-Type", "image/png");
+  res.send(pngBuf);
+});
+
 // GET /api/v1/daily?badge=...
-app.get("/api/v1/daily", (_req, res) => {
+app.get("/api/v1/daily", (req, res) => {
   const fixture = readFixture("daily");
   if (fixture) {
-    // 每次调用都给图片 URL 加随机参数，模拟"新图片"
+    const baseUrl = getBaseUrl(req);
     const mockId = Date.now() + "_" + Math.random().toString(36).substring(2, 10);
+
     fixture.cards.forEach(card => {
-      if (card.imgUrl) {
-        const sep = card.imgUrl.includes("?") ? "&" : "?";
-        card.imgUrl = card.imgUrl + sep + "mock=" + mockId;
+      if (card.imgUrl && card.imgUrl.includes("{{randomImage}}")) {
+        // Replace placeholder with mock image endpoint
+        card.imgUrl = `${baseUrl}/api/v1/mock-image?t=${encodeURIComponent(mockId)}`;
       }
     });
+
     // 更新日期为今天，模拟"换日"
     fixture.date = new Date().toISOString().split("T")[0];
     console.log(`[mock] Returning daily with mockId=${mockId}, date=${fixture.date}`);

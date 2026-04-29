@@ -47,6 +47,32 @@ Keep descriptions lowercase, imperative ("add" not "added"), no period at end.
 There is no test source set yet. `local.properties` holds the SDK path and is
 git-ignored.
 
+## Mock server
+
+The `mock/` directory contains a Node.js Express server that simulates the Loli
+Commons API. It's useful for testing without hitting the real backend.
+
+### Setting the API base URL
+
+The app reads `BuildConfig.API_BASE_URL` at runtime. It is resolved at build
+time from the first available source:
+
+1. Env var `LOLI_API_URL`
+2. Key `loliApiUrl` in `local.properties`
+3. Key `loliApiUrl` in `gradle.properties`
+4. Fallback: `https://loliconey.tsuki.ga`
+
+### Running the mock server
+
+```bash
+./gradlew startMockServer    # installs npm deps if needed, starts server in background
+./gradlew stopMockServer     # kills the background server
+./gradlew mockLogs           # prints server.log to console
+```
+
+The server binds to `0.0.0.0:50303`. Logs go to `mock/server.log`. The PID is
+stored in `mock/.server.pid`.
+
 ## Architecture
 
 Three components fan out from `LoliDailyArtWorker`, which is the core:

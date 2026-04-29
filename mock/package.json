@@ -2,6 +2,7 @@
   "name": "loli-daily-mock",
   "private": true,
   "dependencies": {
-    "express": "^4.21.0"
+    "express": "^4.21.0",
+    "jimp": "^1.6.1"
   }
 }
