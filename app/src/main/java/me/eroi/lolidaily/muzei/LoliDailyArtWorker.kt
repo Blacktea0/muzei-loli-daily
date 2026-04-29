@@ -330,12 +330,24 @@ class LoliDailyArtWorker(
             buildArtwork(card, artworksDir, apiDate, download = false)
         }
 
+        // Compute fingerprint of current artwork queue (tokens + filter)
+        val fingerprint = artworks.joinToString(",") { it.token ?: "" } +
+            "|" + (enabledTags?.joinToString(",") ?: "")
+
+        // Skip push if artwork queue hasn't changed since last push (prevents loop)
+        val lastFingerprint = prefs.getString(KEY_LAST_PUSHED_FINGERPRINT, null)
+        if (!isNewDay && fingerprint == lastFingerprint) {
+            Log.d(TAG, "Artwork queue unchanged — skipping push")
+            return
+        }
+
         // Replace Muzei queue (even if empty — clears when filter matches nothing)
         val client = ProviderContract.getProviderClient(
             applicationContext,
             PROVIDER_AUTHORITY
         )
         client.setArtwork(artworks)
+        prefs.edit().putString(KEY_LAST_PUSHED_FINGERPRINT, fingerprint).apply()
 
         // Force Muzei to rotate if new daily batch arrived
         if (isNewDay) {
@@ -634,6 +646,7 @@ class LoliDailyArtWorker(
         private const val KEY_USER_REACTIONS = "user_reactions"
         private const val KEY_BGM_USERNAME = "bgm_username"
         private const val KEY_BGM_DOMAIN = "bgm_domain"
+        private const val KEY_LAST_PUSHED_FINGERPRINT = "last_pushed_fingerprint"
 
         private const val DEFAULT_BGM_DOMAIN = "chii.in"
 
