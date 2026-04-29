@@ -714,6 +714,8 @@ private fun ReactionRow(
     }
     if (valid.isEmpty()) return
 
+    val context = LocalContext.current
+
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(3.dp),
@@ -728,7 +730,10 @@ private fun ReactionRow(
             else MaterialTheme.colorScheme.onSurface
 
             Surface(
-                onClick = { if (isLoggedIn) onReactionClick(token, reaction.emojiValue) },
+                onClick = {
+                    if (isLoggedIn) onReactionClick(token, reaction.emojiValue)
+                    else Toast.makeText(context, "Login to Bangumi to react", Toast.LENGTH_SHORT).show()
+                },
                 shape = RoundedCornerShape(50),
                 color = bg,
                 modifier = Modifier.height(26.dp),
