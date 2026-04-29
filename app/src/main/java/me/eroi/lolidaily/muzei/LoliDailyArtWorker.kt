@@ -480,8 +480,16 @@ class LoliDailyArtWorker(
 
     /** Returns parsed cards + the response `date` field, or null on failure. */
     private fun fetchDailyResponse(): Pair<List<Card>, String>? {
+        // Check if mock API should be used
+        val useMock = prefs.getBoolean("debug_use_mock_api", false)
+        val url = if (useMock) {
+            prefs.getString("debug_mock_api_url", null) ?: API_URL
+        } else {
+            API_URL
+        }
+        
         val request = Request.Builder()
-            .url(API_URL)
+            .url(url)
             .header("User-Agent", USER_AGENT)
             .get()
             .build()
@@ -573,27 +581,9 @@ class LoliDailyArtWorker(
             "me.eroi.lolidaily.muzei.fileprovider"
 
         private val API_URL
-            get() = run {
-                val prefs = LoliDailyArtWorker.getPrefs(applicationContext)
-                val useMock = prefs?.getBoolean("debug_use_mock_api", false) ?: false
-                if (useMock) {
-                    prefs.getString("debug_mock_api_url", null) ?: 
-                        "${BuildConfig.API_BASE_URL}/api/v1/daily?badge=LC%20YJ-ES-NC-PG"
-                } else {
-                    "${BuildConfig.API_BASE_URL}/api/v1/daily?badge=LC%20YJ-ES-NC-PG"
-                }
-            }
+            get() = "${BuildConfig.API_BASE_URL}/api/v1/daily?badge=LC%20YJ-ES-NC-PG"
         private val REACT_API_URL
-            get() = run {
-                val prefs = LoliDailyArtWorker.getPrefs(applicationContext)
-                val useMock = prefs?.getBoolean("debug_use_mock_api", false) ?: false
-                if (useMock) {
-                    prefs.getString("debug_mock_api_url", null)?.replace("/daily", "/daily/react") ?: 
-                        "${BuildConfig.API_BASE_URL}/api/v1/daily/react?badge=LC%20YJ-ES-NC-PG"
-                } else {
-                    "${BuildConfig.API_BASE_URL}/api/v1/daily/react?badge=LC%20YJ-ES-NC-PG"
-                }
-            }
+            get() = "${BuildConfig.API_BASE_URL}/api/v1/daily/react?badge=LC%20YJ-ES-NC-PG"
         private const val USER_AGENT = "LoliDaily/1.0 (Android)"
         private const val MAX_DOWNLOAD_RETRIES = 3
 
