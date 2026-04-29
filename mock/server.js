@@ -60,7 +60,9 @@ app.get("/api/v1/mock-image", async (_req, res) => {
   const ts = _req.query.t || new Date().toISOString().replace("T", " ").substring(0, 19);
 
   const image = new Jimp(W, H, bgInt);
-  const font = await Jimp.loadFont(Jimp.FONT_SANS_128_BLACK);
+  // Use absolute font path to avoid CWD mismatch when started via gradle
+  const fontPath = path.join(__dirname, "node_modules", "@jimp", "plugin-print", "fonts", "open-sans", "open-sans-128-black", "open-sans-128-black.fnt");
+  const font = await Jimp.loadFont(fontPath);
   image.print(font, 0, 0, { text: ts, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER, alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE }, W, H);
 
   const pngBuf = await image.getBufferAsync(Jimp.MIME_PNG);
