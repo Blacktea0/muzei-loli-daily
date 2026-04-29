@@ -153,6 +153,7 @@ class LoliDailyArtWorker(
 
             // ── Step 2: Filter by current tag preferences ─────────
             pushFilteredArtworks(cards, apiDate, isNewDay)
+            markWorkCompleted()
 
             Result.success()
         } catch (e: Exception) {
@@ -183,6 +184,10 @@ class LoliDailyArtWorker(
 
     private fun markFetchTime() {
         prefs.edit().putLong(KEY_LAST_FETCH_TIME, System.currentTimeMillis()).apply()
+    }
+
+    private fun markWorkCompleted() {
+        prefs.edit().putLong(KEY_LAST_WORK_COMPLETED, System.currentTimeMillis()).apply()
     }
 
     // ── Card data cache (filesystem) ──────────────────────────────
@@ -330,24 +335,12 @@ class LoliDailyArtWorker(
             buildArtwork(card, artworksDir, apiDate, download = false)
         }
 
-        // Compute fingerprint of current artwork queue (tokens + filter)
-        val fingerprint = artworks.joinToString(",") { it.token ?: "" } +
-            "|" + (enabledTags?.joinToString(",") ?: "")
-
-        // Skip push if artwork queue hasn't changed since last push (prevents loop)
-        val lastFingerprint = prefs.getString(KEY_LAST_PUSHED_FINGERPRINT, null)
-        if (!isNewDay && fingerprint == lastFingerprint) {
-            Log.d(TAG, "Artwork queue unchanged — skipping push")
-            return
-        }
-
         // Replace Muzei queue (even if empty — clears when filter matches nothing)
         val client = ProviderContract.getProviderClient(
             applicationContext,
             PROVIDER_AUTHORITY
         )
         client.setArtwork(artworks)
-        prefs.edit().putString(KEY_LAST_PUSHED_FINGERPRINT, fingerprint).apply()
 
         // Force Muzei to rotate if new daily batch arrived
         if (isNewDay) {
@@ -639,6 +632,7 @@ class LoliDailyArtWorker(
         const val KEY_FORCE_REFRESH = "force_refresh"
         const val KEY_ENABLED_TAGS = "enabled_tags"
         private const val KEY_LAST_FETCH_TIME = "last_fetch_time"
+        private const val KEY_LAST_WORK_COMPLETED = "last_work_completed"
         private const val KEY_REFILTER_ONLY = "refilter_only"
         const val KEY_IMAGE_DATES = "image_dates"
         const val KEY_REACTIONS = "reactions"
@@ -646,9 +640,9 @@ class LoliDailyArtWorker(
         private const val KEY_USER_REACTIONS = "user_reactions"
         private const val KEY_BGM_USERNAME = "bgm_username"
         private const val KEY_BGM_DOMAIN = "bgm_domain"
-        private const val KEY_LAST_PUSHED_FINGERPRINT = "last_pushed_fingerprint"
 
         private const val DEFAULT_BGM_DOMAIN = "chii.in"
+        private const val WORK_COOLDOWN_MS = 30_000L
 
         const val PROVIDER_AUTHORITY = "me.eroi.lolidaily.muzei.provider"
         private const val FILE_PROVIDER_AUTHORITY =
@@ -704,6 +698,17 @@ class LoliDailyArtWorker(
          * Requires network. Deduplicates via REPLACE strategy.
          */
         fun enqueueLoad(context: Context, forceRefresh: Boolean = false) {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+            // Cooldown: skip if work completed recently and not a force-refresh
+            if (!forceRefresh) {
+                val lastCompleted = prefs.getLong(KEY_LAST_WORK_COMPLETED, 0L)
+                if (lastCompleted > 0L && System.currentTimeMillis() - lastCompleted < WORK_COOLDOWN_MS) {
+                    Log.d(TAG, "enqueueLoad skipped — within ${WORK_COOLDOWN_MS / 1000}s cooldown")
+                    return
+                }
+            }
+
             val work = OneTimeWorkRequestBuilder<LoliDailyArtWorker>()
                 .setConstraints(
                     Constraints.Builder()
