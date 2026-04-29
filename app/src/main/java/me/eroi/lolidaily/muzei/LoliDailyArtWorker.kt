@@ -549,10 +549,10 @@ class LoliDailyArtWorker(
         private const val FILE_PROVIDER_AUTHORITY =
             "me.eroi.lolidaily.muzei.fileprovider"
 
-        private const val API_URL =
-            "https://loliconey.tsuki.ga/api/v1/daily?badge=LC%20YJ-ES-NC-PG"
-        private const val REACT_API_URL =
-            "https://loliconey.tsuki.ga/api/v1/daily/react?badge=LC%20YJ-ES-NC-PG"
+        private val API_URL
+            get() = "${BuildConfig.API_BASE_URL}/api/v1/daily?badge=LC%20YJ-ES-NC-PG"
+        private val REACT_API_URL
+            get() = "${BuildConfig.API_BASE_URL}/api/v1/daily/react?badge=LC%20YJ-ES-NC-PG"
         private const val USER_AGENT = "LoliDaily/1.0 (Android)"
         private const val MAX_DOWNLOAD_RETRIES = 3
 
@@ -864,7 +864,7 @@ class LoliDailyArtWorker(
             val body = "{\"react\":$emojiValue}".toRequestBody("application/json".toMediaType())
 
             val request = Request.Builder()
-                .url("https://loliconey.tsuki.ga/api/v1/daily/react?cardTypeIdx=$cardIndex")
+                .url("${BuildConfig.API_BASE_URL}/api/v1/daily/react?cardTypeIdx=$cardIndex")
                 .header("Authorization", "Bearer ${session.token}")
                 .header("User-Agent", USER_AGENT)
                 .method("PATCH", body)

@@ -1,0 +1,7 @@
+{
+  "name": "loli-daily-mock",
+  "private": true,
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}

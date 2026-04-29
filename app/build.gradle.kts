@@ -17,6 +17,26 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
+
+        val apiBaseUrl = System.getenv("LOLI_API_URL")
+            ?: rootProject.file("local.properties").takeIf { it.exists() }
+                ?.readLines()
+                ?.mapNotNull { line ->
+                    val eq = line.indexOf('=')
+                    if (eq > 0 && line.substring(0, eq).trim() == "loliApiUrl")
+                        line.substring(eq + 1).trim()
+                    else null
+                }?.firstOrNull()
+            ?: rootProject.file("gradle.properties").takeIf { it.exists() }
+                ?.readLines()
+                ?.mapNotNull { line ->
+                    val eq = line.indexOf('=')
+                    if (eq > 0 && line.substring(0, eq).trim() == "loliApiUrl")
+                        line.substring(eq + 1).trim()
+                    else null
+                }?.firstOrNull()
+            ?: "https://loliconey.tsuki.ga"
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
 
     buildTypes {
@@ -31,6 +51,82 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+
+    // ── Mock server ─────────────────────────────────────────
+    val mockDir = rootProject.projectDir.resolve("mock")
+
+    tasks.register("startMockServer") {
+        group = "mock"
+        description = "Start the local API mock server in background (requires Node.js)"
+        doLast {
+            // Kill any existing server first
+            val pidFile = mockDir.resolve(".server.pid")
+            if (pidFile.exists()) {
+                val oldPid = pidFile.readText().trim()
+                runCatching { ProcessBuilder("taskkill", "/F", "/PID", oldPid).start().waitFor() }
+                pidFile.delete()
+            }
+
+            if (!mockDir.resolve("node_modules").exists()) {
+                println("[mock] Installing dependencies first...")
+                exec {
+                    workingDir = mockDir
+                    commandLine("npm", "install")
+                }
+            }
+
+            val logFile = mockDir.resolve("server.log")
+            val process = ProcessBuilder("node", "server.js")
+                .directory(mockDir)
+                .redirectOutput(ProcessBuilder.Redirect.to(logFile))
+                .redirectError(ProcessBuilder.Redirect.to(logFile))
+                .start()
+            pidFile.writeText(process.pid().toString())
+            println("[mock] Server started (PID ${process.pid()})")
+            println("[mock] URL: http://192.168.31.129:50303")
+            println("[mock] Logs: $logFile")
+            println("[mock] Run './gradlew stopMockServer' to stop")
+        }
+    }
+
+    tasks.register("stopMockServer") {
+        group = "mock"
+        description = "Stop the mock server started by startMockServer"
+        doLast {
+            val pidFile = mockDir.resolve(".server.pid")
+            if (!pidFile.exists()) {
+                println("[mock] No PID file found — server not running?")
+                return@doLast
+            }
+            val pid = pidFile.readText().trim()
+            try {
+                val result = ProcessBuilder("taskkill", "/F", "/PID", pid).start()
+                result.waitFor()
+                if (result.exitValue() == 0) {
+                    pidFile.delete()
+                    println("[mock] Server stopped (PID $pid)")
+                } else {
+                    println("[mock] Failed to stop PID $pid (exit ${result.exitValue()})")
+                }
+            } catch (e: Exception) {
+                println("[mock] Error killing process: ${e.message}")
+            }
+        }
+    }
+
+    tasks.register("mockLogs") {
+        group = "mock"
+        description = "Print the mock server log file"
+        doLast {
+            val logFile = mockDir.resolve("server.log")
+            if (logFile.exists()) {
+                println(logFile.readText())
+            } else {
+                println("[mock] No log file found at $logFile")
+            }
+        }
     }
 
     compileOptions {

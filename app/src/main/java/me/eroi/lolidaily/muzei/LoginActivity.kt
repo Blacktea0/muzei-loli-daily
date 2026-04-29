@@ -75,7 +75,7 @@ class LoginActivity : ComponentActivity() {
     }
 
     companion object {
-        const val OAUTH_URL = "https://loliconey.tsuki.ga/api/v1/oauth/request"
+        val OAUTH_URL get() = "${BuildConfig.API_BASE_URL}/api/v1/oauth/request"
 
         fun clearBgmCookies() {
             val cm = CookieManager.getInstance()

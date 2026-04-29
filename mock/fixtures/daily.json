@@ -1,0 +1,44 @@
+{
+  "cards": [
+    {
+      "characterNames": ["Sample Character"],
+      "comment": "A sample artwork for testing — edit mock/fixtures/daily.json",
+      "imgUrl": "https://p.sda1.dev/21/sample001.png",
+      "sourceUrl": "https://example.com/source/1",
+      "tags": "LC0",
+      "artistName": "Sample Artist",
+      "artistUrl": "https://example.com/artist/1",
+      "characterIds": [1],
+      "suggestedBy": {
+        "nickname": "tester",
+        "username": "tester"
+      }
+    },
+    {
+      "characterNames": ["Another Character", "Side Character"],
+      "comment": "Second test card",
+      "imgUrl": "https://p.sda1.dev/21/sample002.png",
+      "sourceUrl": "https://example.com/source/2",
+      "tags": "LC YJ",
+      "artistName": "Another Artist",
+      "artistUrl": "https://example.com/artist/2",
+      "characterIds": [2, 3],
+      "suggestedBy": null
+    },
+    {
+      "characterNames": ["Third Character"],
+      "comment": "",
+      "imgUrl": "https://p.sda1.dev/21/sample003.png",
+      "sourceUrl": "",
+      "tags": "LC ES",
+      "artistName": "",
+      "artistUrl": "",
+      "characterIds": [4],
+      "suggestedBy": {
+        "nickname": "someone",
+        "username": "someone"
+      }
+    }
+  ],
+  "date": "2025-04-29"
+}
