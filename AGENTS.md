@@ -10,7 +10,7 @@ art source. It pulls a daily batch of artwork from the Loli Commons API
 cards via Bangumi (bgm.tv) OAuth.
 
 - Package: `me.eroi.lolidaily.muzei`
-- Min SDK 24, Target/Compile SDK 35, JVM 17
+- Min SDK 26, Target/Compile SDK 35, JVM 17
 - Kotlin + Jetpack Compose + Material 3
 - Single module: `:app`
 
