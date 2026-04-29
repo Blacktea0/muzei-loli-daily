@@ -86,6 +86,9 @@ class LoliDailyArtWorker(
 
             // ── Step 1: Obtain card data ──────────────────────────
             if (!refilterOnly && shouldFetchApi(forceRefresh)) {
+                // Read cached date BEFORE writing new response
+                val cachedDate = loadCachedResponse()?.date
+
                 // Call the API (normal cycle / force-refresh)
                 val fetched = fetchDailyResponse()
                 if (fetched != null) {
@@ -95,8 +98,7 @@ class LoliDailyArtWorker(
                     saveCachedResponse(fetchedCards, fetchedDate)
                     markFetchTime()
 
-                    val lastDate = prefs.getString(KEY_LAST_API_DATE, null)
-                    isNewDay = forceRefresh || lastDate == null || lastDate != fetchedDate
+                    isNewDay = forceRefresh || cachedDate == null || cachedDate != fetchedDate
 
                     if (isNewDay && cards.isNotEmpty()) {
                         downloadNewImages(cards, forceDownload = forceRefresh)
@@ -147,10 +149,14 @@ class LoliDailyArtWorker(
 
     /**
      * Returns true if the API should be called now.
-     * Always true for force-refresh; otherwise at most once per hour.
+     * Always true for force-refresh or if cached data is from a different date.
+     * Otherwise at most once per hour.
      */
     private fun shouldFetchApi(forceRefresh: Boolean): Boolean {
         if (forceRefresh) return true
+        val cached = loadCachedResponse()
+        // No cache or cached date differs from today — fetch immediately
+        if (cached == null || cached.date != currentDateFormatted()) return true
         val lastFetch = prefs.getLong(KEY_LAST_FETCH_TIME, 0L)
         val hoursSince = (System.currentTimeMillis() - lastFetch) / 3_600_000L
         return hoursSince >= 1
