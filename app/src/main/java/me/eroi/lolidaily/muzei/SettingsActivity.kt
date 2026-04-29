@@ -238,19 +238,17 @@ class SettingsActivity : AppCompatActivity() {
             ?.filter { it.isFile && it.length() > 0 }
             ?: emptyList()
 
-        // Load cached API response to get Card metadata for current day
+        // Load cached API response for current-day metadata
         val (cards, apiDate) = loadCachedDaily()
         val cardByToken = cards.associateBy { md5(it.imgUrl) }
         val dateMap = LoliDailyArtWorker.loadImageDates(this)
         val reactionsMap = LoliDailyArtWorker.loadReactions(this)
         val userReactionsMap = LoliDailyArtWorker.loadUserReactions(this)
 
-        // Fallback: load persisted metadata from Room for tokens missing from api_cache
+        // Persisted metadata from Room (covers all historical batches)
         val roomFieldsByToken = loadRoomArtworkFields()
 
         cachedPreviews = files
-            .filter { cardByToken.containsKey(it.nameWithoutExtension) }
-            .take(4)
             .map { file ->
             val uri = FileProvider.getUriForFile(
                 this,
@@ -274,15 +272,17 @@ class SettingsActivity : AppCompatActivity() {
                 reactions = reactionsMap[token] ?: emptyList(),
                 userEmoji = userReactionsMap[token],
             )
-        }.sortedBy { preview ->
-            // LC0 → LC YJ → LC ES → others
-            when (preview.tags) {
-                "LC0" -> 0
-                "LC YJ" -> 1
-                "LC ES" -> 2
-                else -> 3
-            }
-        }
+        }.sortedWith(
+            compareByDescending<ArtworkPreview> { it.date }
+                .thenBy { preview ->
+                    when (preview.tags) {
+                        "LC0" -> 0
+                        "LC YJ" -> 1
+                        "LC ES" -> 2
+                        else -> 3
+                    }
+                }
+        )
     }
 
     /** Loads all Room-persisted artwork fields, keyed by token. */

@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -77,6 +78,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -816,6 +818,8 @@ private fun DomainPickerDialog(
 
 // ── Tab 1: Gallery ─────────────────────────────────────────────
 
+private const val GALLERY_PAGE_SIZE = 5
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GalleryTab(
@@ -828,6 +832,31 @@ private fun GalleryTab(
     var fullscreenPreview by remember { mutableStateOf<ArtworkPreview?>(null) }
     var isRefreshing by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    // Pagination state
+    var visibleCount by remember { mutableStateOf(GALLERY_PAGE_SIZE) }
+    val listState = rememberLazyListState()
+
+    // Load more when scrolling near the bottom
+    val shouldLoadMore by remember {
+        derivedStateOf {
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()
+            lastVisible != null &&
+                lastVisible.index >= (visibleCount - 2) &&
+                visibleCount < cachedArtwork.size
+        }
+    }
+
+    LaunchedEffect(shouldLoadMore) {
+        if (shouldLoadMore) {
+            visibleCount = minOf(visibleCount + GALLERY_PAGE_SIZE, cachedArtwork.size)
+        }
+    }
+
+    // Reset pagination when artwork list changes
+    LaunchedEffect(cachedArtwork.size) {
+        visibleCount = minOf(GALLERY_PAGE_SIZE, cachedArtwork.size)
+    }
 
     PullToRefreshBox(
         isRefreshing = isRefreshing,
@@ -856,6 +885,7 @@ private fun GalleryTab(
             }
         } else {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     start = 16.dp,
@@ -865,7 +895,7 @@ private fun GalleryTab(
                 ),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                items(cachedArtwork.take(4)) { preview ->
+                items(cachedArtwork.take(visibleCount)) { preview ->
                     ArtworkCard(
                         preview = preview,
                         onImageClick = { fullscreenPreview = preview },
@@ -873,6 +903,35 @@ private fun GalleryTab(
                         onLogin = onLogin,
                         onReactionClick = onReactionClick,
                     )
+                }
+
+                // Loading footer when there are more items to load
+                if (visibleCount < cachedArtwork.size) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 24.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                modifier = Modifier.size(32.dp),
+                                strokeWidth = 3.dp,
+                            )
+                        }
+                    }
+                } else if (cachedArtwork.size > GALLERY_PAGE_SIZE) {
+                    item {
+                        Text(
+                            text = "— End of gallery —",
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 16.dp),
+                        )
+                    }
                 }
             }
         }
