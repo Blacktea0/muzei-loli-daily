@@ -154,15 +154,6 @@ fun SettingsScreen(
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                 ),
-                actions = {
-                    IconButton(onClick = onOpenDebug) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = "Debug Settings",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
             )
         },
         floatingActionButton = {
@@ -211,6 +202,7 @@ fun SettingsScreen(
                         onOpenMuzei = onOpenMuzei,
                         themeMode = themeMode,
                         onThemeModeChanged = onThemeModeChanged,
+                        onOpenDebug = onOpenDebug,
                     )
                 }
             }
@@ -234,6 +226,7 @@ private fun PreferenceTab(
     onOpenMuzei: () -> Unit = {},
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChanged: (ThemeMode) -> Unit = {},
+    onOpenDebug: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val showBanner = (!isMuzeiInstalled || !isSourceActivated)
@@ -368,8 +361,54 @@ private fun PreferenceTab(
                 }
             }
         }
+
+        // ── Debug ─────────────────────────────────
+        item {
+            SectionTitle("DEBUG")
+        }
+
+        item {
+            Surface(
+                onClick = onOpenDebug,
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = RoundedCornerShape(16.dp),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp),
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Debug Settings",
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                        Text(
+                            text = "Developer options and tools",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+        }
     }
 }
+
 
 // ── Setup Banner ────────────────────────────────────────────────
 

@@ -27,6 +27,12 @@
             android:exported="false"
             android:label="Login to Bangumi" />
 
+        <!-- Debug settings — developer tools and testing options -->
+        <activity
+            android:name="me.eroi.lolidaily.muzei.DebugSettingsActivity"
+            android:exported="false"
+            android:label="Debug Settings" />
+
         <!-- BroadcastReceiver for force-refresh command from Muzei -->
         <receiver
             android:name=".RefreshReceiver"
