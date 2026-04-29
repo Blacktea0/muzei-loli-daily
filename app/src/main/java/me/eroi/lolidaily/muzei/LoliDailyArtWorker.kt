@@ -150,16 +150,13 @@ class LoliDailyArtWorker(
     /**
      * Returns true if the API should be called now.
      * Always true for force-refresh or if cached data is from a different date.
-     * Otherwise at most once per hour.
+     * Otherwise, if we already fetched today (GMT+8 07:21), skip API call.
      */
     private fun shouldFetchApi(forceRefresh: Boolean): Boolean {
         if (forceRefresh) return true
         val cached = loadCachedResponse()
-        // No cache or cached date differs from today — fetch immediately
-        if (cached == null || cached.date != currentDateFormatted()) return true
-        val lastFetch = prefs.getLong(KEY_LAST_FETCH_TIME, 0L)
-        val hoursSince = (System.currentTimeMillis() - lastFetch) / 3_600_000L
-        return hoursSince >= 1
+        // No cache or cached date differs from today (GMT+8 07:21) — fetch immediately
+        return cached == null || cached.date != currentDateFormatted()
     }
 
     private fun markFetchTime() {
@@ -523,9 +520,23 @@ class LoliDailyArtWorker(
         return json.encodeToString(Card.serializer(), card)
     }
 
+    /**
+     * Returns the "business date" in GMT+8 timezone.
+     * Date switches at 07:21 GMT+8 (not midnight).
+     */
     private fun currentDateFormatted(): String {
-        val now = java.time.LocalDate.now()
-        return now.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+        val gmt8Zone = java.time.ZoneId.of("GMT+8")
+        val now = java.time.ZonedDateTime.now(gmt8Zone)
+        val switchTime = java.time.LocalTime.of(7, 21)
+        
+        // If current time is before 07:21, use yesterday's date
+        val businessDate = if (now.toLocalTime().isBefore(switchTime)) {
+            now.minusDays(1).toLocalDate()
+        } else {
+            now.toLocalDate()
+        }
+        
+        return businessDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"))
     }
 
     // ── Companion ─────────────────────────────────────────────────────
@@ -620,6 +631,46 @@ class LoliDailyArtWorker(
 
             WorkManager.getInstance(context)
                 .enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.REPLACE, work)
+            
+            // Also ensure daily refresh is scheduled
+            enqueueDailyRefresh(context)
+        }
+        
+        /**
+         * Schedules a one-time work to run at 07:30 GMT+8 tomorrow.
+         * This ensures the daily API is fetched automatically after the date switch.
+         */
+        fun enqueueDailyRefresh(context: Context) {
+            val gmt8Zone = java.time.ZoneId.of("GMT+8")
+            val now = java.time.ZonedDateTime.now(gmt8Zone)
+            val targetTime = java.time.LocalTime.of(7, 30)
+            
+            // Calculate next 07:30 GMT+8
+            var targetDateTime = now.toLocalDate().atTime(targetTime).atZone(gmt8Zone)
+            if (targetDateTime.isBefore(now)) {
+                targetDateTime = targetDateTime.plusDays(1)
+            }
+            
+            val initialDelay = targetDateTime.toInstant().toEpochMilli() - now.toInstant().toEpochMilli()
+            
+            val dailyWork = OneTimeWorkRequestBuilder<LoliDailyArtWorker>()
+                .setConstraints(
+                    Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .build()
+                )
+                .setInputData(
+                    androidx.work.Data.Builder()
+                        .putBoolean(KEY_FORCE_REFRESH, false)
+                        .build()
+                )
+                .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
+                .build()
+            
+            WorkManager.getInstance(context)
+                .enqueueUniqueWork("${WORK_NAME}_daily", ExistingWorkPolicy.KEEP, dailyWork)
+            
+            Log.d(TAG, "Enqueued daily refresh for $targetDateTime (delay: ${initialDelay}ms)")
         }
 
         /**
