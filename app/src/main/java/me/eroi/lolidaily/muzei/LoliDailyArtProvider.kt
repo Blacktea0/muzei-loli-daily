@@ -54,7 +54,12 @@ class LoliDailyArtProvider : MuzeiArtProvider() {
 
         // ── View Source ──────────────────────────────────────
         if (card?.sourceUrl?.isNotBlank() == true) {
-            val sourceIntent = Intent(Intent.ACTION_VIEW, Uri.parse(card.sourceUrl))
+            val sourceIntent = Intent.createChooser(
+                Intent(Intent.ACTION_VIEW, Uri.parse(card.sourceUrl)).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                },
+                null
+            )
             val sourcePending = PendingIntent.getActivity(
                 ctx, (artwork.token.hashCode() + 1),
                 sourceIntent,
@@ -72,7 +77,12 @@ class LoliDailyArtProvider : MuzeiArtProvider() {
 
         // ── View Artist ──────────────────────────────────────
         if (card?.artistUrl?.isNotBlank() == true) {
-            val artistIntent = Intent(Intent.ACTION_VIEW, Uri.parse(card.artistUrl))
+            val artistIntent = Intent.createChooser(
+                Intent(Intent.ACTION_VIEW, Uri.parse(card.artistUrl)).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                },
+                null
+            )
             val artistPending = PendingIntent.getActivity(
                 ctx, (artwork.token.hashCode() + 2),
                 artistIntent,
