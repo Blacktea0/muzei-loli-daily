@@ -248,7 +248,10 @@ class SettingsActivity : AppCompatActivity() {
         // Fallback: load persisted metadata from Room for tokens missing from api_cache
         val roomFieldsByToken = loadRoomArtworkFields()
 
-        cachedPreviews = files.take(4).map { file ->
+        cachedPreviews = files
+            .filter { cardByToken.containsKey(it.nameWithoutExtension) }
+            .take(4)
+            .map { file ->
             val uri = FileProvider.getUriForFile(
                 this,
                 "me.eroi.lolidaily.muzei.fileprovider",
