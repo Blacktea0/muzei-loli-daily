@@ -679,6 +679,9 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         private const val KEY_BGM_USERNAME = "bgm_username"
         private const val KEY_BGM_DOMAIN = "bgm_domain"
 
+        const val KEY_DEBUG_REFRESH_HOUR = "debug_refresh_hour"
+        const val KEY_DEBUG_REFRESH_MINUTE = "debug_refresh_minute"
+
         private const val DEFAULT_BGM_DOMAIN = "chii.in"
         private const val WORK_COOLDOWN_MS = 30_000L
 
@@ -770,13 +773,15 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         }
 
         /**
-         * Schedules a one-time work to run at 07:30 GMT+8 tomorrow. This ensures the daily API is
-         * fetched automatically after the date switch.
+         * Schedules a one-time work to run at the configured debug refresh time (default 07:30)
+         * GMT+8 tomorrow. This ensures the daily API is fetched automatically after the date
+         * switch.
          */
         fun enqueueDailyRefresh(context: Context) {
             val gmt8Zone = java.time.ZoneId.of("GMT+8")
             val now = java.time.ZonedDateTime.now(gmt8Zone)
-            val targetTime = java.time.LocalTime.of(7, 30)
+            val (hour, minute) = getDebugRefreshTime(context)
+            val targetTime = java.time.LocalTime.of(hour, minute)
 
             var targetDateTime = now.toLocalDate().atTime(targetTime).atZone(gmt8Zone)
             if (targetDateTime.isBefore(now)) {
@@ -801,6 +806,13 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                 .enqueueUniqueWork("${WORK_NAME}_daily", ExistingWorkPolicy.KEEP, dailyWork)
 
             Log.d(TAG, "Enqueued daily refresh for $targetDateTime (delay: ${initialDelay}ms)")
+        }
+
+        fun getDebugRefreshTime(context: Context): Pair<Int, Int> {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val hour = prefs.getInt(KEY_DEBUG_REFRESH_HOUR, 7)
+            val minute = prefs.getInt(KEY_DEBUG_REFRESH_MINUTE, 30)
+            return Pair(hour, minute)
         }
 
         /**

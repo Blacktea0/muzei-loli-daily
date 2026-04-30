@@ -84,12 +84,7 @@ class SettingsActivity : AppCompatActivity() {
                     },
                     onRefresh = {
                         LoliDailyArtWorker.enqueueLoad(this, forceRefresh = true)
-                        Toast.makeText(
-                                this,
-                                "Refresh enqueued — respecting current tag filter",
-                                Toast.LENGTH_SHORT,
-                            )
-                            .show()
+                        Toast.makeText(this, "Refresh enqueued", Toast.LENGTH_SHORT).show()
                         window.decorView.postDelayed({ loadPreview() }, 5000)
                     },
                     isSourceActivated = isSourceActivated,
