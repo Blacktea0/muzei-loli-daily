@@ -66,11 +66,13 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
     override fun doWork(): Result {
         val forceRefresh = inputData.getBoolean(KEY_FORCE_REFRESH, false)
         val refilterOnly = inputData.getBoolean(KEY_REFILTER_ONLY, false)
+        val initial = inputData.getBoolean(KEY_INITIAL, true)
 
         return try {
             var isNewDay = false
             var cards = emptyList<Card>()
             var apiDate = ""
+            var didFetchApi = false
 
             // ── Step 1: Obtain card data ──────────────────────────
             if (!refilterOnly && shouldFetchApi(forceRefresh)) {
@@ -80,6 +82,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                 // Call the API (normal cycle / force-refresh)
                 val fetched = fetchDailyResponse()
                 if (fetched != null) {
+                    didFetchApi = true
                     val (fetchedCards, fetchedDate) = fetched
                     cards = fetchedCards
                     apiDate = fetchedDate
@@ -159,7 +162,11 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
             }
 
             // ── Step 2: Filter by current tag preferences ─────────
-            pushFilteredArtworks(cards, apiDate, isNewDay)
+            if (initial || didFetchApi || refilterOnly) {
+                pushFilteredArtworks(cards, apiDate, isNewDay)
+            } else {
+                Log.d(TAG, "Skipping Muzei push — non-initial load with cached data only")
+            }
             markWorkCompleted()
 
             Result.success()
@@ -682,10 +689,12 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         const val KEY_DEBUG_REFRESH_HOUR = "debug_refresh_hour"
         const val KEY_DEBUG_REFRESH_MINUTE = "debug_refresh_minute"
 
-        private const val KEY_LAST_DAILY_REFRESH_DATE = "last_daily_refresh_date"
+        private const val KEY_NEXT_DAILY_REFRESH_TS = "next_daily_refresh_ts"
 
         private const val DEFAULT_BGM_DOMAIN = "chii.in"
         private const val WORK_COOLDOWN_MS = 30_000L
+
+        private const val KEY_INITIAL = "initial"
 
         const val PROVIDER_AUTHORITY = "me.eroi.lolidaily.muzei.provider"
         private const val FILE_PROVIDER_AUTHORITY = "me.eroi.lolidaily.muzei.fileprovider"
@@ -742,10 +751,11 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
          * Enqueue a one-shot work request that may call the API and will always re-filter + push to
          * Muzei. Requires network. Deduplicates via REPLACE strategy.
          *
-         * Before enqueuing, checks whether the configured daily refresh time has passed and a
-         * refresh hasn't been performed yet today. If so, forces a fresh API fetch.
+         * Before enqueuing, checks whether the current time has passed the stored
+         * next-daily-refresh timestamp. If so, forces a fresh API fetch and advances the timestamp
+         * to the next future occurrence.
          */
-        fun enqueueLoad(context: Context, forceRefresh: Boolean = false) {
+        fun enqueueLoad(context: Context, forceRefresh: Boolean = false, initial: Boolean = true) {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
             // Cooldown: skip if work completed recently and not a force-refresh
@@ -760,11 +770,18 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                 }
             }
 
-            // Check if daily refresh is due (past configured time and not yet done today)
-            val shouldDailyRefresh = !forceRefresh && isDailyRefreshDue(context)
+            // Check if daily refresh is due — compare current time against next scheduled timestamp
+            var nextRefreshTs = prefs.getLong(KEY_NEXT_DAILY_REFRESH_TS, 0L)
+            if (nextRefreshTs == 0L) {
+                nextRefreshTs = computeNextRefreshTime(context)
+                prefs.edit().putLong(KEY_NEXT_DAILY_REFRESH_TS, nextRefreshTs).apply()
+            }
+
+            val shouldDailyRefresh = !forceRefresh && System.currentTimeMillis() > nextRefreshTs
             if (shouldDailyRefresh) {
-                Log.d(TAG, "Daily refresh triggered — past configured time")
-                markDailyRefreshDone(context)
+                Log.d(TAG, "Daily refresh triggered — past scheduled time")
+                val newNext = computeNextRefreshTime(context)
+                prefs.edit().putLong(KEY_NEXT_DAILY_REFRESH_TS, newNext).apply()
             }
 
             val work =
@@ -775,6 +792,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                     .setInputData(
                         Data.Builder()
                             .putBoolean(KEY_FORCE_REFRESH, forceRefresh || shouldDailyRefresh)
+                            .putBoolean(KEY_INITIAL, initial)
                             .build()
                     )
                     .build()
@@ -784,43 +802,32 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         }
 
         /**
-         * Returns true if the configured daily refresh time has already passed today and we haven't
-         * recorded a daily refresh for today yet.
+         * Compute the next daily refresh timestamp (epoch millis) based on the configured time
+         * (default 07:30 GMT+8). If the target time has already passed today, returns tomorrow's.
          */
-        private fun isDailyRefreshDue(context: Context): Boolean {
+        private fun computeNextRefreshTime(context: Context): Long {
             val (hour, minute) = getDebugRefreshTime(context)
             val gmt8Zone = java.time.ZoneId.of("GMT+8")
             val now = java.time.ZonedDateTime.now(gmt8Zone)
             val targetTime = java.time.LocalTime.of(hour, minute)
-            val targetDateTime = now.toLocalDate().atTime(targetTime).atZone(gmt8Zone)
 
-            if (!now.isAfter(targetDateTime)) return false
+            var targetDateTime = now.toLocalDate().atTime(targetTime).atZone(gmt8Zone)
+            if (!targetDateTime.isAfter(now)) {
+                targetDateTime = targetDateTime.plusDays(1)
+            }
 
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val lastDate = prefs.getString(KEY_LAST_DAILY_REFRESH_DATE, null)
-            val today = now.toLocalDate().toString()
-
-            return lastDate != today
-        }
-
-        private fun markDailyRefreshDone(context: Context) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val gmt8Zone = java.time.ZoneId.of("GMT+8")
-            val now = java.time.ZonedDateTime.now(gmt8Zone)
-            prefs
-                .edit()
-                .putString(KEY_LAST_DAILY_REFRESH_DATE, now.toLocalDate().toString())
-                .apply()
+            return targetDateTime.toInstant().toEpochMilli()
         }
 
         /**
-         * Reset the daily refresh state so the next [enqueueLoad] call re-evaluates whether a daily
-         * refresh is due. Called when the user changes the configured refresh time in debug
-         * settings.
+         * Recompute the next daily refresh timestamp and write it to prefs. Called when the user
+         * changes the configured refresh time in debug settings so the next [enqueueLoad] call
+         * evaluates against the new time.
          */
         fun resetDailyRefreshState(context: Context) {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit().remove(KEY_LAST_DAILY_REFRESH_DATE).apply()
+            val nextTs = computeNextRefreshTime(context)
+            prefs.edit().putLong(KEY_NEXT_DAILY_REFRESH_TS, nextTs).apply()
         }
 
         fun getDebugRefreshTime(context: Context): Pair<Int, Int> {

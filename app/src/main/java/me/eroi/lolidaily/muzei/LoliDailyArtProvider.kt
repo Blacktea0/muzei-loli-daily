@@ -35,7 +35,7 @@ class LoliDailyArtProvider : MuzeiArtProvider() {
                 }
 
         Log.d(TAG, "onLoadRequested(initial=$initial) — enqueuing load")
-        LoliDailyArtWorker.enqueueLoad(appContext, forceRefresh = false)
+        LoliDailyArtWorker.enqueueLoad(appContext, forceRefresh = false, initial = initial)
     }
 
     /** Provides command actions visible when viewing the current wallpaper in Muzei. */
