@@ -751,6 +751,7 @@ private fun PixelEmoji(resId: Int, modifier: Modifier = Modifier) {
 
 // ── Reaction Row (Telegram-style pill chips) ──────────────────
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ReactionRow(
     reactions: List<ReactionCount>,
@@ -767,10 +768,10 @@ private fun ReactionRow(
 
     val context = LocalContext.current
 
-    Row(
+    FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(3.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
         for ((reaction, resId) in valid) {
             val selected = reaction.emojiValue == userEmoji

@@ -11,7 +11,7 @@ app.use(express.json());
 
 // Request logging middleware
 app.use((req, res, next) => {
-  const timestamp = new Date().toISOString();
+  const timestamp = localISO(new Date());
   const logParts = [
     `[${timestamp}]`,
     `${req.method} ${req.originalUrl || req.url}`,
@@ -42,6 +42,30 @@ function readFixture(name) {
   return null;
 }
 
+/** Format a Date as local ISO 8601 string, e.g. "2026-04-30T14:30:00.123+08:00". */
+function localISO(d) {
+  const pad = (n, len = 2) => String(n).padStart(len, "0");
+  const off = -d.getTimezoneOffset();
+  const sign = off >= 0 ? "+" : "-";
+  const absOff = Math.abs(off);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}` +
+    `.${pad(d.getMilliseconds(), 3)}${sign}${pad(Math.floor(absOff / 60))}:${pad(absOff % 60)}`;
+}
+
+/** Format a Date as local date string "YYYY-MM-DD". */
+function localDate(d) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** Format a Date as short local datetime "YYYY-MM-DD HH:MM:SS". */
+function localShort(d) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    ` ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 // Helper: build full base URL from request
 function getBaseUrl(req) {
   const host = req.get("host") || `localhost:${PORT}`;
@@ -57,7 +81,7 @@ app.get("/api/v1/mock-image", async (_req, res) => {
   const bg = `rgb(${r},${g},${b})`;
   const textColour = (r + g + b) / 3 > 127 ? Jimp.rgbaToInt(0, 0, 0, 255) : Jimp.rgbaToInt(255, 255, 255, 255);
   const bgInt = Jimp.rgbaToInt(r, g, b, 255);
-  const ts = new Date().toISOString();
+  const ts = localShort(new Date());
 
   const image = new Jimp(W, H, bgInt);
   // Use absolute font path to avoid CWD mismatch when started via gradle
@@ -86,7 +110,7 @@ app.get("/api/v1/daily", (req, res) => {
     });
 
     // 更新日期为今天，模拟"换日"
-    fixture.date = new Date().toISOString().split("T")[0];
+    fixture.date = localDate(new Date());
     console.log(`[mock] Returning daily with date=${fixture.date}, cards=${fixture.cards.length}`);
     res.json(fixture);
   } else {
