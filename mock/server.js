@@ -57,7 +57,7 @@ app.get("/api/v1/mock-image", async (_req, res) => {
   const bg = `rgb(${r},${g},${b})`;
   const textColour = (r + g + b) / 3 > 127 ? Jimp.rgbaToInt(0, 0, 0, 255) : Jimp.rgbaToInt(255, 255, 255, 255);
   const bgInt = Jimp.rgbaToInt(r, g, b, 255);
-  const ts = _req.query.t || new Date().toISOString().replace("T", " ").substring(0, 19);
+  const ts = new Date().toISOString();
 
   const image = new Jimp(W, H, bgInt);
   // Use absolute font path to avoid CWD mismatch when started via gradle
@@ -77,18 +77,17 @@ app.get("/api/v1/daily", (req, res) => {
   const fixture = readFixture("daily");
   if (fixture) {
     const baseUrl = getBaseUrl(req);
-    const mockId = Date.now() + "_" + Math.random().toString(36).substring(2, 10);
 
     fixture.cards.forEach(card => {
       if (card.imgUrl && card.imgUrl.includes("{{randomImage}}")) {
-        // Replace placeholder with mock image endpoint
+        const mockId = Date.now() + "_" + Math.random().toString(36).substring(2, 10);
         card.imgUrl = `${baseUrl}/api/v1/mock-image?t=${encodeURIComponent(mockId)}`;
       }
     });
 
     // 更新日期为今天，模拟"换日"
     fixture.date = new Date().toISOString().split("T")[0];
-    console.log(`[mock] Returning daily with mockId=${mockId}, date=${fixture.date}`);
+    console.log(`[mock] Returning daily with date=${fixture.date}, cards=${fixture.cards.length}`);
     res.json(fixture);
   } else {
     res.status(404).json({ error: "fixture not found: daily.json" });
