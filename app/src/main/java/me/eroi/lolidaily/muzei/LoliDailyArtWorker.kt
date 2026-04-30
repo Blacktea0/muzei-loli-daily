@@ -682,6 +682,8 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         const val KEY_DEBUG_REFRESH_HOUR = "debug_refresh_hour"
         const val KEY_DEBUG_REFRESH_MINUTE = "debug_refresh_minute"
 
+        private const val KEY_LAST_DAILY_REFRESH_DATE = "last_daily_refresh_date"
+
         private const val DEFAULT_BGM_DOMAIN = "chii.in"
         private const val WORK_COOLDOWN_MS = 30_000L
 
@@ -739,6 +741,9 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         /**
          * Enqueue a one-shot work request that may call the API and will always re-filter + push to
          * Muzei. Requires network. Deduplicates via REPLACE strategy.
+         *
+         * Before enqueuing, checks whether the configured daily refresh time has passed and a
+         * refresh hasn't been performed yet today. If so, forces a fresh API fetch.
          */
         fun enqueueLoad(context: Context, forceRefresh: Boolean = false) {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -755,57 +760,67 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                 }
             }
 
+            // Check if daily refresh is due (past configured time and not yet done today)
+            val shouldDailyRefresh = !forceRefresh && isDailyRefreshDue(context)
+            if (shouldDailyRefresh) {
+                Log.d(TAG, "Daily refresh triggered — past configured time")
+                markDailyRefreshDone(context)
+            }
+
             val work =
                 OneTimeWorkRequestBuilder<LoliDailyArtWorker>()
                     .setConstraints(
                         Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
                     )
                     .setInputData(
-                        Data.Builder().putBoolean(KEY_FORCE_REFRESH, forceRefresh).build()
+                        Data.Builder()
+                            .putBoolean(KEY_FORCE_REFRESH, forceRefresh || shouldDailyRefresh)
+                            .build()
                     )
                     .build()
 
             WorkManager.getInstance(context)
                 .enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.REPLACE, work)
-
-            // Also ensure daily refresh is scheduled
-            enqueueDailyRefresh(context)
         }
 
         /**
-         * Schedules a one-time work to run at the configured debug refresh time (default 07:30)
-         * GMT+8 tomorrow. This ensures the daily API is fetched automatically after the date
-         * switch.
+         * Returns true if the configured daily refresh time has already passed today and we haven't
+         * recorded a daily refresh for today yet.
          */
-        fun enqueueDailyRefresh(context: Context) {
+        private fun isDailyRefreshDue(context: Context): Boolean {
+            val (hour, minute) = getDebugRefreshTime(context)
             val gmt8Zone = java.time.ZoneId.of("GMT+8")
             val now = java.time.ZonedDateTime.now(gmt8Zone)
-            val (hour, minute) = getDebugRefreshTime(context)
             val targetTime = java.time.LocalTime.of(hour, minute)
+            val targetDateTime = now.toLocalDate().atTime(targetTime).atZone(gmt8Zone)
 
-            var targetDateTime = now.toLocalDate().atTime(targetTime).atZone(gmt8Zone)
-            if (targetDateTime.isBefore(now)) {
-                targetDateTime = targetDateTime.plusDays(1)
-            }
+            if (!now.isAfter(targetDateTime)) return false
 
-            val initialDelay =
-                targetDateTime.toInstant().toEpochMilli() - now.toInstant().toEpochMilli()
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val lastDate = prefs.getString(KEY_LAST_DAILY_REFRESH_DATE, null)
+            val today = now.toLocalDate().toString()
 
-            val dailyWork =
-                OneTimeWorkRequestBuilder<LoliDailyArtWorker>()
-                    .setConstraints(
-                        Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
-                    )
-                    .setInputData(
-                        androidx.work.Data.Builder().putBoolean(KEY_FORCE_REFRESH, true).build()
-                    )
-                    .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
-                    .build()
+            return lastDate != today
+        }
 
-            WorkManager.getInstance(context)
-                .enqueueUniqueWork("${WORK_NAME}_daily", ExistingWorkPolicy.KEEP, dailyWork)
+        private fun markDailyRefreshDone(context: Context) {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val gmt8Zone = java.time.ZoneId.of("GMT+8")
+            val now = java.time.ZonedDateTime.now(gmt8Zone)
+            prefs
+                .edit()
+                .putString(KEY_LAST_DAILY_REFRESH_DATE, now.toLocalDate().toString())
+                .apply()
+        }
 
-            Log.d(TAG, "Enqueued daily refresh for $targetDateTime (delay: ${initialDelay}ms)")
+        /**
+         * Reset the daily refresh state so the next [enqueueLoad] call re-evaluates whether a daily
+         * refresh is due. Called when the user changes the configured refresh time in debug
+         * settings.
+         */
+        fun resetDailyRefreshState(context: Context) {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            prefs.edit().remove(KEY_LAST_DAILY_REFRESH_DATE).apply()
         }
 
         fun getDebugRefreshTime(context: Context): Pair<Int, Int> {

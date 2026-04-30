@@ -228,6 +228,7 @@ private fun RefreshTimeCard() {
                     .putInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_HOUR, h)
                     .putInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_MINUTE, m)
                     .apply()
+                LoliDailyArtWorker.resetDailyRefreshState(context)
                 showDialog = false
             },
         )
