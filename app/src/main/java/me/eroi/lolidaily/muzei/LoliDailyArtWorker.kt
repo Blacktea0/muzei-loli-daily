@@ -87,12 +87,8 @@ class LoliDailyArtWorker(
 
             // ── Step 1: Obtain card data ──────────────────────────
             if (!refilterOnly && shouldFetchApi(forceRefresh)) {
-                // Read cached data BEFORE overwriting with new response
-                val cachedResponse = loadCachedResponse()
-                val cachedDate = cachedResponse?.date
-                val cachedTokens = cachedResponse?.cards
-                    ?.mapNotNull { if (it.imgUrl.isNotBlank()) md5(it.imgUrl) else null }
-                    ?.toSet() ?: emptySet()
+                // Read cached date BEFORE overwriting with new response
+                val cachedDate = loadCachedResponse()?.date
 
                 // Call the API (normal cycle / force-refresh)
                 val fetched = fetchDailyResponse()
@@ -106,21 +102,21 @@ class LoliDailyArtWorker(
                     isNewDay = forceRefresh || cachedDate == null || cachedDate != fetchedDate
 
                     if (cards.isNotEmpty()) {
-                        if (!isNewDay) {
-                            // Same date but possibly different data — clean stale tokens
-                            val newTokens = cards.mapNotNull {
-                                if (it.imgUrl.isNotBlank()) md5(it.imgUrl) else null
-                            }.toSet()
-                            val staleTokens = cachedTokens - newTokens
-                            if (staleTokens.isNotEmpty()) {
-                                Log.d(TAG, "Same date ($fetchedDate) — cleaning ${staleTokens.size} stale artworks")
-                                cleanupStaleArtworks(staleTokens.toList())
-                            }
-                        }
                         downloadNewImages(cards, forceDownload = forceRefresh)
                         saveCardsMetadata(cards, fetchedDate)
                         recordImageDates(cards, fetchedDate)
                         prefs.edit().putString(KEY_LAST_API_DATE, fetchedDate).apply()
+
+                        // Deduplicate by date + tag: for this date, keep only tokens in the current batch
+                        val newTokens = cards.mapNotNull {
+                            if (it.imgUrl.isNotBlank()) md5(it.imgUrl) else null
+                        }.toSet()
+                        val staleTokens = findStaleTokensForDate(fetchedDate, newTokens)
+                        if (staleTokens.isNotEmpty()) {
+                            Log.d(TAG, "Date $fetchedDate — cleaning ${staleTokens.size} stale artworks")
+                            cleanupStaleArtworks(staleTokens.toList())
+                        }
+
                         Log.d(TAG, "Synced ${cards.size} artworks for $fetchedDate (newDay=$isNewDay)")
                     }
                 }
@@ -140,6 +136,19 @@ class LoliDailyArtWorker(
                         apiDate = fbDate
                         saveCachedResponse(fbCards, fbDate)
                         markFetchTime()
+
+                        if (cards.isNotEmpty()) {
+                            downloadNewImages(cards, forceDownload = false)
+                            saveCardsMetadata(cards, fbDate)
+                            recordImageDates(cards, fbDate)
+                            val newTokens = cards.mapNotNull {
+                                if (it.imgUrl.isNotBlank()) md5(it.imgUrl) else null
+                            }.toSet()
+                            val staleTokens = findStaleTokensForDate(fbDate, newTokens)
+                            if (staleTokens.isNotEmpty()) {
+                                cleanupStaleArtworks(staleTokens.toList())
+                            }
+                        }
                     } else {
                         return Result.retry()
                     }
@@ -273,6 +282,18 @@ class LoliDailyArtWorker(
     }
 
     // ── Stale artwork cleanup ─────────────────────────────────────
+
+    /**
+     * Scans all stored image_dates entries for the given date and returns
+     * tokens that are NOT in [keepTokens].  This ensures at most one image
+     * per (date, tag) pair — the one from the latest API response.
+     */
+    private fun findStaleTokensForDate(date: String, keepTokens: Set<String>): Set<String> {
+        return loadImageDatesInternal()
+            .filterKeys { it !in keepTokens }
+            .filterValues { it == date }
+            .keys
+    }
 
     /** Removes artwork files, date records, and Room rows for tokens no longer in the current batch. */
     private fun cleanupStaleArtworks(staleTokens: List<String>) {
