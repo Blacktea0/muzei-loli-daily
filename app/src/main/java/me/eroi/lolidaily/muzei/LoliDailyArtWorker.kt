@@ -376,7 +376,8 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         }
 
         // Replace Muzei queue (even if empty — clears when filter matches nothing)
-        val client = ProviderContract.getProviderClient(applicationContext, PROVIDER_AUTHORITY)
+        val client =
+            ProviderContract.getProviderClient(applicationContext, LoliDailyArtProvider::class.java)
         client.setArtwork(artworks)
 
         // Force Muzei to rotate if new daily batch arrived
