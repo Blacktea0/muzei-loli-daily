@@ -3,6 +3,6 @@
   "private": true,
   "dependencies": {
     "express": "^4.21.0",
-    "jimp": "^1.6.1"
+    "jimp": "^0.22.12"
   }
 }
