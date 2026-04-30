@@ -192,7 +192,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
         val cached = loadCachedResponse()
         // No cache or cached date differs from today (GMT+8 07:21) — fetch immediately
-        return cached == null || cached.date != currentDateFormatted()
+        return cached == null
     }
 
     private fun markFetchTime() {
@@ -621,8 +621,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
     private fun buildTitle(card: Card, apiDate: String): String {
         return card.comment.ifBlank {
-            val date = apiDate.ifBlank { currentDateFormatted() }
-            if (card.tags.isNotBlank()) "$date [${card.tags}]" else date
+            if (card.tags.isNotBlank()) "$apiDate [${card.tags}]" else apiDate
         }
     }
 
@@ -635,8 +634,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         if (card.tags.isNotBlank()) parts.add("[${card.tags}]")
         if (card.characterNames.isNotEmpty()) parts.add(card.characterNames.joinToString(", "))
         card.suggestedBy?.let { parts.add("by ${it.nickname}") }
-        val date = apiDate.ifBlank { currentDateFormatted() }
-        parts.add(date)
+        parts.add(apiDate)
         if (card.sourceUrl.isNotBlank()) parts.add(card.sourceUrl)
         return parts.joinToString("  ·  ")
     }
@@ -692,7 +690,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         private const val KEY_NEXT_DAILY_REFRESH_TS = "next_daily_refresh_ts"
 
         private const val DEFAULT_BGM_DOMAIN = "chii.in"
-        private const val WORK_COOLDOWN_MS = 30_000L
+        private const val WORK_COOLDOWN_MS = 10_000L
 
         private const val KEY_INITIAL = "initial"
 
@@ -806,7 +804,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
          * (default 07:30 GMT+8). If the target time has already passed today, returns tomorrow's.
          */
         private fun computeNextRefreshTime(context: Context): Long {
-            val (hour, minute) = getDebugRefreshTime(context)
+            val (hour, minute) = getRefreshTimeFromPrefrence(context)
             val gmt8Zone = java.time.ZoneId.of("GMT+8")
             val now = java.time.ZonedDateTime.now(gmt8Zone)
             val targetTime = java.time.LocalTime.of(hour, minute)
@@ -830,7 +828,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
             prefs.edit().putLong(KEY_NEXT_DAILY_REFRESH_TS, nextTs).apply()
         }
 
-        fun getDebugRefreshTime(context: Context): Pair<Int, Int> {
+        fun getRefreshTimeFromPrefrence(context: Context): Pair<Int, Int> {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val hour = prefs.getInt(KEY_DEBUG_REFRESH_HOUR, 7)
             val minute = prefs.getInt(KEY_DEBUG_REFRESH_MINUTE, 30)
