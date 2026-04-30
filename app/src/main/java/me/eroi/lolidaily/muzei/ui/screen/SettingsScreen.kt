@@ -30,10 +30,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -48,6 +46,10 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
@@ -59,23 +61,18 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Card
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -86,14 +83,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -103,21 +98,19 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import java.io.File
+import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.ReactionCount
 import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
-import java.io.File
-import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 /**
  * MD3 settings screen for the Loli Daily Muzei plugin.
  *
- * Tab 1 — Gallery: Filled cards with frosted-glass tag chips and
- *         a consolidated bottom action bar.
- * Tab 2 — Preference: radio-group tag filter, account card,
- *         source-status card.
+ * Tab 1 — Gallery: Filled cards with frosted-glass tag chips and a consolidated bottom action bar.
+ * Tab 2 — Preference: radio-group tag filter, account card, source-status card.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -142,18 +135,16 @@ fun SettingsScreen(
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
     val scope = rememberCoroutineScope()
-    val tabs = listOf(
-        "Gallery" to Icons.Default.Image,
-        "Preference" to Icons.Default.Settings,
-    )
+    val tabs = listOf("Gallery" to Icons.Default.Image, "Preference" to Icons.Default.Settings)
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Loli Daily Settings") },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
+                colors =
+                    TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
             )
         },
         floatingActionButton = {
@@ -177,33 +168,33 @@ fun SettingsScreen(
                 }
             }
 
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxWidth().weight(1f),
-            ) { page ->
+            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth().weight(1f)) {
+                page ->
                 when (page) {
-                    0 -> GalleryTab(
-                        cachedArtwork = cachedArtwork,
-                        isLoggedIn = isLoggedIn,
-                        onLogin = onLogin,
-                        onReactionClick = onReactionClick,
-                        onRefresh = onRefresh,
-                    )
-                    1 -> PreferenceTab(
-                        selectedTags = selectedTags,
-                        onTagsChanged = onTagsChanged,
-                        isLoggedIn = isLoggedIn,
-                        onLogin = onLogin,
-                        onLogout = onLogout,
-                        bgmDomain = bgmDomain,
-                        onDomainChanged = onDomainChanged,
-                        isSourceActivated = isSourceActivated,
-                        isMuzeiInstalled = isMuzeiInstalled,
-                        onOpenMuzei = onOpenMuzei,
-                        themeMode = themeMode,
-                        onThemeModeChanged = onThemeModeChanged,
-                        onOpenDebug = onOpenDebug,
-                    )
+                    0 ->
+                        GalleryTab(
+                            cachedArtwork = cachedArtwork,
+                            isLoggedIn = isLoggedIn,
+                            onLogin = onLogin,
+                            onReactionClick = onReactionClick,
+                            onRefresh = onRefresh,
+                        )
+                    1 ->
+                        PreferenceTab(
+                            selectedTags = selectedTags,
+                            onTagsChanged = onTagsChanged,
+                            isLoggedIn = isLoggedIn,
+                            onLogin = onLogin,
+                            onLogout = onLogout,
+                            bgmDomain = bgmDomain,
+                            onDomainChanged = onDomainChanged,
+                            isSourceActivated = isSourceActivated,
+                            isMuzeiInstalled = isMuzeiInstalled,
+                            onOpenMuzei = onOpenMuzei,
+                            themeMode = themeMode,
+                            onThemeModeChanged = onThemeModeChanged,
+                            onOpenDebug = onOpenDebug,
+                        )
                 }
             }
         }
@@ -233,11 +224,15 @@ private fun PreferenceTab(
 
     // Clear banner dismiss state when installation/activation status changes
     LaunchedEffect(isMuzeiInstalled, isSourceActivated) {
-        val prefs = context.getSharedPreferences(
-            LoliDailyArtWorker.PREFS_NAME, android.content.Context.MODE_PRIVATE
-        )
+        val prefs =
+            context.getSharedPreferences(
+                LoliDailyArtWorker.PREFS_NAME,
+                android.content.Context.MODE_PRIVATE,
+            )
         val stored = prefs.getString(KEY_BANNER_DISMISSED, null)
-        if (stored != null && stored != "installed=$isMuzeiInstalled,activated=$isSourceActivated") {
+        if (
+            stored != null && stored != "installed=$isMuzeiInstalled,activated=$isSourceActivated"
+        ) {
             prefs.edit().remove(KEY_BANNER_DISMISSED).apply()
         }
     }
@@ -259,9 +254,7 @@ private fun PreferenceTab(
         }
 
         // ── Tag Filters ──────────────────────────
-        item {
-            SectionTitle("TAG FILTERS")
-        }
+        item { SectionTitle("TAG FILTERS") }
 
         item {
             Surface(
@@ -297,9 +290,7 @@ private fun PreferenceTab(
         }
 
         // ── Account ─────────────────────────────
-        item {
-            SectionTitle("ACCOUNT")
-        }
+        item { SectionTitle("ACCOUNT") }
 
         item {
             AccountCard(
@@ -312,9 +303,7 @@ private fun PreferenceTab(
         }
 
         // ── Source Status ───────────────────────
-        item {
-            SectionTitle("SOURCE STATUS")
-        }
+        item { SectionTitle("SOURCE STATUS") }
 
         item {
             SourceStatusCard(
@@ -325,9 +314,7 @@ private fun PreferenceTab(
         }
 
         // ── Theme ────────────────────────────────
-        item {
-            SectionTitle("THEME")
-        }
+        item { SectionTitle("THEME") }
 
         item {
             Surface(
@@ -363,9 +350,7 @@ private fun PreferenceTab(
         }
 
         // ── Debug ─────────────────────────────────
-        item {
-            SectionTitle("DEBUG")
-        }
+        item { SectionTitle("DEBUG") }
 
         item {
             Surface(
@@ -374,9 +359,7 @@ private fun PreferenceTab(
                 shape = RoundedCornerShape(16.dp),
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
@@ -387,10 +370,7 @@ private fun PreferenceTab(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Debug Settings",
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
+                        Text(text = "Debug Settings", style = MaterialTheme.typography.bodyLarge)
                         Text(
                             text = "Developer options and tools",
                             style = MaterialTheme.typography.labelSmall,
@@ -409,7 +389,6 @@ private fun PreferenceTab(
     }
 }
 
-
 // ── Setup Banner ────────────────────────────────────────────────
 
 private const val KEY_BANNER_DISMISSED = "banner_dismissed_status"
@@ -422,9 +401,13 @@ private fun SetupBanner(
 ) {
     val context = LocalContext.current
     val currentStatus = "installed=$isMuzeiInstalled,activated=$isSourceActivated"
-    val prefs = remember(context) {
-        context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, android.content.Context.MODE_PRIVATE)
-    }
+    val prefs =
+        remember(context) {
+            context.getSharedPreferences(
+                LoliDailyArtWorker.PREFS_NAME,
+                android.content.Context.MODE_PRIVATE,
+            )
+        }
 
     var dismissed by remember { mutableStateOf(false) }
 
@@ -441,8 +424,7 @@ private fun SetupBanner(
         dismissed = true
     }
 
-    val title = if (!isMuzeiInstalled) "Muzei is not installed"
-        else "Source is not enabled"
+    val title = if (!isMuzeiInstalled) "Muzei is not installed" else "Source is not enabled"
 
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -465,10 +447,7 @@ private fun SetupBanner(
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(
-                    onClick = dismissBanner,
-                    modifier = Modifier.size(24.dp),
-                ) {
+                IconButton(onClick = dismissBanner, modifier = Modifier.size(24.dp)) {
                     Icon(
                         Icons.Default.Close,
                         contentDescription = "Dismiss",
@@ -481,7 +460,8 @@ private fun SetupBanner(
             Spacer(Modifier.height(8.dp))
 
             Text(
-                text = "You can browse artwork and manage tags without Muzei. To set images as your wallpaper, install Muzei and enable this source.",
+                text =
+                    "You can browse artwork and manage tags without Muzei. To set images as your wallpaper, install Muzei and enable this source.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -492,9 +472,7 @@ private fun SetupBanner(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
             ) {
-                TextButton(onClick = dismissBanner) {
-                    Text("Dismiss")
-                }
+                TextButton(onClick = dismissBanner) { Text("Dismiss") }
                 FilledTonalButton(onClick = onOpenMuzei) {
                     if (!isMuzeiInstalled) {
                         Text("Install Muzei")
@@ -510,19 +488,13 @@ private fun SetupBanner(
 // ── Theme Option ─────────────────────────────────────────────────
 
 @Composable
-private fun ThemeOption(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
+private fun ThemeOption(label: String, selected: Boolean, onClick: () -> Unit) {
     FilterOption(label = label, selected = selected, onClick = onClick)
 }
 
 // ── Section Title ───────────────────────────────────────────────
 
-/**
- * MD3 section heading: labelSmall, uppercase, primary colour.
- */
+/** MD3 section heading: labelSmall, uppercase, primary colour. */
 @Composable
 private fun SectionTitle(text: String) {
     Text(
@@ -536,27 +508,17 @@ private fun SectionTitle(text: String) {
 // ── Filter Option (radio row) ───────────────────────────────────
 
 @Composable
-private fun FilterOption(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
+private fun FilterOption(label: String, selected: Boolean, onClick: () -> Unit) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 12.dp),
+        modifier =
+            Modifier.fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(vertical = 12.dp, horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RadioButton(
-            selected = selected,
-            onClick = null,
-        )
+        RadioButton(selected = selected, onClick = null)
         Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-        )
+        Text(text = label, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
@@ -600,13 +562,11 @@ private fun AccountCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (isLoggedIn) "Logged in to Bangumi"
-                            else "Not logged in",
+                        text = if (isLoggedIn) "Logged in to Bangumi" else "Not logged in",
                         style = MaterialTheme.typography.titleSmall,
                     )
                     Text(
-                        text = if (isLoggedIn) "via $bgmDomain"
-                            else "Login to react to images",
+                        text = if (isLoggedIn) "via $bgmDomain" else "Login to react to images",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -616,10 +576,7 @@ private fun AccountCard(
             Spacer(Modifier.height(12.dp))
 
             if (isLoggedIn) {
-                OutlinedButton(
-                    onClick = onLogout,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
+                OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
                     Text("Logout")
                 }
             } else {
@@ -691,9 +648,7 @@ private fun SourceStatusCard(
         shape = RoundedCornerShape(16.dp),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -704,11 +659,7 @@ private fun SourceStatusCard(
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = tint,
-                )
+                Text(text = label, style = MaterialTheme.typography.bodyLarge, color = tint)
                 Text(
                     text = subLabel,
                     style = MaterialTheme.typography.labelSmall,
@@ -776,15 +727,19 @@ private fun ReactionRow(
         for ((reaction, resId) in valid) {
             val selected = reaction.emojiValue == userEmoji
 
-            val bg = if (selected) MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
-            val contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-            else MaterialTheme.colorScheme.onSurface
+            val bg =
+                if (selected) MaterialTheme.colorScheme.primaryContainer
+                else MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
+            val contentColor =
+                if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                else MaterialTheme.colorScheme.onSurface
 
             Surface(
                 onClick = {
                     if (isLoggedIn) onReactionClick(token, reaction.emojiValue)
-                    else Toast.makeText(context, "Login to Bangumi to react", Toast.LENGTH_SHORT).show()
+                    else
+                        Toast.makeText(context, "Login to Bangumi to react", Toast.LENGTH_SHORT)
+                            .show()
                 },
                 shape = RoundedCornerShape(50),
                 color = bg,
@@ -794,10 +749,7 @@ private fun ReactionRow(
                     modifier = Modifier.padding(horizontal = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    PixelEmoji(
-                        resId = resId,
-                        modifier = Modifier.size(20.dp),
-                    )
+                    PixelEmoji(resId = resId, modifier = Modifier.size(20.dp))
                     Spacer(Modifier.width(2.dp))
                     Text(
                         text = "${reaction.count}",
@@ -836,10 +788,10 @@ private fun DomainPickerDialog(
                 domains.forEach { domain ->
                     val selected = domain == selectedDomain
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { selectedDomain = domain }
-                            .padding(vertical = 12.dp, horizontal = 4.dp),
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .clickable { selectedDomain = domain }
+                                .padding(vertical = 12.dp, horizontal = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(selected = selected, onClick = null)
@@ -854,9 +806,7 @@ private fun DomainPickerDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Cancel")
-                    }
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
                     FilledTonalButton(onClick = { onDomainSelected(selectedDomain) }) {
                         Text("Confirm")
                     }
@@ -921,10 +871,7 @@ private fun GalleryTab(
         modifier = Modifier.fillMaxSize(),
     ) {
         if (cachedArtwork.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
                     text = "No cached images yet.\nActivate this source in Muzei to fetch artwork.",
                     textAlign = TextAlign.Center,
@@ -937,12 +884,8 @@ private fun GalleryTab(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = 16.dp,
-                    bottom = 88.dp,
-                ),
+                contentPadding =
+                    PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 88.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 items(cachedArtwork.take(visibleCount)) { preview ->
@@ -959,9 +902,7 @@ private fun GalleryTab(
                 if (visibleCount < cachedArtwork.size) {
                     item {
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 24.dp),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             androidx.compose.material3.CircularProgressIndicator(
@@ -977,9 +918,7 @@ private fun GalleryTab(
                             textAlign = TextAlign.Center,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 16.dp),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                         )
                     }
                 }
@@ -1020,17 +959,16 @@ private fun ArtworkCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
+        colors =
+            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
         // ── Hero Image ─────────────────────────────────
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(220.dp)
-                .clickable(onClick = onImageClick)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .height(220.dp)
+                    .clickable(onClick = onImageClick)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
             AsyncImage(
@@ -1043,9 +981,7 @@ private fun ArtworkCard(
             // LC tag badge — frosted glass (top-start)
             if (preview.tags.isNotBlank()) {
                 Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(12.dp),
+                    modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
                     shape = RoundedCornerShape(50),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
                 ) {
@@ -1061,9 +997,7 @@ private fun ArtworkCard(
             // Date badge — frosted glass (top-end)
             if (preview.date.isNotBlank()) {
                 Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(12.dp),
+                    modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
                     shape = RoundedCornerShape(50),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
                 ) {
@@ -1095,19 +1029,13 @@ private fun ArtworkCard(
                     token = token,
                     isLoggedIn = isLoggedIn,
                     onReactionClick = onReactionClick,
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(12.dp),
+                    modifier = Modifier.align(Alignment.BottomStart).padding(12.dp),
                 )
             }
         }
 
         // ── Content ────────────────────────────────────
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-        ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
             // Artist name
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1137,9 +1065,7 @@ private fun ArtworkCard(
                 Icon(
                     Icons.AutoMirrored.Filled.Comment,
                     contentDescription = null,
-                    modifier = Modifier
-                        .size(16.dp)
-                        .padding(top = 2.dp),
+                    modifier = Modifier.size(16.dp).padding(top = 2.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (preview.comment.isNotBlank()) {
@@ -1153,9 +1079,8 @@ private fun ArtworkCard(
                 } else {
                     Text(
                         text = "No comment",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontStyle = FontStyle.Italic,
-                        ),
+                        style =
+                            MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
                         color = MaterialTheme.colorScheme.outline,
                     )
                 }
@@ -1170,9 +1095,7 @@ private fun ArtworkCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // Save / export button
-                FilledTonalIconButton(
-                    onClick = { exportArtwork(context, preview) },
-                ) {
+                FilledTonalIconButton(onClick = { exportArtwork(context, preview) }) {
                     Icon(Icons.Default.Save, contentDescription = "Export artwork")
                 }
 
@@ -1188,17 +1111,20 @@ private fun ArtworkCard(
                 FilledTonalIconButton(
                     onClick = {
                         if (!isLoggedIn) {
-                            Toast.makeText(context, "Login to Bangumi to react", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Login to Bangumi to react", Toast.LENGTH_SHORT)
+                                .show()
                         } else if (hasReacted) {
                             onReactionClick(token, preview.userEmoji!!)
                         } else {
                             showReactionPicker = true
                         }
                     },
-                    colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        contentColor = if (hasReacted) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                    ),
+                    colors =
+                        IconButtonDefaults.filledTonalIconButtonColors(
+                            contentColor =
+                                if (hasReacted) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
                 ) {
                     Icon(
                         if (hasReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
@@ -1232,10 +1158,7 @@ private fun ArtworkCard(
 // ── Reaction Picker Dialog ────────────────────────────────────
 
 @Composable
-private fun ReactionPickerDialog(
-    onDismiss: () -> Unit,
-    onEmojiSelected: (Int) -> Unit,
-) {
+private fun ReactionPickerDialog(onDismiss: () -> Unit, onEmojiSelected: (Int) -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(24.dp),
@@ -1253,9 +1176,7 @@ private fun ReactionPickerDialog(
                     modifier = Modifier.padding(bottom = 16.dp),
                 )
 
-                val emojis = LoliDailyArtWorker.run {
-                    listOf(0, 104, 54, 140, 122, 90, 88, 80)
-                }
+                val emojis = LoliDailyArtWorker.run { listOf(0, 104, 54, 140, 122, 90, 88, 80) }
 
                 for (row in emojis.chunked(4)) {
                     Row(
@@ -1266,14 +1187,10 @@ private fun ReactionPickerDialog(
                             val resId = LoliDailyArtWorker.emojiResId(value) ?: return@forEach
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
-                                    .clickable { onEmojiSelected(value) }
-                                    .padding(8.dp),
+                                modifier =
+                                    Modifier.clickable { onEmojiSelected(value) }.padding(8.dp),
                             ) {
-                                PixelEmoji(
-                                    resId = resId,
-                                    modifier = Modifier.size(36.dp),
-                                )
+                                PixelEmoji(resId = resId, modifier = Modifier.size(36.dp))
                             }
                         }
                     }
@@ -1306,11 +1223,7 @@ private fun FullscreenImageDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
-        ) {
+        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             AsyncImage(
                 model = ImageRequest.Builder(context).data(preview.uri).build(),
                 contentDescription = preview.filename,
@@ -1320,13 +1233,13 @@ private fun FullscreenImageDialog(
 
             IconButton(
                 onClick = onDismiss,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(16.dp)
-                    .background(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-                        RoundedCornerShape(50),
-                    ),
+                modifier =
+                    Modifier.align(Alignment.TopStart)
+                        .padding(16.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                            RoundedCornerShape(50),
+                        ),
             ) {
                 Icon(
                     Icons.Default.Close,
@@ -1335,23 +1248,24 @@ private fun FullscreenImageDialog(
                 )
             }
 
-            val overlayText = if (preview.date.isNotBlank()) {
-                "${preview.artistName}  ·  ${preview.date}"
-            } else {
-                preview.artistName
-            }
+            val overlayText =
+                if (preview.date.isNotBlank()) {
+                    "${preview.artistName}  ·  ${preview.date}"
+                } else {
+                    preview.artistName
+                }
             Text(
                 text = overlayText,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(16.dp)
-                    .background(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-                        RoundedCornerShape(8.dp),
-                    )
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                modifier =
+                    Modifier.align(Alignment.BottomCenter)
+                        .padding(16.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                            RoundedCornerShape(8.dp),
+                        )
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
             )
 
             // Reactions overlay (bottom-end)
@@ -1362,9 +1276,7 @@ private fun FullscreenImageDialog(
                     token = preview.filename.substringBeforeLast('.'),
                     isLoggedIn = isLoggedIn,
                     onReactionClick = onReactionClick,
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp),
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
                 )
             }
         }
@@ -1389,10 +1301,7 @@ private fun ArtworkDetailBottomSheet(
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp)
         ) {
             // Title
             Text(
@@ -1405,11 +1314,7 @@ private fun ArtworkDetailBottomSheet(
 
             // Date
             if (preview.date.isNotBlank()) {
-                DetailRow(
-                    icon = Icons.Default.CalendarToday,
-                    label = "Date",
-                    value = preview.date,
-                )
+                DetailRow(icon = Icons.Default.CalendarToday, label = "Date", value = preview.date)
                 Spacer(Modifier.height(12.dp))
             }
 
@@ -1431,10 +1336,7 @@ private fun ArtworkDetailBottomSheet(
                         AssistChip(
                             onClick = {},
                             label = {
-                                Text(
-                                    preview.tags,
-                                    style = MaterialTheme.typography.labelMedium,
-                                )
+                                Text(preview.tags, style = MaterialTheme.typography.labelMedium)
                             },
                         )
                     },
@@ -1457,9 +1359,7 @@ private fun ArtworkDetailBottomSheet(
                     preview.characterNames.forEach { name ->
                         SuggestionChip(
                             onClick = {},
-                            label = {
-                                Text(name, style = MaterialTheme.typography.labelMedium)
-                            },
+                            label = { Text(name, style = MaterialTheme.typography.labelMedium) },
                         )
                     }
                 }
@@ -1482,9 +1382,7 @@ private fun ArtworkDetailBottomSheet(
             } else {
                 Text(
                     text = "No comment available",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontStyle = FontStyle.Italic,
-                    ),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
                     color = MaterialTheme.colorScheme.outline,
                 )
             }
@@ -1513,9 +1411,13 @@ private fun ArtworkDetailBottomSheet(
                             context.startActivity(
                                 Intent(Intent.ACTION_VIEW, Uri.parse(preview.sourceUrl))
                             )
-                        },
+                        }
                     ) {
-                        Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(
+                            Icons.Default.Image,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
                         Spacer(Modifier.width(6.dp))
                         Text("Source")
                     }
@@ -1526,9 +1428,13 @@ private fun ArtworkDetailBottomSheet(
                             context.startActivity(
                                 Intent(Intent.ACTION_VIEW, Uri.parse(preview.artistUrl))
                             )
-                        },
+                        }
                     ) {
-                        Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
                         Spacer(Modifier.width(6.dp))
                         Text("Artist")
                     }
@@ -1582,50 +1488,58 @@ private fun DetailRow(
 // ── Export Artwork ──────────────────────────────────────────────
 
 /**
- * Copies the artwork file to the public Pictures/LoliDaily directory
- * via [MediaStore], compatible with API 24+.
+ * Copies the artwork file to the public Pictures/LoliDaily directory via [MediaStore], compatible
+ * with API 24+.
  */
 private fun exportArtwork(context: android.content.Context, preview: ArtworkPreview) {
     try {
         val resolver = context.contentResolver
-        val mimeType = if (preview.filename.endsWith(".png", true)) "image/png"
-        else if (preview.filename.endsWith(".gif", true)) "image/gif"
-        else if (preview.filename.endsWith(".webp", true)) "image/webp"
-        else "image/jpeg"
+        val mimeType =
+            if (preview.filename.endsWith(".png", true)) "image/png"
+            else if (preview.filename.endsWith(".gif", true)) "image/gif"
+            else if (preview.filename.endsWith(".webp", true)) "image/webp" else "image/jpeg"
 
         val relativePath = Environment.DIRECTORY_PICTURES + "/LoliDaily"
 
         // Check for existing file on disk
-        val destDir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "LoliDaily")
-        } else {
-            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "LoliDaily")
-        }
+        val destDir =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+                    "LoliDaily",
+                )
+            } else {
+                File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+                    "LoliDaily",
+                )
+            }
         val destFile = File(destDir, preview.filename)
         if (destFile.exists()) {
             Toast.makeText(context, "Already exported", Toast.LENGTH_SHORT).show()
             return
         }
 
-        val contentValues = ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, preview.filename)
-            put(MediaStore.Images.Media.MIME_TYPE, mimeType)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.Images.Media.RELATIVE_PATH, relativePath)
-                put(MediaStore.Images.Media.IS_PENDING, 1)
+        val contentValues =
+            ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, preview.filename)
+                put(MediaStore.Images.Media.MIME_TYPE, mimeType)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(MediaStore.Images.Media.RELATIVE_PATH, relativePath)
+                    put(MediaStore.Images.Media.IS_PENDING, 1)
+                }
             }
-        }
 
-        val outputUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-            ?: run {
-                Toast.makeText(context, "Failed to create export file", Toast.LENGTH_SHORT).show()
-                return
-            }
+        val outputUri =
+            resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                ?: run {
+                    Toast.makeText(context, "Failed to create export file", Toast.LENGTH_SHORT)
+                        .show()
+                    return
+                }
 
         resolver.openInputStream(preview.uri)?.use { input ->
-            resolver.openOutputStream(outputUri)?.use { output ->
-                input.copyTo(output)
-            }
+            resolver.openOutputStream(outputUri)?.use { output -> input.copyTo(output) }
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

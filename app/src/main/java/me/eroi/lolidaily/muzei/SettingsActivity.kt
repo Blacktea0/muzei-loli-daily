@@ -7,15 +7,18 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.FileProvider
 import com.google.android.apps.muzei.api.MuzeiContract
+import java.io.File
+import java.security.MessageDigest
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import me.eroi.lolidaily.muzei.db.DatabaseProvider
 import me.eroi.lolidaily.muzei.db.EntityMapper
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
@@ -24,13 +27,9 @@ import me.eroi.lolidaily.muzei.model.DailyResponse
 import me.eroi.lolidaily.muzei.ui.screen.SettingsScreen
 import me.eroi.lolidaily.muzei.ui.theme.LoliDailyTheme
 import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
-import kotlinx.serialization.json.Json
-import java.io.File
-import java.security.MessageDigest
 
 /**
- * Settings activity launched from Muzei's source configuration screen
- * and the app drawer.
+ * Settings activity launched from Muzei's source configuration screen and the app drawer.
  *
  * Displays tag filter and cached artwork previews with metadata.
  */
@@ -67,9 +66,7 @@ class SettingsActivity : AppCompatActivity() {
                     },
                     cachedArtwork = cachedPreviews,
                     isLoggedIn = isLoggedIn,
-                    onLogin = {
-                        startActivity(Intent(this, LoginActivity::class.java))
-                    },
+                    onLogin = { startActivity(Intent(this, LoginActivity::class.java)) },
                     onLogout = {
                         LoliDailyArtWorker.clearSession(this)
                         LoginActivity.clearBgmCookies()
@@ -88,10 +85,11 @@ class SettingsActivity : AppCompatActivity() {
                     onRefresh = {
                         LoliDailyArtWorker.enqueueLoad(this, forceRefresh = true)
                         Toast.makeText(
-                            this,
-                            "Refresh enqueued — respecting current tag filter",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                                this,
+                                "Refresh enqueued — respecting current tag filter",
+                                Toast.LENGTH_SHORT,
+                            )
+                            .show()
                         window.decorView.postDelayed({ loadPreview() }, 5000)
                     },
                     isSourceActivated = isSourceActivated,
@@ -103,7 +101,9 @@ class SettingsActivity : AppCompatActivity() {
                         saveThemeMode(mode)
                     },
                     onOpenDebug = {
-                        startActivity(Intent(this@SettingsActivity, DebugSettingsActivity::class.java))
+                        startActivity(
+                            Intent(this@SettingsActivity, DebugSettingsActivity::class.java)
+                        )
                     },
                 )
             }
@@ -129,35 +129,33 @@ class SettingsActivity : AppCompatActivity() {
     private fun handleReactionClick(token: String, emojiValue: Int) {
         val cardIndex = LoliDailyArtWorker.getCardIndex(this, token) ?: return
         Thread {
-            val ok = LoliDailyArtWorker.patchReaction(this, cardIndex, emojiValue)
-            if (ok) {
-                LoliDailyArtWorker.fetchAndCacheReactions(this)
-                runOnUiThread { buildPreviews() }
-            } else {
-                runOnUiThread {
-                    Toast.makeText(
-                        this,
-                        "Reaction failed — session may have expired",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                val ok = LoliDailyArtWorker.patchReaction(this, cardIndex, emojiValue)
+                if (ok) {
+                    LoliDailyArtWorker.fetchAndCacheReactions(this)
+                    runOnUiThread { buildPreviews() }
+                } else {
+                    runOnUiThread {
+                        Toast.makeText(
+                                this,
+                                "Reaction failed — session may have expired",
+                                Toast.LENGTH_SHORT,
+                            )
+                            .show()
+                    }
                 }
             }
-        }.start()
+            .start()
     }
 
     private fun loadState() {
-        val enabledTags = prefs.getStringSet(
-            LoliDailyArtWorker.KEY_ENABLED_TAGS, null
-        )
+        val enabledTags = prefs.getStringSet(LoliDailyArtWorker.KEY_ENABLED_TAGS, null)
         selectedTags = enabledTags ?: emptySet()
         bgmDomain = LoliDailyArtWorker.loadDomain(this)
         themeMode = loadThemeMode()
     }
 
     private fun saveState() {
-        prefs.edit()
-            .putStringSet(LoliDailyArtWorker.KEY_ENABLED_TAGS, selectedTags)
-            .apply()
+        prefs.edit().putStringSet(LoliDailyArtWorker.KEY_ENABLED_TAGS, selectedTags).apply()
         LoliDailyArtWorker.enqueueRefilter(this)
     }
 
@@ -177,9 +175,8 @@ class SettingsActivity : AppCompatActivity() {
     // ── Source activation ───────────────────────────────────────────
 
     private fun loadSourceStatus() {
-        isSourceActivated = MuzeiContract.Sources.isProviderSelected(
-            this, LoliDailyArtWorker.PROVIDER_AUTHORITY
-        )
+        isSourceActivated =
+            MuzeiContract.Sources.isProviderSelected(this, LoliDailyArtWorker.PROVIDER_AUTHORITY)
         isMuzeiInstalled = packageManager.getLaunchIntentForPackage(MUZEI_PACKAGE) != null
     }
 
@@ -195,14 +192,25 @@ class SettingsActivity : AppCompatActivity() {
             if (launchIntent != null) {
                 startActivity(launchIntent)
             } else {
-                Toast.makeText(this, "Muzei not installed — opening Play Store", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Muzei not installed — opening Play Store", Toast.LENGTH_SHORT)
+                    .show()
                 try {
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(
-                        "https://play.google.com/store/apps/details?id=$MUZEI_PACKAGE")))
+                    startActivity(
+                        Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse(
+                                "https://play.google.com/store/apps/details?id=$MUZEI_PACKAGE"
+                            ),
+                        )
+                    )
                 } catch (_: Exception) {
                     try {
-                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(
-                            "market://details?id=$MUZEI_PACKAGE")))
+                        startActivity(
+                            Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse("market://details?id=$MUZEI_PACKAGE"),
+                            )
+                        )
                     } catch (_: Exception) {
                         Toast.makeText(this, "No app store available", Toast.LENGTH_SHORT).show()
                     }
@@ -219,9 +227,8 @@ class SettingsActivity : AppCompatActivity() {
     // ── Image preview with metadata ────────────────────────────────
 
     /**
-     * Full refresh cycle: builds previews from current cache,
-     * then fetches fresh reactions in the background.
-     * Called on every onCreate / onResume.
+     * Full refresh cycle: builds previews from current cache, then fetches fresh reactions in the
+     * background. Called on every onCreate / onResume.
      */
     private fun loadPreview() {
         buildPreviews()
@@ -229,17 +236,16 @@ class SettingsActivity : AppCompatActivity() {
         // Background fetch — mirrors the JS lazy-load behaviour:
         // reactions are fetched each time the gallery is opened
         Thread {
-            LoliDailyArtWorker.fetchAndCacheReactions(this@SettingsActivity)
-            runOnUiThread { buildPreviews() }
-        }.start()
+                LoliDailyArtWorker.fetchAndCacheReactions(this@SettingsActivity)
+                runOnUiThread { buildPreviews() }
+            }
+            .start()
     }
 
     /** Builds previews from on-disk cache without triggering network. */
     private fun buildPreviews() {
         val artworksDir = File(filesDir, "artworks")
-        val files = artworksDir.listFiles()
-            ?.filter { it.isFile && it.length() > 0 }
-            ?: emptyList()
+        val files = artworksDir.listFiles()?.filter { it.isFile && it.length() > 0 } ?: emptyList()
 
         // Load cached API response for current-day metadata
         val (cards, apiDate) = loadCachedDaily()
@@ -251,54 +257,54 @@ class SettingsActivity : AppCompatActivity() {
         // Persisted metadata from Room (covers all historical batches)
         val roomFieldsByToken = loadRoomArtworkFields()
 
-        cachedPreviews = files
-            .map { file ->
-            val uri = FileProvider.getUriForFile(
-                this,
-                "me.eroi.lolidaily.muzei.fileprovider",
-                file
-            )
-            val token = file.nameWithoutExtension
-            val card = cardByToken[token]
-            val roomFields = roomFieldsByToken[token]
+        cachedPreviews =
+            files
+                .map { file ->
+                    val uri =
+                        FileProvider.getUriForFile(
+                            this,
+                            "me.eroi.lolidaily.muzei.fileprovider",
+                            file,
+                        )
+                    val token = file.nameWithoutExtension
+                    val card = cardByToken[token]
+                    val roomFields = roomFieldsByToken[token]
 
-            ArtworkPreview(
-                uri = uri,
-                filename = file.name,
-                artistName = card?.artistName ?: roomFields?.artistName ?: "",
-                comment = card?.comment ?: roomFields?.comment ?: "",
-                tags = card?.tags ?: roomFields?.tags ?: "",
-                characterNames = card?.characterNames ?: roomFields?.characterNames ?: emptyList(),
-                sourceUrl = card?.sourceUrl ?: roomFields?.sourceUrl ?: "",
-                artistUrl = card?.artistUrl ?: roomFields?.artistUrl ?: "",
-                date = dateMap[token] ?: roomFields?.date ?: apiDate,
-                reactions = reactionsMap[token] ?: emptyList(),
-                userEmoji = userReactionsMap[token],
-            )
-        }.sortedWith(
-            compareByDescending<ArtworkPreview> { it.date }
-                .thenBy { preview ->
-                    when (preview.tags) {
-                        "LC0" -> 0
-                        "LC YJ" -> 1
-                        "LC ES" -> 2
-                        else -> 3
-                    }
+                    ArtworkPreview(
+                        uri = uri,
+                        filename = file.name,
+                        artistName = card?.artistName ?: roomFields?.artistName ?: "",
+                        comment = card?.comment ?: roomFields?.comment ?: "",
+                        tags = card?.tags ?: roomFields?.tags ?: "",
+                        characterNames =
+                            card?.characterNames ?: roomFields?.characterNames ?: emptyList(),
+                        sourceUrl = card?.sourceUrl ?: roomFields?.sourceUrl ?: "",
+                        artistUrl = card?.artistUrl ?: roomFields?.artistUrl ?: "",
+                        date = dateMap[token] ?: roomFields?.date ?: apiDate,
+                        reactions = reactionsMap[token] ?: emptyList(),
+                        userEmoji = userReactionsMap[token],
+                    )
                 }
-        )
+                .sortedWith(
+                    compareByDescending<ArtworkPreview> { it.date }
+                        .thenBy { preview ->
+                            when (preview.tags) {
+                                "LC0" -> 0
+                                "LC YJ" -> 1
+                                "LC ES" -> 2
+                                else -> 3
+                            }
+                        }
+                )
     }
 
     /** Loads all Room-persisted artwork fields, keyed by token. */
     private fun loadRoomArtworkFields(): Map<String, EntityMapper.CardFields> {
         return try {
             val entities = runBlocking {
-                DatabaseProvider.getInstance(this@SettingsActivity)
-                    .cachedArtworkDao()
-                    .getAll()
+                DatabaseProvider.getInstance(this@SettingsActivity).cachedArtworkDao().getAll()
             }
-            entities.associate { entity ->
-                entity.token to EntityMapper.entityToCardFields(entity)
-            }
+            entities.associate { entity -> entity.token to EntityMapper.entityToCardFields(entity) }
         } catch (e: Exception) {
             Log.w("SettingsActivity", "Failed to load artwork metadata from Room", e)
             emptyMap()
@@ -318,7 +324,6 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun md5(input: String): String {
         val digest = MessageDigest.getInstance("MD5")
-        return digest.digest(input.toByteArray())
-            .joinToString("") { "%02x".format(it) }
+        return digest.digest(input.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 }

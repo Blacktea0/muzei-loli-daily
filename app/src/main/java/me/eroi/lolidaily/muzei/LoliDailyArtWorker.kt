@@ -7,69 +7,56 @@ import android.net.Uri
 import android.util.Base64
 import android.util.Log
 import androidx.core.content.FileProvider
-import androidx.work.Constraints
-import androidx.work.ExistingWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.Worker
-import androidx.work.WorkerParameters
+import androidx.work.*
+import com.google.android.apps.muzei.api.provider.Artwork
+import com.google.android.apps.muzei.api.provider.ProviderContract
+import java.io.File
+import java.security.MessageDigest
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
+import me.eroi.lolidaily.muzei.LoliDailyArtWorker.Companion.DEFAULT_BGM_DOMAIN
+import me.eroi.lolidaily.muzei.LoliDailyArtWorker.Companion.KEY_ENABLED_TAGS
 import me.eroi.lolidaily.muzei.db.DatabaseProvider
 import me.eroi.lolidaily.muzei.db.EntityMapper
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyReactResponse
 import me.eroi.lolidaily.muzei.model.DailyResponse
 import me.eroi.lolidaily.muzei.model.ReactionCount
-import com.google.android.apps.muzei.api.provider.Artwork
-import com.google.android.apps.muzei.api.provider.ProviderContract
-import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okio.buffer
 import okio.sink
-import okio.source
-import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.serializer
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.File
-import java.security.MessageDigest
-import java.util.concurrent.TimeUnit
 
 /**
- * WorkManager Worker that fetches artwork from the Loli Daily API
- * and keeps the Muzei queue in sync with the user's tag preferences.
+ * WorkManager Worker that fetches artwork from the Loli Daily API and keeps the Muzei queue in sync
+ * with the user's tag preferences.
  *
  * Strategy:
- * - API is called when the date changes, on force-refresh, or when
- *   debug_skip_cache is enabled.  Images are downloaded whenever the
- *   API returns new cards; stale files from earlier same-day fetches
- *   are automatically cleaned up.
- * - **All** images are downloaded regardless of the user's tag
- *   filter — the full daily batch is cached locally.
- * - Tag filtering happens at push time: every execution re-reads
- *   [KEY_ENABLED_TAGS] and pushes only matching artwork to Muzei.
- * - When the user changes tag preferences in Settings, a
- *   lightweight re-filter is enqueued that uses cached data
- *   without touching the network.
+ * - API is called when the date changes, on force-refresh, or when debug_skip_cache is enabled.
+ *   Images are downloaded whenever the API returns new cards; stale files from earlier same-day
+ *   fetches are automatically cleaned up.
+ * - **All** images are downloaded regardless of the user's tag filter — the full daily batch is
+ *   cached locally.
+ * - Tag filtering happens at push time: every execution re-reads [KEY_ENABLED_TAGS] and pushes only
+ *   matching artwork to Muzei.
+ * - When the user changes tag preferences in Settings, a lightweight re-filter is enqueued that
+ *   uses cached data without touching the network.
  */
-class LoliDailyArtWorker(
-    context: Context,
-    params: WorkerParameters,
-) : Worker(context, params) {
+class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
 
     /**
-     * Mirrors the JS session data structure: { token: "JWT", expiresAt: 1234567890000 }.
-     * Top-level nested so it's accessible as LoliDailyArtWorker.Session.
+     * Mirrors the JS session data structure: { token: "JWT", expiresAt: 1234567890000 }. Top-level
+     * nested so it's accessible as LoliDailyArtWorker.Session.
      */
     @kotlinx.serialization.Serializable
-    data class Session(
-        val token: String,
-        val expiresAt: Long,
-    ) {
-        val isValid: Boolean get() = token.isNotBlank() && expiresAt > System.currentTimeMillis()
+    data class Session(val token: String, val expiresAt: Long) {
+        val isValid: Boolean
+            get() = token.isNotBlank() && expiresAt > System.currentTimeMillis()
     }
 
     private val prefs: SharedPreferences by lazy {
@@ -107,17 +94,25 @@ class LoliDailyArtWorker(
                         recordImageDates(cards, fetchedDate)
                         prefs.edit().putString(KEY_LAST_API_DATE, fetchedDate).apply()
 
-                        // Deduplicate by date + tag: for this date, keep only tokens in the current batch
-                        val newTokens = cards.mapNotNull {
-                            if (it.imgUrl.isNotBlank()) md5(it.imgUrl) else null
-                        }.toSet()
+                        // Deduplicate by date + tag: for this date, keep only tokens in the current
+                        // batch
+                        val newTokens =
+                            cards
+                                .mapNotNull { if (it.imgUrl.isNotBlank()) md5(it.imgUrl) else null }
+                                .toSet()
                         val staleTokens = findStaleTokensForDate(fetchedDate, newTokens)
                         if (staleTokens.isNotEmpty()) {
-                            Log.d(TAG, "Date $fetchedDate — cleaning ${staleTokens.size} stale artworks")
+                            Log.d(
+                                TAG,
+                                "Date $fetchedDate — cleaning ${staleTokens.size} stale artworks",
+                            )
                             cleanupStaleArtworks(staleTokens.toList())
                         }
 
-                        Log.d(TAG, "Synced ${cards.size} artworks for $fetchedDate (newDay=$isNewDay)")
+                        Log.d(
+                            TAG,
+                            "Synced ${cards.size} artworks for $fetchedDate (newDay=$isNewDay)",
+                        )
                     }
                 }
             }
@@ -141,9 +136,12 @@ class LoliDailyArtWorker(
                             downloadNewImages(cards, forceDownload = false)
                             saveCardsMetadata(cards, fbDate)
                             recordImageDates(cards, fbDate)
-                            val newTokens = cards.mapNotNull {
-                                if (it.imgUrl.isNotBlank()) md5(it.imgUrl) else null
-                            }.toSet()
+                            val newTokens =
+                                cards
+                                    .mapNotNull {
+                                        if (it.imgUrl.isNotBlank()) md5(it.imgUrl) else null
+                                    }
+                                    .toSet()
                             val staleTokens = findStaleTokensForDate(fbDate, newTokens)
                             if (staleTokens.isNotEmpty()) {
                                 cleanupStaleArtworks(staleTokens.toList())
@@ -174,18 +172,17 @@ class LoliDailyArtWorker(
     // ── API fetch gating ──────────────────────────────────────────
 
     /**
-     * Returns true if the API should be called now.
-     * Always true for force-refresh or if cached data is from a different date.
-     * Otherwise, if we already fetched today (GMT+8 07:21), skip API call.
-     * Debug option: skip cache forces API call regardless of date.
+     * Returns true if the API should be called now. Always true for force-refresh or if cached data
+     * is from a different date. Otherwise, if we already fetched today (GMT+8 07:21), skip API
+     * call. Debug option: skip cache forces API call regardless of date.
      */
     private fun shouldFetchApi(forceRefresh: Boolean): Boolean {
         if (forceRefresh) return true
-        
+
         // Debug: skip cache if enabled
         val skipCache = prefs.getBoolean("debug_skip_cache", false)
         if (skipCache) return true
-        
+
         val cached = loadCachedResponse()
         // No cache or cached date differs from today (GMT+8 07:21) — fetch immediately
         return cached == null || cached.date != currentDateFormatted()
@@ -233,9 +230,15 @@ class LoliDailyArtWorker(
                 current[md5(card.imgUrl)] = date
             }
         }
-        prefs.edit()
-            .putString(KEY_IMAGE_DATES, json.encodeToString(
-                    MapSerializer(serializer<String>(), serializer<String>()), current))
+        prefs
+            .edit()
+            .putString(
+                KEY_IMAGE_DATES,
+                json.encodeToString(
+                    MapSerializer(serializer<String>(), serializer<String>()),
+                    current,
+                ),
+            )
             .apply()
     }
 
@@ -284,9 +287,9 @@ class LoliDailyArtWorker(
     // ── Stale artwork cleanup ─────────────────────────────────────
 
     /**
-     * Scans all stored image_dates entries for the given date and returns
-     * tokens that are NOT in [keepTokens].  This ensures at most one image
-     * per (date, tag) pair — the one from the latest API response.
+     * Scans all stored image_dates entries for the given date and returns tokens that are NOT in
+     * [keepTokens]. This ensures at most one image per (date, tag) pair — the one from the latest
+     * API response.
      */
     private fun findStaleTokensForDate(date: String, keepTokens: Set<String>): Set<String> {
         return loadImageDatesInternal()
@@ -295,7 +298,9 @@ class LoliDailyArtWorker(
             .keys
     }
 
-    /** Removes artwork files, date records, and Room rows for tokens no longer in the current batch. */
+    /**
+     * Removes artwork files, date records, and Room rows for tokens no longer in the current batch.
+     */
     private fun cleanupStaleArtworks(staleTokens: List<String>) {
         val dir = ensureArtworksDir()
 
@@ -319,9 +324,15 @@ class LoliDailyArtWorker(
             }
         }
         if (datesChanged) {
-            prefs.edit()
-                .putString(KEY_IMAGE_DATES, json.encodeToString(
-                        MapSerializer(serializer<String>(), serializer<String>()), dates))
+            prefs
+                .edit()
+                .putString(
+                    KEY_IMAGE_DATES,
+                    json.encodeToString(
+                        MapSerializer(serializer<String>(), serializer<String>()),
+                        dates,
+                    ),
+                )
                 .apply()
         }
 
@@ -343,11 +354,12 @@ class LoliDailyArtWorker(
     private fun pushFilteredArtworks(cards: List<Card>, apiDate: String, isNewDay: Boolean) {
         val enabledTags = prefs.getStringSet(KEY_ENABLED_TAGS, null)
 
-        val filteredCards = if (enabledTags.isNullOrEmpty()) {
-            cards // No filter — show all
-        } else {
-            cards.filter { card -> enabledTags.contains(card.tags) }
-        }
+        val filteredCards =
+            if (enabledTags.isNullOrEmpty()) {
+                cards // No filter — show all
+            } else {
+                cards.filter { card -> enabledTags.contains(card.tags) }
+            }
 
         Log.d(TAG, "Filtered ${cards.size} → ${filteredCards.size} (tags=$enabledTags)")
 
@@ -357,10 +369,7 @@ class LoliDailyArtWorker(
         }
 
         // Replace Muzei queue (even if empty — clears when filter matches nothing)
-        val client = ProviderContract.getProviderClient(
-            applicationContext,
-            PROVIDER_AUTHORITY
-        )
+        val client = ProviderContract.getProviderClient(applicationContext, PROVIDER_AUTHORITY)
         client.setArtwork(artworks)
 
         // Force Muzei to rotate if new daily batch arrived
@@ -382,12 +391,12 @@ class LoliDailyArtWorker(
         if (card.imgUrl.isBlank()) return null
 
         val token = md5(card.imgUrl)
-        val localUri = if (download) {
-            downloadImage(card.imgUrl, token, dir)
-                ?: getCachedUri(token, dir)
-        } else {
-            getCachedUri(token, dir)
-        } ?: return null
+        val localUri =
+            if (download) {
+                downloadImage(card.imgUrl, token, dir) ?: getCachedUri(token, dir)
+            } else {
+                getCachedUri(token, dir)
+            } ?: return null
 
         return Artwork.Builder()
             .token(token)
@@ -408,7 +417,12 @@ class LoliDailyArtWorker(
         return dir
     }
 
-    private fun downloadImage(url: String, token: String, dir: File, forceDownload: Boolean = false): Uri? {
+    private fun downloadImage(
+        url: String,
+        token: String,
+        dir: File,
+        forceDownload: Boolean = false,
+    ): Uri? {
         // On force-refresh, always re-download from network
         if (forceDownload) {
             val existing = findExistingFile(token, dir)
@@ -440,7 +454,10 @@ class LoliDailyArtWorker(
                 }
             } catch (e: Exception) {
                 lastError = e
-                Log.w(TAG, "Download attempt $attempt/$MAX_DOWNLOAD_RETRIES failed for $token: ${e.message}")
+                Log.w(
+                    TAG,
+                    "Download attempt $attempt/$MAX_DOWNLOAD_RETRIES failed for $token: ${e.message}",
+                )
             }
 
             if (attempt < MAX_DOWNLOAD_RETRIES) {
@@ -456,11 +473,7 @@ class LoliDailyArtWorker(
 
     /** Single download attempt with integrity validation. */
     private fun downloadImageOnce(url: String, token: String, dir: File): File? {
-        val request = Request.Builder()
-            .url(url)
-            .header("User-Agent", USER_AGENT)
-            .get()
-            .build()
+        val request = Request.Builder().url(url).header("User-Agent", USER_AGENT).get().build()
 
         val response = httpClient.newCall(request).execute()
         response.use { resp ->
@@ -484,7 +497,10 @@ class LoliDailyArtWorker(
             }
 
             if (!isFileValid(file)) {
-                Log.w(TAG, "File integrity check failed for $token (${file.length()} bytes, ext=$ext)")
+                Log.w(
+                    TAG,
+                    "File integrity check failed for $token (${file.length()} bytes, ext=$ext)",
+                )
                 file.delete()
                 return null
             }
@@ -502,7 +518,9 @@ class LoliDailyArtWorker(
             file.inputStream().use { it.read(header) }
             val ext = file.extension.lowercase()
             when {
-                ext in listOf("jpg", "jpeg") -> header[0] == 0xFF.toByte() && header[1] == 0xD8.toByte()
+                ext in listOf("jpg", "jpeg") ->
+                    header[0] == 0xFF.toByte() && header[1] == 0xD8.toByte()
+
                 ext == "png" -> header[0] == 0x89.toByte() && header[1] == 0x50.toByte()
                 ext == "webp" -> header[0] == 0x52.toByte() && header[1] == 0x49.toByte()
                 ext == "gif" -> header[0] == 0x47.toByte() && header[1] == 0x49.toByte()
@@ -518,20 +536,26 @@ class LoliDailyArtWorker(
     /** Determine file extension from content-type or URL path. */
     private fun detectExtension(subtype: String?, url: String): String {
         // 1. Content-Type
-        val fromMime = when (subtype?.lowercase()) {
-            "png" -> "png"
-            "webp" -> "webp"
-            "jpeg" -> "jpg"
-            else -> null
-        }
+        val fromMime =
+            when (subtype?.lowercase()) {
+                "png" -> "png"
+                "webp" -> "webp"
+                "jpeg" -> "jpg"
+                else -> null
+            }
         if (fromMime != null) return fromMime
 
         // 2. URL path extension
-        val path = try {
-            java.net.URI(url).path
-        } catch (_: Exception) { null }
-        val fromUrl = path?.substringAfterLast('.')?.lowercase()
-            ?.takeIf { it in listOf("jpg", "jpeg", "png", "webp", "gif", "bmp") }
+        val path =
+            try {
+                java.net.URI(url).path
+            } catch (_: Exception) {
+                null
+            }
+        val fromUrl =
+            path?.substringAfterLast('.')?.lowercase()?.takeIf {
+                it in listOf("jpg", "jpeg", "png", "webp", "gif", "bmp")
+            }
         if (fromUrl != null) return fromUrl
 
         // 3. Default
@@ -556,11 +580,7 @@ class LoliDailyArtWorker(
     }
 
     private fun fileToUri(file: File): Uri {
-        return FileProvider.getUriForFile(
-            applicationContext,
-            FILE_PROVIDER_AUTHORITY,
-            file
-        )
+        return FileProvider.getUriForFile(applicationContext, FILE_PROVIDER_AUTHORITY, file)
     }
 
     // ── API ───────────────────────────────────────────────────────────
@@ -569,17 +589,14 @@ class LoliDailyArtWorker(
     private fun fetchDailyResponse(): Pair<List<Card>, String>? {
         // Check if mock API should be used
         val useMock = prefs.getBoolean("debug_use_mock_api", false)
-        val url = if (useMock) {
-            prefs.getString("debug_mock_api_url", null) ?: API_URL
-        } else {
-            API_URL
-        }
-        
-        val request = Request.Builder()
-            .url(url)
-            .header("User-Agent", USER_AGENT)
-            .get()
-            .build()
+        val url =
+            if (useMock) {
+                prefs.getString("debug_mock_api_url", null) ?: API_URL
+            } else {
+                API_URL
+            }
+
+        val request = Request.Builder().url(url).header("User-Agent", USER_AGENT).get().build()
 
         val response = httpClient.newCall(request).execute()
         val body = response.body?.string() ?: return null
@@ -622,21 +639,21 @@ class LoliDailyArtWorker(
     }
 
     /**
-     * Returns the "business date" in GMT+8 timezone.
-     * Date switches at 07:21 GMT+8 (not midnight).
+     * Returns the "business date" in GMT+8 timezone. Date switches at 07:21 GMT+8 (not midnight).
      */
     private fun currentDateFormatted(): String {
         val gmt8Zone = java.time.ZoneId.of("GMT+8")
         val now = java.time.ZonedDateTime.now(gmt8Zone)
         val switchTime = java.time.LocalTime.of(7, 21)
-        
+
         // If current time is before 07:21, use yesterday's date
-        val businessDate = if (now.toLocalTime().isBefore(switchTime)) {
-            now.minusDays(1).toLocalDate()
-        } else {
-            now.toLocalDate()
-        }
-        
+        val businessDate =
+            if (now.toLocalTime().isBefore(switchTime)) {
+                now.minusDays(1).toLocalDate()
+            } else {
+                now.toLocalDate()
+            }
+
         return businessDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"))
     }
 
@@ -666,57 +683,59 @@ class LoliDailyArtWorker(
         private const val WORK_COOLDOWN_MS = 30_000L
 
         const val PROVIDER_AUTHORITY = "me.eroi.lolidaily.muzei.provider"
-        private const val FILE_PROVIDER_AUTHORITY =
-            "me.eroi.lolidaily.muzei.fileprovider"
+        private const val FILE_PROVIDER_AUTHORITY = "me.eroi.lolidaily.muzei.fileprovider"
 
         private val API_URL
             get() = "${BuildConfig.API_BASE_URL}/api/v1/daily?badge=LC%20YJ-ES-NC-PG"
+
         private val REACT_API_URL
             get() = "${BuildConfig.API_BASE_URL}/api/v1/daily/react?badge=LC%20YJ-ES-NC-PG"
+
         private const val USER_AGENT = "LoliDaily/1.0 (Android)"
         private const val MAX_DOWNLOAD_RETRIES = 3
 
         private val json = Json { ignoreUnknownKeys = true }
-        private val httpClient = OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .build()
+        private val httpClient =
+            OkHttpClient.Builder()
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .build()
 
         /** Map of reaction emoji value → drawable resource ID. */
-        fun emojiResId(value: Int): Int? = when (value) {
-            0 -> R.drawable.reaction_44
-            104 -> R.drawable.reaction_65
-            54 -> R.drawable.reaction_15
-            140 -> R.drawable.reaction_101
-            122 -> R.drawable.reaction_83
-            90 -> R.drawable.reaction_51
-            88 -> R.drawable.reaction_49
-            80 -> R.drawable.reaction_41
-            else -> null
-        }
+        fun emojiResId(value: Int): Int? =
+            when (value) {
+                0 -> R.drawable.reaction_44
+                104 -> R.drawable.reaction_65
+                54 -> R.drawable.reaction_15
+                140 -> R.drawable.reaction_101
+                122 -> R.drawable.reaction_83
+                90 -> R.drawable.reaction_51
+                88 -> R.drawable.reaction_49
+                80 -> R.drawable.reaction_41
+                else -> null
+            }
 
         @Deprecated("Use emojiResId() with local drawable resources instead")
-        val EMOJI_URL_MAP = mapOf(
-            0 to "https://bgm.tv/img/smiles/tv/44.gif",
-            104 to "https://bgm.tv/img/smiles/tv/65.gif",
-            54 to "https://bgm.tv/img/smiles/tv/15.gif",
-            140 to "https://bgm.tv/img/smiles/tv/101.gif",
-            122 to "https://bgm.tv/img/smiles/tv/83.gif",
-            90 to "https://bgm.tv/img/smiles/tv/51.gif",
-            88 to "https://bgm.tv/img/smiles/tv/49.gif",
-            80 to "https://bgm.tv/img/smiles/tv/41.gif",
-        )
+        val EMOJI_URL_MAP =
+            mapOf(
+                0 to "https://bgm.tv/img/smiles/tv/44.gif",
+                104 to "https://bgm.tv/img/smiles/tv/65.gif",
+                54 to "https://bgm.tv/img/smiles/tv/15.gif",
+                140 to "https://bgm.tv/img/smiles/tv/101.gif",
+                122 to "https://bgm.tv/img/smiles/tv/83.gif",
+                90 to "https://bgm.tv/img/smiles/tv/51.gif",
+                88 to "https://bgm.tv/img/smiles/tv/49.gif",
+                80 to "https://bgm.tv/img/smiles/tv/41.gif",
+            )
 
         private fun md5(input: String): String {
             val digest = MessageDigest.getInstance("MD5")
-            return digest.digest(input.toByteArray())
-                .joinToString("") { "%02x".format(it) }
+            return digest.digest(input.toByteArray()).joinToString("") { "%02x".format(it) }
         }
 
         /**
-         * Enqueue a one-shot work request that may call the API
-         * and will always re-filter + push to Muzei.
-         * Requires network. Deduplicates via REPLACE strategy.
+         * Enqueue a one-shot work request that may call the API and will always re-filter + push to
+         * Muzei. Requires network. Deduplicates via REPLACE strategy.
          */
         fun enqueueLoad(context: Context, forceRefresh: Boolean = false) {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -724,98 +743,91 @@ class LoliDailyArtWorker(
             // Cooldown: skip if work completed recently and not a force-refresh
             if (!forceRefresh) {
                 val lastCompleted = prefs.getLong(KEY_LAST_WORK_COMPLETED, 0L)
-                if (lastCompleted > 0L && System.currentTimeMillis() - lastCompleted < WORK_COOLDOWN_MS) {
+                if (
+                    lastCompleted > 0L &&
+                        System.currentTimeMillis() - lastCompleted < WORK_COOLDOWN_MS
+                ) {
                     Log.d(TAG, "enqueueLoad skipped — within ${WORK_COOLDOWN_MS / 1000}s cooldown")
                     return
                 }
             }
 
-            val work = OneTimeWorkRequestBuilder<LoliDailyArtWorker>()
-                .setConstraints(
-                    Constraints.Builder()
-                        .setRequiredNetworkType(NetworkType.CONNECTED)
-                        .build()
-                )
-                .setInputData(
-                    androidx.work.Data.Builder()
-                        .putBoolean(KEY_FORCE_REFRESH, forceRefresh)
-                        .build()
-                )
-                .build()
+            val work =
+                OneTimeWorkRequestBuilder<LoliDailyArtWorker>()
+                    .setConstraints(
+                        Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+                    )
+                    .setInputData(
+                        Data.Builder().putBoolean(KEY_FORCE_REFRESH, forceRefresh).build()
+                    )
+                    .build()
 
             WorkManager.getInstance(context)
                 .enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.REPLACE, work)
-            
+
             // Also ensure daily refresh is scheduled
             enqueueDailyRefresh(context)
         }
-        
+
         /**
-         * Schedules a one-time work to run at 07:30 GMT+8 tomorrow.
-         * This ensures the daily API is fetched automatically after the date switch.
+         * Schedules a one-time work to run at 07:30 GMT+8 tomorrow. This ensures the daily API is
+         * fetched automatically after the date switch.
          */
         fun enqueueDailyRefresh(context: Context) {
             val gmt8Zone = java.time.ZoneId.of("GMT+8")
             val now = java.time.ZonedDateTime.now(gmt8Zone)
             val targetTime = java.time.LocalTime.of(7, 30)
-            
-            // Calculate next 07:30 GMT+8
+
             var targetDateTime = now.toLocalDate().atTime(targetTime).atZone(gmt8Zone)
             if (targetDateTime.isBefore(now)) {
                 targetDateTime = targetDateTime.plusDays(1)
             }
-            
-            val initialDelay = targetDateTime.toInstant().toEpochMilli() - now.toInstant().toEpochMilli()
-            
-            val dailyWork = OneTimeWorkRequestBuilder<LoliDailyArtWorker>()
-                .setConstraints(
-                    Constraints.Builder()
-                        .setRequiredNetworkType(NetworkType.CONNECTED)
-                        .build()
-                )
-                .setInputData(
-                    androidx.work.Data.Builder()
-                        .putBoolean(KEY_FORCE_REFRESH, false)
-                        .build()
-                )
-                .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
-                .build()
-            
+
+            val initialDelay =
+                targetDateTime.toInstant().toEpochMilli() - now.toInstant().toEpochMilli()
+
+            val dailyWork =
+                OneTimeWorkRequestBuilder<LoliDailyArtWorker>()
+                    .setConstraints(
+                        Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+                    )
+                    .setInputData(
+                        androidx.work.Data.Builder().putBoolean(KEY_FORCE_REFRESH, true).build()
+                    )
+                    .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
+                    .build()
+
             WorkManager.getInstance(context)
                 .enqueueUniqueWork("${WORK_NAME}_daily", ExistingWorkPolicy.KEEP, dailyWork)
-            
+
             Log.d(TAG, "Enqueued daily refresh for $targetDateTime (delay: ${initialDelay}ms)")
         }
 
         /**
-         * Enqueue a lightweight re-filter that uses cached card data
-         * without touching the network. Used when the user changes
-         * tag preferences in Settings.
+         * Enqueue a lightweight re-filter that uses cached card data without touching the network.
+         * Used when the user changes tag preferences in Settings.
          *
-         * Network is NOT required — runs immediately if available,
-         * or when the device next comes online if offline.
+         * Network is NOT required — runs immediately if available, or when the device next comes
+         * online if offline.
          */
         fun enqueueRefilter(context: Context) {
-            val work = OneTimeWorkRequestBuilder<LoliDailyArtWorker>()
-                .setConstraints(
-                    Constraints.Builder()
-                        .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
-                        .build()
-                )
-                .setInputData(
-                    androidx.work.Data.Builder()
-                        .putBoolean(KEY_REFILTER_ONLY, true)
-                        .build()
-                )
-                .build()
+            val work =
+                OneTimeWorkRequestBuilder<LoliDailyArtWorker>()
+                    .setConstraints(
+                        Constraints.Builder()
+                            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
+                            .build()
+                    )
+                    .setInputData(Data.Builder().putBoolean(KEY_REFILTER_ONLY, true).build())
+                    .build()
 
             WorkManager.getInstance(context)
                 .enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.REPLACE, work)
         }
 
         /**
-         * Loads per-image download dates stored as a JSON map
-         * (token → API date string) from SharedPreferences.
+         * Loads per-image download dates stored as a JSON map (token → API date string) from
+         * SharedPreferences.
          */
         fun loadImageDates(context: Context): Map<String, String> {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -828,11 +840,11 @@ class LoliDailyArtWorker(
         }
 
         /**
-         * Fetches reactions for the current daily batch from the API,
-         * maps them to image tokens, and caches in SharedPreferences.
+         * Fetches reactions for the current daily batch from the API, maps them to image tokens,
+         * and caches in SharedPreferences.
          *
-         * Safe to call on the main thread — blocks briefly for network I/O.
-         * Call from a coroutine or background thread in UI contexts.
+         * Safe to call on the main thread — blocks briefly for network I/O. Call from a coroutine
+         * or background thread in UI contexts.
          */
         fun fetchAndCacheReactions(context: Context) {
             try {
@@ -841,11 +853,12 @@ class LoliDailyArtWorker(
                 val daily = json.decodeFromString<DailyResponse>(cacheFile.readText())
                 if (daily.cards.isEmpty()) return
 
-                val request = Request.Builder()
-                    .url(REACT_API_URL)
-                    .header("User-Agent", USER_AGENT)
-                    .get()
-                    .build()
+                val request =
+                    Request.Builder()
+                        .url(REACT_API_URL)
+                        .header("User-Agent", USER_AGENT)
+                        .get()
+                        .build()
                 val response = httpClient.newCall(request).execute()
                 if (!response.isSuccessful) {
                     Log.w(TAG, "Reactions API returned ${response.code}")
@@ -858,22 +871,24 @@ class LoliDailyArtWorker(
                 reactData.reactions.forEachIndexed { idx, reactionMap ->
                     if (idx >= daily.cards.size) return@forEachIndexed
                     val token = md5(daily.cards[idx].imgUrl)
-                    val counts = reactionMap
-                        .mapKeys { it.key.toInt() }
-                        .mapValues { it.value.size }
-                        .filter { it.value > 0 }
-                        .map { ReactionCount(it.key, it.value) }
-                        .sortedByDescending { it.count }
+                    val counts =
+                        reactionMap
+                            .mapKeys { it.key.toInt() }
+                            .mapValues { it.value.size }
+                            .filter { it.value > 0 }
+                            .map { ReactionCount(it.key, it.value) }
+                            .sortedByDescending { it.count }
                     if (counts.isNotEmpty()) {
                         tokenReactions[token] = counts
                     }
                 }
 
                 val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                val serialized = json.encodeToString(
-                    serializer<Map<String, List<ReactionCount>>>(),
-                    tokenReactions,
-                )
+                val serialized =
+                    json.encodeToString(
+                        serializer<Map<String, List<ReactionCount>>>(),
+                        tokenReactions,
+                    )
                 prefs.edit().putString(KEY_REACTIONS, serialized).apply()
 
                 // Also record which emoji the current user selected per card
@@ -886,7 +901,10 @@ class LoliDailyArtWorker(
                         val token = md5(daily.cards[idx].imgUrl)
                         for ((emojiKey, users) in reactionMap) {
                             val matched = users.any { it.firstOrNull() == username }
-                            Log.d(TAG, "card=$idx emoji=$emojiKey users=$users matched=$matched username=$username")
+                            Log.d(
+                                TAG,
+                                "card=$idx emoji=$emojiKey users=$users matched=$matched username=$username",
+                            )
                             if (matched) {
                                 userReactions[token] = emojiKey.toInt()
                                 break
@@ -894,10 +912,13 @@ class LoliDailyArtWorker(
                         }
                     }
                     Log.d(TAG, "userReactions map = $userReactions")
-                    prefs.edit().putString(
-                        KEY_USER_REACTIONS,
-                        json.encodeToString(serializer<Map<String, Int>>(), userReactions)
-                    ).apply()
+                    prefs
+                        .edit()
+                        .putString(
+                            KEY_USER_REACTIONS,
+                            json.encodeToString(serializer<Map<String, Int>>(), userReactions),
+                        )
+                        .apply()
                 }
 
                 Log.d(TAG, "Cached reactions for ${tokenReactions.size} cards")
@@ -907,8 +928,8 @@ class LoliDailyArtWorker(
         }
 
         /**
-         * Loads cached per-image reaction counts as a JSON map
-         * (token → reaction counts) from SharedPreferences.
+         * Loads cached per-image reaction counts as a JSON map (token → reaction counts) from
+         * SharedPreferences.
          */
         fun loadReactions(context: Context): Map<String, List<ReactionCount>> {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -943,7 +964,8 @@ class LoliDailyArtWorker(
 
         /** Remove the stored session (logout). */
         fun clearSession(context: Context) {
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            context
+                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit()
                 .remove(KEY_LC_SESSION)
                 .remove(KEY_BGM_USERNAME)
@@ -953,31 +975,39 @@ class LoliDailyArtWorker(
 
         /** Store the bgm.tv username extracted from the OAuth callback URL. */
         fun saveUsername(context: Context, username: String) {
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .edit().putString(KEY_BGM_USERNAME, username).apply()
+            context
+                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putString(KEY_BGM_USERNAME, username)
+                .apply()
         }
 
         /** Load the stored bgm.tv username, or null. */
         fun loadUsername(context: Context): String? {
-            return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            return context
+                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .getString(KEY_BGM_USERNAME, null)
         }
 
         /** Save the chosen Bangumi domain (bgm.tv / bangumi.tv / chii.in). */
         fun saveDomain(context: Context, domain: String) {
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .edit().putString(KEY_BGM_DOMAIN, domain).apply()
+            context
+                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putString(KEY_BGM_DOMAIN, domain)
+                .apply()
         }
 
         /** Load the chosen Bangumi domain, defaulting to [DEFAULT_BGM_DOMAIN]. */
         fun loadDomain(context: Context): String {
-            return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            return context
+                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .getString(KEY_BGM_DOMAIN, DEFAULT_BGM_DOMAIN) ?: DEFAULT_BGM_DOMAIN
         }
 
         /**
-         * Extracts the Bangumi username from a JWT session token.
-         * The JWT payload is expected to contain a "username" or "sub" claim.
+         * Extracts the Bangumi username from a JWT session token. The JWT payload is expected to
+         * contain a "username" or "sub" claim.
          */
         fun getUsername(session: Session): String? {
             return try {
@@ -985,8 +1015,9 @@ class LoliDailyArtWorker(
                 if (parts.size < 2) return null
                 val payload = String(Base64.decode(parts[1], Base64.DEFAULT))
                 val json = org.json.JSONObject(payload)
-                val name = json.optString("username", "").ifEmpty { null }
-                    ?: json.optString("sub", "").ifEmpty { null }
+                val name =
+                    json.optString("username", "").ifEmpty { null }
+                        ?: json.optString("sub", "").ifEmpty { null }
                 name
             } catch (_: Exception) {
                 null
@@ -994,8 +1025,7 @@ class LoliDailyArtWorker(
         }
 
         /**
-         * Loads the user's own reaction map (token → emojiValue)
-         * for cards they have reacted to.
+         * Loads the user's own reaction map (token → emojiValue) for cards they have reacted to.
          */
         fun loadUserReactions(context: Context): Map<String, Int> {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -1008,8 +1038,8 @@ class LoliDailyArtWorker(
         }
 
         /**
-         * Find the index of a card (by image token) in the cached daily response.
-         * Needed because the PATCH reactions API uses card index, not token.
+         * Find the index of a card (by image token) in the cached daily response. Needed because
+         * the PATCH reactions API uses card index, not token.
          */
         fun getCardIndex(context: Context, token: String): Int? {
             val cacheFile = File(context.filesDir, "api_cache.json")
@@ -1023,23 +1053,20 @@ class LoliDailyArtWorker(
         }
 
         /**
-         * Submits a reaction to the LC API with the current session.
-         * Returns true if the request was accepted by the server.
+         * Submits a reaction to the LC API with the current session. Returns true if the request
+         * was accepted by the server.
          */
-        fun patchReaction(
-            context: Context,
-            cardIndex: Int,
-            emojiValue: Int,
-        ): Boolean {
+        fun patchReaction(context: Context, cardIndex: Int, emojiValue: Int): Boolean {
             val session = loadSession(context) ?: return false
             val body = "{\"react\":$emojiValue}".toRequestBody("application/json".toMediaType())
 
-            val request = Request.Builder()
-                .url("${BuildConfig.API_BASE_URL}/api/v1/daily/react?cardTypeIdx=$cardIndex")
-                .header("Authorization", "Bearer ${session.token}")
-                .header("User-Agent", USER_AGENT)
-                .method("PATCH", body)
-                .build()
+            val request =
+                Request.Builder()
+                    .url("${BuildConfig.API_BASE_URL}/api/v1/daily/react?cardTypeIdx=$cardIndex")
+                    .header("Authorization", "Bearer ${session.token}")
+                    .header("User-Agent", USER_AGENT)
+                    .method("PATCH", body)
+                    .build()
 
             return try {
                 val response = httpClient.newCall(request).execute()
@@ -1050,18 +1077,25 @@ class LoliDailyArtWorker(
                     // Track locally so UI can show heart immediately
                     val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                     val raw = prefs.getString(KEY_USER_REACTIONS, null)
-                    val map = if (raw != null) {
-                        try { json.decodeFromString<MutableMap<String, Int>>(raw).toMutableMap() }
-                        catch (_: Exception) { mutableMapOf() }
-                    } else mutableMapOf()
+                    val map =
+                        if (raw != null) {
+                            try {
+                                json.decodeFromString<MutableMap<String, Int>>(raw).toMutableMap()
+                            } catch (_: Exception) {
+                                mutableMapOf()
+                            }
+                        } else mutableMapOf()
                     val cacheFile = File(context.filesDir, "api_cache.json")
                     val daily = json.decodeFromString<DailyResponse>(cacheFile.readText())
                     val token = md5(daily.cards[cardIndex].imgUrl)
                     map[token] = emojiValue
-                    prefs.edit().putString(
-                        KEY_USER_REACTIONS,
-                        json.encodeToString(serializer<Map<String, Int>>(), map)
-                    ).apply()
+                    prefs
+                        .edit()
+                        .putString(
+                            KEY_USER_REACTIONS,
+                            json.encodeToString(serializer<Map<String, Int>>(), map),
+                        )
+                        .apply()
                 } else {
                     Log.w(TAG, "Reaction PATCH returned ${response.code}")
                 }

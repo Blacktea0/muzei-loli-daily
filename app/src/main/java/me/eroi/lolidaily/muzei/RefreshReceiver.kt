@@ -6,8 +6,8 @@ import android.content.Intent
 import android.util.Log
 
 /**
- * Receives force-refresh requests from Muzei's command action
- * or other in-app triggers. Enqueues the Worker with bypass.
+ * Receives force-refresh requests from Muzei's command action or other in-app triggers. Enqueues
+ * the Worker with bypass.
  */
 class RefreshReceiver : BroadcastReceiver() {
 
@@ -18,7 +18,6 @@ class RefreshReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "RefreshReceiver"
-        const val ACTION_FORCE_REFRESH =
-            "me.eroi.lolidaily.muzei.ACTION_FORCE_REFRESH"
+        const val ACTION_FORCE_REFRESH = "me.eroi.lolidaily.muzei.ACTION_FORCE_REFRESH"
     }
 }

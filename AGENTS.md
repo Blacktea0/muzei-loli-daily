@@ -47,6 +47,21 @@ Keep descriptions lowercase, imperative ("add" not "added"), no period at end.
 There is no test source set yet. `local.properties` holds the SDK path and is
 git-ignored.
 
+## Code formatting
+
+We use [ktfmt](https://github.com/facebookincubator/ktfmt) via the
+[ktfmt-gradle](https://github.com/cortinico/ktfmt-gradle) plugin configured
+with `kotlinLangStyle()` (4-space indent, matching
+[kotlinlang.org coding conventions](https://kotlinlang.org/docs/coding-conventions.html)).
+
+A **git pre-commit hook** runs `ktfmtFormat` automatically before every commit.
+If the hook ever fails or you want to run manually:
+
+```bash
+./gradlew ktfmtFormat   # format all Kotlin sources
+./gradlew ktfmtCheck    # check formatting (dry-run, for CI)
+```
+
 ## Mock server
 
 The `mock/` directory contains a Node.js Express server that simulates the Loli

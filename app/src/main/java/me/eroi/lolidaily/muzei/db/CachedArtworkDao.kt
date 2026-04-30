@@ -9,8 +9,7 @@ import androidx.room.Query
 interface CachedArtworkDao {
 
     /** Insert or replace a single artwork metadata row. */
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(entity: CachedArtworkEntity)
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsert(entity: CachedArtworkEntity)
 
     /** Batch upsert — all rows in a single transaction. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -25,8 +24,7 @@ interface CachedArtworkDao {
     suspend fun getAll(): List<CachedArtworkEntity>
 
     /** Delete all rows (e.g. for cache cleanup). */
-    @Query("DELETE FROM cached_artworks")
-    suspend fun deleteAll()
+    @Query("DELETE FROM cached_artworks") suspend fun deleteAll()
 
     /** Delete rows by token list. */
     @Query("DELETE FROM cached_artworks WHERE token IN (:tokens)")

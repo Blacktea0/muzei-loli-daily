@@ -4,6 +4,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
+    id("com.ncorti.ktfmt.gradle")
 }
 
 android {
@@ -18,24 +19,31 @@ android {
         versionCode = 1
         versionName = "1.0.0"
 
-        val apiBaseUrl = System.getenv("LOLI_API_URL")
-            ?: rootProject.file("local.properties").takeIf { it.exists() }
-                ?.readLines()
-                ?.mapNotNull { line ->
-                    val eq = line.indexOf('=')
-                    if (eq > 0 && line.substring(0, eq).trim() == "loliApiUrl")
-                        line.substring(eq + 1).trim()
-                    else null
-                }?.firstOrNull()
-            ?: rootProject.file("gradle.properties").takeIf { it.exists() }
-                ?.readLines()
-                ?.mapNotNull { line ->
-                    val eq = line.indexOf('=')
-                    if (eq > 0 && line.substring(0, eq).trim() == "loliApiUrl")
-                        line.substring(eq + 1).trim()
-                    else null
-                }?.firstOrNull()
-            ?: "https://loliconey.tsuki.ga"
+        val apiBaseUrl =
+            System.getenv("LOLI_API_URL")
+                ?: rootProject
+                    .file("local.properties")
+                    .takeIf { it.exists() }
+                    ?.readLines()
+                    ?.mapNotNull { line ->
+                        val eq = line.indexOf('=')
+                        if (eq > 0 && line.substring(0, eq).trim() == "loliApiUrl")
+                            line.substring(eq + 1).trim()
+                        else null
+                    }
+                    ?.firstOrNull()
+                ?: rootProject
+                    .file("gradle.properties")
+                    .takeIf { it.exists() }
+                    ?.readLines()
+                    ?.mapNotNull { line ->
+                        val eq = line.indexOf('=')
+                        if (eq > 0 && line.substring(0, eq).trim() == "loliApiUrl")
+                            line.substring(eq + 1).trim()
+                        else null
+                    }
+                    ?.firstOrNull()
+                ?: "https://loliconey.tsuki.ga"
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
 
@@ -44,7 +52,7 @@ android {
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "consumer-proguard-rules.pro"
+                "consumer-proguard-rules.pro",
             )
         }
     }
@@ -78,11 +86,12 @@ android {
             }
 
             val logFile = mockDir.resolve("server.log")
-            val process = ProcessBuilder("node", "server.js")
-                .directory(mockDir)
-                .redirectOutput(ProcessBuilder.Redirect.to(logFile))
-                .redirectError(ProcessBuilder.Redirect.to(logFile))
-                .start()
+            val process =
+                ProcessBuilder("node", "server.js")
+                    .directory(mockDir)
+                    .redirectOutput(ProcessBuilder.Redirect.to(logFile))
+                    .redirectError(ProcessBuilder.Redirect.to(logFile))
+                    .start()
             pidFile.writeText(process.pid().toString())
             println("[mock] Server started (PID ${process.pid()})")
             println("[mock] URL: http://192.168.31.129:50303")
@@ -134,9 +143,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    kotlinOptions { jvmTarget = "17" }
 }
 
 dependencies {
@@ -189,3 +196,5 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
 }
+
+ktfmt { kotlinLangStyle() }

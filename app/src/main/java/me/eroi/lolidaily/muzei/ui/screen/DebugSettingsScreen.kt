@@ -37,14 +37,12 @@ import androidx.compose.ui.unit.dp
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 
 /**
- * Debug settings screen for development testing.
- * Each option lives in its own M3-style section card.
+ * Debug settings screen for development testing. Each option lives in its own M3-style section
+ * card.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DebugSettingsScreen(
-    onBack: () -> Unit,
-) {
+fun DebugSettingsScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -58,23 +56,17 @@ fun DebugSettingsScreen(
                     }
                 },
             )
-        },
+        }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // ── API ───────────────────────────────
-            item {
-                SectionTitle("API")
-            }
+            item { SectionTitle("API") }
 
-            item {
-                CacheSwitchCard()
-            }
+            item { CacheSwitchCard() }
         }
     }
 }
@@ -98,13 +90,12 @@ private fun CacheSwitchCard() {
     val context = LocalContext.current
     val prefs = remember {
         context.getSharedPreferences(
-            LoliDailyArtWorker.PREFS_NAME, android.content.Context.MODE_PRIVATE
+            LoliDailyArtWorker.PREFS_NAME,
+            android.content.Context.MODE_PRIVATE,
         )
     }
 
-    var skipCache by remember {
-        mutableStateOf(prefs.getBoolean("debug_skip_cache", false))
-    }
+    var skipCache by remember { mutableStateOf(prefs.getBoolean("debug_skip_cache", false)) }
 
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -112,17 +103,12 @@ private fun CacheSwitchCard() {
     ) {
         Column(modifier = Modifier.padding(4.dp)) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp, horizontal = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Skip API Cache",
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
+                    Text(text = "Skip API Cache", style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "Always fetch from API instead of using cached response",
@@ -136,7 +122,7 @@ private fun CacheSwitchCard() {
                     onCheckedChange = { checked ->
                         skipCache = checked
                         prefs.edit().putBoolean("debug_skip_cache", checked).apply()
-                    }
+                    },
                 )
             }
 
@@ -145,16 +131,13 @@ private fun CacheSwitchCard() {
                 color = MaterialTheme.colorScheme.outlineVariant,
             )
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp, horizontal = 12.dp),
-            ) {
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 12.dp)) {
                 Text(
                     text = "Status: ${if (skipCache) "Cache SKIPPED" else "Cache USED"}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (skipCache) MaterialTheme.colorScheme.error
-                           else MaterialTheme.colorScheme.primary,
+                    color =
+                        if (skipCache) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
                 )

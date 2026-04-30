@@ -11,8 +11,8 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -75,7 +75,8 @@ class LoginActivity : ComponentActivity() {
     }
 
     companion object {
-        val OAUTH_URL get() = "${BuildConfig.API_BASE_URL}/api/v1/oauth/request"
+        val OAUTH_URL
+            get() = "${BuildConfig.API_BASE_URL}/api/v1/oauth/request"
 
         fun clearBgmCookies() {
             val cm = CookieManager.getInstance()
@@ -101,10 +102,11 @@ private fun LoginScreen(
 
     val webView = remember {
         WebView(context).apply {
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
+            layoutParams =
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                )
 
             CookieManager.getInstance().setAcceptCookie(true)
             CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
@@ -119,82 +121,96 @@ private fun LoginScreen(
                 loadWithOverviewMode = true
             }
 
-            webViewClient = object : WebViewClient() {
+            webViewClient =
+                object : WebViewClient() {
 
-                // Once the domain page loads, navigate to the LC OAuth URL.
-                // The browser will automatically set the correct Referer header.
-                private var oauthTriggered = false
+                    // Once the domain page loads, navigate to the LC OAuth URL.
+                    // The browser will automatically set the correct Referer header.
+                    private var oauthTriggered = false
 
-                override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                    if (authDone) return
-                    isLoading = true
-                    val domain = LoliDailyArtWorker.loadDomain(context)
-                    if (url != null && !oauthTriggered && url.contains(domain)) {
-                        oauthTriggered = true
-                        Log.d("LoginActivity", "Domain loaded — navigating to OAuth")
-                        view?.loadUrl(LoginActivity.OAUTH_URL)
-                        return
-                    }
-                    statusMessage = when {
-                        url == null -> "Loading\u2026"
-                        url.contains("bgm.tv/") || url.contains("bangumi.tv/") || url.contains("chii.in/") ->
-                            "Authenticating with Bangumi\u2026"
-                        url.contains("oauth") -> "Waiting for authorization\u2026"
-                        url.contains("loliconey") || url.contains("lc-coney") -> "Processing\u2026"
-                        else -> "Redirecting\u2026"
-                    }
-                    Log.d("LoginActivity", "onPageStarted: $url")
-                }
-
-                override fun shouldOverrideUrlLoading(
-                    view: WebView?,
-                    request: WebResourceRequest?
-                ): Boolean {
-                    if (authDone) return true
-                    val url = request?.url?.toString() ?: return false
-                    Log.d("LoginActivity", "shouldOverrideUrlLoading: $url")
-
-                    if (url.contains("bgm-lcjs-session")) {
-                        authDone = true
-                        isLoading = false
-                        val token = request.url.getQueryParameter("bgm-lcjs-session")
-                        val expiresAt = request.url.getQueryParameter("expiresAt")?.toLongOrNull()
-
-                        // Extract bgm.tv username from the redirect path: /user/{username}
-                        val pathSegments = request.url.path?.split("/") ?: emptyList()
-                        val userIndex = pathSegments.indexOfLast { it == "user" }
-                        val username = if (userIndex >= 0 && userIndex + 1 < pathSegments.size)
-                            pathSegments[userIndex + 1] else null
-                        Log.d("LoginActivity", "Extracted username: $username from path: ${request.url.path}")
-
-                        if (token != null && expiresAt != null && expiresAt > System.currentTimeMillis()) {
-                            username?.let { LoliDailyArtWorker.saveUsername(context, it) }
-                            onSessionReceived(LoliDailyArtWorker.Session(token, expiresAt))
-                        } else {
-                            Toast.makeText(context, "Login failed", Toast.LENGTH_LONG).show()
-                            onClose()
+                    override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                        if (authDone) return
+                        isLoading = true
+                        val domain = LoliDailyArtWorker.loadDomain(context)
+                        if (url != null && !oauthTriggered && url.contains(domain)) {
+                            oauthTriggered = true
+                            Log.d("LoginActivity", "Domain loaded — navigating to OAuth")
+                            view?.loadUrl(LoginActivity.OAUTH_URL)
+                            return
                         }
-                        return true
+                        statusMessage =
+                            when {
+                                url == null -> "Loading\u2026"
+                                url.contains("bgm.tv/") ||
+                                    url.contains("bangumi.tv/") ||
+                                    url.contains("chii.in/") -> "Authenticating with Bangumi\u2026"
+                                url.contains("oauth") -> "Waiting for authorization\u2026"
+                                url.contains("loliconey") || url.contains("lc-coney") ->
+                                    "Processing\u2026"
+                                else -> "Redirecting\u2026"
+                            }
+                        Log.d("LoginActivity", "onPageStarted: $url")
                     }
 
-                    // bgm.tv/chii.in/bangumi.tv drops redirect_uri when encoding
-                    // chii_referer for the login flow. After login, the redirect
-                    // back to /oauth/authorize lacks redirect_uri, causing
-                    // "invalid_uri". Re-start the OAuth flow from LC instead.
-                    if (url.contains("oauth/authorize") && !url.contains("redirect_uri")) {
-                        Log.d("LoginActivity", "Detected truncated OAuth — reloading from LC")
-                        view?.loadUrl(LoginActivity.OAUTH_URL)
-                        return true
+                    override fun shouldOverrideUrlLoading(
+                        view: WebView?,
+                        request: WebResourceRequest?,
+                    ): Boolean {
+                        if (authDone) return true
+                        val url = request?.url?.toString() ?: return false
+                        Log.d("LoginActivity", "shouldOverrideUrlLoading: $url")
+
+                        if (url.contains("bgm-lcjs-session")) {
+                            authDone = true
+                            isLoading = false
+                            val token = request.url.getQueryParameter("bgm-lcjs-session")
+                            val expiresAt =
+                                request.url.getQueryParameter("expiresAt")?.toLongOrNull()
+
+                            // Extract bgm.tv username from the redirect path: /user/{username}
+                            val pathSegments = request.url.path?.split("/") ?: emptyList()
+                            val userIndex = pathSegments.indexOfLast { it == "user" }
+                            val username =
+                                if (userIndex >= 0 && userIndex + 1 < pathSegments.size)
+                                    pathSegments[userIndex + 1]
+                                else null
+                            Log.d(
+                                "LoginActivity",
+                                "Extracted username: $username from path: ${request.url.path}",
+                            )
+
+                            if (
+                                token != null &&
+                                    expiresAt != null &&
+                                    expiresAt > System.currentTimeMillis()
+                            ) {
+                                username?.let { LoliDailyArtWorker.saveUsername(context, it) }
+                                onSessionReceived(LoliDailyArtWorker.Session(token, expiresAt))
+                            } else {
+                                Toast.makeText(context, "Login failed", Toast.LENGTH_LONG).show()
+                                onClose()
+                            }
+                            return true
+                        }
+
+                        // bgm.tv/chii.in/bangumi.tv drops redirect_uri when encoding
+                        // chii_referer for the login flow. After login, the redirect
+                        // back to /oauth/authorize lacks redirect_uri, causing
+                        // "invalid_uri". Re-start the OAuth flow from LC instead.
+                        if (url.contains("oauth/authorize") && !url.contains("redirect_uri")) {
+                            Log.d("LoginActivity", "Detected truncated OAuth — reloading from LC")
+                            view?.loadUrl(LoginActivity.OAUTH_URL)
+                            return true
+                        }
+
+                        return false
                     }
 
-                    return false
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        isLoading = false
+                        view?.title?.let { if (it.isNotBlank()) pageTitle = it }
+                    }
                 }
-
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    isLoading = false
-                    view?.title?.let { if (it.isNotBlank()) pageTitle = it }
-                }
-            }
 
             val domain = LoliDailyArtWorker.loadDomain(context)
             Log.d("LoginActivity", "OAuth domain: $domain")
@@ -218,9 +234,9 @@ private fun LoginScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        if (webView.canGoBack()) webView.goBack() else onClose()
-                    }) {
+                    IconButton(
+                        onClick = { if (webView.canGoBack()) webView.goBack() else onClose() }
+                    ) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -229,9 +245,10 @@ private fun LoginScreen(
                         Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
@@ -246,14 +263,8 @@ private fun LoginScreen(
                 )
             }
 
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                AndroidView(
-                    factory = { webView },
-                    modifier = Modifier.fillMaxSize(),
-                )
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                AndroidView(factory = { webView }, modifier = Modifier.fillMaxSize())
 
                 if (isLoading && !authDone) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {

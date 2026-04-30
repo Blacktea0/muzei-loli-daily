@@ -8,8 +8,8 @@ import me.eroi.lolidaily.muzei.model.SuggestedBy
 /**
  * Converts between [Card] API models and [CachedArtworkEntity] DB rows.
  *
- * Complex nested types ([List] of character names, [SuggestedBy]) are
- * serialised to JSON strings so the Room schema stays flat and migration-free.
+ * Complex nested types ([List] of character names, [SuggestedBy]) are serialised to JSON strings so
+ * the Room schema stays flat and migration-free.
  */
 object EntityMapper {
 
@@ -23,11 +23,13 @@ object EntityMapper {
             artistUrl = card.artistUrl,
             comment = card.comment,
             tags = card.tags,
-            characterNames = json.encodeToString(
-                ListSerializer(kotlinx.serialization.serializer<String>()),
-                card.characterNames,
-            ),
-            suggestedBy = card.suggestedBy?.let { json.encodeToString(SuggestedBy.serializer(), it) },
+            characterNames =
+                json.encodeToString(
+                    ListSerializer(kotlinx.serialization.serializer<String>()),
+                    card.characterNames,
+                ),
+            suggestedBy =
+                card.suggestedBy?.let { json.encodeToString(SuggestedBy.serializer(), it) },
             date = date,
             downloadedAt = System.currentTimeMillis(),
         )
@@ -35,14 +37,21 @@ object EntityMapper {
 
     /** Reconstruct display-relevant fields from a persisted entity row. */
     fun entityToCardFields(entity: CachedArtworkEntity): CardFields {
-        val characters: List<String> = try {
-            json.decodeFromString<List<String>>(entity.characterNames)
-        } catch (_: Exception) { emptyList() }
+        val characters: List<String> =
+            try {
+                json.decodeFromString<List<String>>(entity.characterNames)
+            } catch (_: Exception) {
+                emptyList()
+            }
 
-        val suggested: SuggestedBy? = entity.suggestedBy?.let {
-            try { json.decodeFromString<SuggestedBy>(it) }
-            catch (_: Exception) { null }
-        }
+        val suggested: SuggestedBy? =
+            entity.suggestedBy?.let {
+                try {
+                    json.decodeFromString<SuggestedBy>(it)
+                } catch (_: Exception) {
+                    null
+                }
+            }
 
         return CardFields(
             artistName = entity.artistName,
