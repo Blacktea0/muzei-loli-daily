@@ -1,5 +1,6 @@
 package me.eroi.lolidaily.muzei.ui.screen
 
+import android.app.Activity
 import android.content.ContentValues
 import android.content.Intent
 import android.graphics.BitmapFactory
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -43,37 +45,12 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SheetState
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -83,12 +60,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -96,10 +76,12 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.view.WindowCompat
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import java.io.File
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
@@ -109,15 +91,18 @@ import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
 /**
  * MD3 settings screen for the Loli Daily Muzei plugin.
  *
- * Tab 1 — Gallery: Filled cards with frosted-glass tag chips and a consolidated bottom action bar.
- * Tab 2 — Preference: radio-group tag filter, account card, source-status card.
+ * Three destinations via bottom NavigationBar:
+ * - Today: current day's artwork gallery
+ * - History: all previously cached artwork
+ * - Settings: tag filters, account, theme, debug
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     selectedTags: Set<String>,
     onTagsChanged: (Set<String>) -> Unit,
-    cachedArtwork: List<ArtworkPreview>,
+    todayArtwork: List<ArtworkPreview>,
+    historyArtwork: List<ArtworkPreview>,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
     isLoggedIn: Boolean = false,
@@ -133,75 +118,93 @@ fun SettingsScreen(
     onThemeModeChanged: (ThemeMode) -> Unit = {},
     onOpenDebug: () -> Unit = {},
 ) {
-    val pagerState = rememberPagerState(pageCount = { 2 })
-    val scope = rememberCoroutineScope()
-    val tabs = listOf("Gallery" to Icons.Default.Image, "Preference" to Icons.Default.Settings)
+    var selectedTab by remember { mutableStateOf(0) }
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Loli Daily Settings") },
-                colors =
-                    TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-            )
+            if (selectedTab != 0) {
+                CenterAlignedTopAppBar(
+                    title = { Text("Loli Daily Settings") },
+                    colors =
+                        TopAppBarDefaults.centerAlignedTopAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                )
+            }
         },
-        floatingActionButton = {
-            if (pagerState.currentPage == 0) {
-                FloatingActionButton(onClick = onRefresh) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Refresh Now")
-                }
+        bottomBar = {
+            NavigationBar {
+                NavigationBarItem(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    icon = { Icon(Icons.Default.Image, contentDescription = "Today") },
+                    label = { Text("Today") },
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    icon = {
+                        Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = "History")
+                    },
+                    label = { Text("History") },
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 2,
+                    onClick = { selectedTab = 2 },
+                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                    label = { Text("Settings") },
+                )
             }
         },
         modifier = modifier,
     ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
-            PrimaryTabRow(selectedTabIndex = pagerState.currentPage) {
-                tabs.forEachIndexed { index, (title, icon) ->
-                    Tab(
-                        selected = pagerState.currentPage == index,
-                        onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                        text = { Text(title) },
-                        icon = { Icon(icon, contentDescription = title) },
+        when (selectedTab) {
+            0 ->
+                Box(modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
+                    TodayGallery(
+                        todayArtwork = todayArtwork,
+                        isLoggedIn = isLoggedIn,
+                        onLogin = onLogin,
+                        onReactionClick = onReactionClick,
+                        onRefresh = onRefresh,
                     )
                 }
-            }
-
-            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth().weight(1f)) {
-                page ->
-                when (page) {
-                    0 ->
-                        GalleryTab(
-                            cachedArtwork = cachedArtwork,
-                            isLoggedIn = isLoggedIn,
-                            onLogin = onLogin,
-                            onReactionClick = onReactionClick,
-                            onRefresh = onRefresh,
-                        )
-                    1 ->
-                        PreferenceTab(
-                            selectedTags = selectedTags,
-                            onTagsChanged = onTagsChanged,
-                            isLoggedIn = isLoggedIn,
-                            onLogin = onLogin,
-                            onLogout = onLogout,
-                            bgmDomain = bgmDomain,
-                            onDomainChanged = onDomainChanged,
-                            isSourceActivated = isSourceActivated,
-                            isMuzeiInstalled = isMuzeiInstalled,
-                            onOpenMuzei = onOpenMuzei,
-                            themeMode = themeMode,
-                            onThemeModeChanged = onThemeModeChanged,
-                            onOpenDebug = onOpenDebug,
-                        )
+            1 ->
+                Box(modifier = Modifier.padding(padding)) {
+                    ArtworkGallery(
+                        cachedArtwork = historyArtwork,
+                        isLoggedIn = isLoggedIn,
+                        onLogin = onLogin,
+                        onReactionClick = onReactionClick,
+                        onRefresh = onRefresh,
+                        emptyMessage =
+                            "No historical artwork saved yet.\nArtwork accumulates as new daily batches are fetched.",
+                        isToday = false,
+                    )
                 }
-            }
+            2 ->
+                Box(modifier = Modifier.padding(padding)) {
+                    PreferenceTab(
+                        selectedTags = selectedTags,
+                        onTagsChanged = onTagsChanged,
+                        isLoggedIn = isLoggedIn,
+                        onLogin = onLogin,
+                        onLogout = onLogout,
+                        bgmDomain = bgmDomain,
+                        onDomainChanged = onDomainChanged,
+                        isSourceActivated = isSourceActivated,
+                        isMuzeiInstalled = isMuzeiInstalled,
+                        onOpenMuzei = onOpenMuzei,
+                        themeMode = themeMode,
+                        onThemeModeChanged = onThemeModeChanged,
+                        onOpenDebug = onOpenDebug,
+                    )
+                }
         }
     }
 }
 
-// ── Tab 2: Preference ──────────────────────────────────────────
+// ── Settings (Preferences) ─────────────────────────────────────
 
 @Composable
 private fun PreferenceTab(
@@ -816,18 +819,318 @@ private fun DomainPickerDialog(
     }
 }
 
-// ── Tab 1: Gallery ─────────────────────────────────────────────
+// ── Today Gallery (hero layout with sub-tabs) ───────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TodayGallery(
+    todayArtwork: List<ArtworkPreview>,
+    isLoggedIn: Boolean,
+    onLogin: () -> Unit,
+    onReactionClick: (String, Int) -> Unit,
+    onRefresh: () -> Unit,
+) {
+    val tags = listOf("LC0", "LC ES")
+    val pagerState = rememberPagerState(pageCount = { tags.size })
+    val selectedTag by remember { derivedStateOf { tags[pagerState.currentPage] } }
+    val scope = rememberCoroutineScope()
+
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    // Force dark status bar icons for Today page regardless of theme
+    val view = LocalView.current
+    DisposableEffect(Unit) {
+        val window = (view.context as Activity).window
+        val insetsController = WindowCompat.getInsetsController(window, view)
+        val previous = insetsController.isAppearanceLightStatusBars
+        insetsController.isAppearanceLightStatusBars = false
+        onDispose { insetsController.isAppearanceLightStatusBars = previous }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Full-bleed pager behind everything
+        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+            val tag = tags[page]
+            val preview = todayArtwork.firstOrNull { it.tags == tag }
+
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = {
+                    isRefreshing = true
+                    onRefresh()
+                    scope.launch {
+                        delay(4000)
+                        isRefreshing = false
+                    }
+                },
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                if (preview != null) {
+                    HeroArtwork(
+                        preview = preview,
+                        isLoggedIn = isLoggedIn,
+                        onLogin = onLogin,
+                        onReactionClick = onReactionClick,
+                    )
+                } else {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "No $tag artwork for today.\nPull down to refresh.",
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(32.dp),
+                        )
+                    }
+                }
+            }
+        }
+
+        // Top gradient overlay
+        Box(
+            modifier =
+                Modifier.fillMaxWidth()
+                    .height(120.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            colorStops =
+                                arrayOf(
+                                    0.0f to Color.Black.copy(alpha = 0.75f),
+                                    0.7f to Color.Black.copy(alpha = 0.3f),
+                                    1.0f to Color.Transparent,
+                                )
+                        )
+                    )
+        )
+
+        // Floating transparent tab bar on top
+        PrimaryTabRow(
+            selectedTabIndex = pagerState.currentPage,
+            containerColor = Color.Transparent,
+            contentColor = Color.White,
+            divider = {},
+            indicator = {
+                TabRowDefaults.PrimaryIndicator(
+                    modifier =
+                        Modifier.tabIndicatorOffset(selectedTabIndex = pagerState.currentPage),
+                    color = Color.White,
+                )
+            },
+            modifier = Modifier.statusBarsPadding(),
+        ) {
+            tags.forEachIndexed { index, tag ->
+                Tab(
+                    selected = pagerState.currentPage == index,
+                    onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                    text = {
+                        Text(
+                            tag,
+                            color =
+                                if (pagerState.currentPage == index) Color.White
+                                else Color.White.copy(alpha = 0.6f),
+                        )
+                    },
+                )
+            }
+        }
+    }
+}
+
+// ── Hero Artwork (full-bleed image with overlaid controls) ──────
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun HeroArtwork(
+    preview: ArtworkPreview,
+    isLoggedIn: Boolean,
+    onLogin: () -> Unit,
+    onReactionClick: (String, Int) -> Unit,
+) {
+    val context = LocalContext.current
+    var fullscreenPreview by remember { mutableStateOf<ArtworkPreview?>(null) }
+    var showBottomSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val token = preview.filename.substringBeforeLast('.')
+
+    Box(modifier = Modifier.fillMaxSize().clickable { fullscreenPreview = preview }) {
+        AsyncImage(
+            model = ImageRequest.Builder(context).data(preview.uri).build(),
+            contentDescription = preview.artistName.ifBlank { preview.filename },
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxSize(),
+        )
+
+        // Bottom gradient
+        Box(
+            modifier =
+                Modifier.align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(160.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            colorStops =
+                                arrayOf(
+                                    0.0f to Color.Transparent,
+                                    0.6f to Color.Black.copy(alpha = 0.5f),
+                                    1.0f to Color.Black.copy(alpha = 0.8f),
+                                )
+                        )
+                    )
+        )
+
+        // Bottom-left: Tag + Date + Artist + Comment + Reactions
+        Column(
+            modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 16.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (preview.tags.isNotBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+                    ) {
+                        Text(
+                            text = preview.tags,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        )
+                    }
+                }
+                if (preview.date.isNotBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Icon(
+                                Icons.Default.CalendarToday,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                text = preview.date,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
+                }
+            }
+            Text(
+                text = preview.artistName.ifBlank { "Unknown Artist" },
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (preview.comment.isNotBlank()) {
+                Text(
+                    text = preview.comment,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.85f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            if (preview.reactions.isNotEmpty()) {
+                ReactionRow(
+                    reactions = preview.reactions,
+                    userEmoji = preview.userEmoji,
+                    token = token,
+                    isLoggedIn = isLoggedIn,
+                    onReactionClick = onReactionClick,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        }
+
+        // Bottom-right: Action buttons
+        Column(
+            modifier = Modifier.align(Alignment.BottomEnd).padding(end = 8.dp, bottom = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            IconButton(onClick = { exportArtwork(context, preview) }) {
+                Icon(Icons.Default.Save, contentDescription = "Export artwork", tint = Color.White)
+            }
+            IconButton(onClick = { showBottomSheet = true }) {
+                Icon(Icons.Default.Info, contentDescription = "Artwork details", tint = Color.White)
+            }
+
+            var showReactionPicker by remember { mutableStateOf(false) }
+            val hasReacted = preview.userEmoji != null
+
+            IconButton(
+                onClick = {
+                    if (!isLoggedIn) {
+                        Toast.makeText(context, "Login to Bangumi to react", Toast.LENGTH_SHORT)
+                            .show()
+                    } else if (hasReacted) {
+                        onReactionClick(token, preview.userEmoji!!)
+                    } else {
+                        showReactionPicker = true
+                    }
+                }
+            ) {
+                Icon(
+                    if (hasReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = "React",
+                    tint = if (hasReacted) MaterialTheme.colorScheme.error else Color.White,
+                )
+            }
+
+            if (showReactionPicker && isLoggedIn) {
+                ReactionPickerDialog(
+                    onDismiss = { showReactionPicker = false },
+                    onEmojiSelected = { value ->
+                        onReactionClick(token, value)
+                        showReactionPicker = false
+                    },
+                )
+            }
+        }
+    }
+
+    fullscreenPreview?.let { preview ->
+        FullscreenImageDialog(
+            preview = preview,
+            onDismiss = { fullscreenPreview = null },
+            isLoggedIn = isLoggedIn,
+            onReactionClick = onReactionClick,
+        )
+    }
+
+    if (showBottomSheet) {
+        ArtworkDetailBottomSheet(
+            preview = preview,
+            sheetState = sheetState,
+            onDismiss = { showBottomSheet = false },
+        )
+    }
+}
+
+// ── Artwork Gallery (shared by History tab) ─────────────────────
 
 private const val GALLERY_PAGE_SIZE = 5
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun GalleryTab(
+private fun ArtworkGallery(
     cachedArtwork: List<ArtworkPreview>,
     isLoggedIn: Boolean = false,
     onLogin: () -> Unit = {},
     onReactionClick: (token: String, emojiValue: Int) -> Unit = { _, _ -> },
     onRefresh: () -> Unit = {},
+    emptyMessage: String = "No artwork yet.",
+    isToday: Boolean = true,
 ) {
     var fullscreenPreview by remember { mutableStateOf<ArtworkPreview?>(null) }
     var isRefreshing by remember { mutableStateOf(false) }
@@ -873,7 +1176,7 @@ private fun GalleryTab(
         if (cachedArtwork.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    text = "No cached images yet.\nActivate this source in Muzei to fetch artwork.",
+                    text = emptyMessage,
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1254,6 +1557,7 @@ private fun FullscreenImageDialog(
                 } else {
                     preview.artistName
                 }
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = overlayText,
                 style = MaterialTheme.typography.labelMedium,

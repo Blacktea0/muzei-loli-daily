@@ -40,7 +40,8 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private var selectedTags by mutableStateOf(emptySet<String>())
-    private var cachedPreviews by mutableStateOf(emptyList<ArtworkPreview>())
+    private var todayPreviews by mutableStateOf(emptyList<ArtworkPreview>())
+    private var historyPreviews by mutableStateOf(emptyList<ArtworkPreview>())
     private var isLoggedIn by mutableStateOf(false)
     private var bgmDomain by mutableStateOf("chii.in")
     private var isSourceActivated by mutableStateOf(false)
@@ -64,7 +65,8 @@ class SettingsActivity : AppCompatActivity() {
                         selectedTags = newTags
                         saveState()
                     },
-                    cachedArtwork = cachedPreviews,
+                    todayArtwork = todayPreviews,
+                    historyArtwork = historyPreviews,
                     isLoggedIn = isLoggedIn,
                     onLogin = { startActivity(Intent(this, LoginActivity::class.java)) },
                     onLogout = {
@@ -252,7 +254,7 @@ class SettingsActivity : AppCompatActivity() {
         // Persisted metadata from Room (covers all historical batches)
         val roomFieldsByToken = loadRoomArtworkFields()
 
-        cachedPreviews =
+        val previews =
             files
                 .map { file ->
                     val uri =
@@ -291,6 +293,9 @@ class SettingsActivity : AppCompatActivity() {
                             }
                         }
                 )
+
+        todayPreviews = previews.filter { it.date == apiDate }
+        historyPreviews = previews.filter { it.date != apiDate }
     }
 
     /** Loads all Room-persisted artwork fields, keyed by token. */
