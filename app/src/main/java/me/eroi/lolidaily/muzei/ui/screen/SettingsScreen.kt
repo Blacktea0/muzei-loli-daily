@@ -9,9 +9,14 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +40,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.CalendarToday
@@ -57,6 +63,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +73,7 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -75,7 +83,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.WindowCompat
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -87,6 +94,8 @@ import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.ReactionCount
 import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
+import net.engawapg.lib.zoomable.rememberZoomState
+import net.engawapg.lib.zoomable.zoomable
 
 /**
  * MD3 settings screen for the Loli Daily Muzei plugin.
@@ -119,6 +128,7 @@ fun SettingsScreen(
     onOpenDebug: () -> Unit = {},
 ) {
     var selectedTab by remember { mutableStateOf(0) }
+    var fullscreenPreview by remember { mutableStateOf<ArtworkPreview?>(null) }
 
     Scaffold(
         topBar = {
@@ -165,6 +175,7 @@ fun SettingsScreen(
                         todayArtwork = todayArtwork,
                         isLoggedIn = isLoggedIn,
                         onLogin = onLogin,
+                        onFullscreenImage = { fullscreenPreview = it },
                         onReactionClick = onReactionClick,
                         onRefresh = onRefresh,
                     )
@@ -173,6 +184,7 @@ fun SettingsScreen(
                 Box(modifier = Modifier.padding(padding)) {
                     ArtworkGallery(
                         cachedArtwork = historyArtwork,
+                        onFullscreenImage = { fullscreenPreview = it },
                         isLoggedIn = isLoggedIn,
                         onLogin = onLogin,
                         onReactionClick = onReactionClick,
@@ -201,6 +213,10 @@ fun SettingsScreen(
                     )
                 }
         }
+    }
+
+    fullscreenPreview?.let { preview ->
+        FullscreenImageOverlay(preview = preview, onDismiss = { fullscreenPreview = null })
     }
 }
 
@@ -827,6 +843,7 @@ private fun TodayGallery(
     todayArtwork: List<ArtworkPreview>,
     isLoggedIn: Boolean,
     onLogin: () -> Unit,
+    onFullscreenImage: (ArtworkPreview) -> Unit,
     onReactionClick: (String, Int) -> Unit,
     onRefresh: () -> Unit,
 ) {
@@ -870,6 +887,7 @@ private fun TodayGallery(
                         preview = preview,
                         isLoggedIn = isLoggedIn,
                         onLogin = onLogin,
+                        onFullscreenImage = onFullscreenImage,
                         onReactionClick = onReactionClick,
                     )
                 } else {
@@ -944,15 +962,15 @@ private fun HeroArtwork(
     preview: ArtworkPreview,
     isLoggedIn: Boolean,
     onLogin: () -> Unit,
+    onFullscreenImage: (ArtworkPreview) -> Unit,
     onReactionClick: (String, Int) -> Unit,
 ) {
     val context = LocalContext.current
-    var fullscreenPreview by remember { mutableStateOf<ArtworkPreview?>(null) }
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val token = preview.filename.substringBeforeLast('.')
 
-    Box(modifier = Modifier.fillMaxSize().clickable { fullscreenPreview = preview }) {
+    Box(modifier = Modifier.fillMaxSize().clickable { onFullscreenImage(preview) }) {
         AsyncImage(
             model = ImageRequest.Builder(context).data(preview.uri).build(),
             contentDescription = preview.artistName.ifBlank { preview.filename },
@@ -1099,15 +1117,6 @@ private fun HeroArtwork(
         }
     }
 
-    fullscreenPreview?.let { preview ->
-        FullscreenImageDialog(
-            preview = preview,
-            onDismiss = { fullscreenPreview = null },
-            isLoggedIn = isLoggedIn,
-            onReactionClick = onReactionClick,
-        )
-    }
-
     if (showBottomSheet) {
         ArtworkDetailBottomSheet(
             preview = preview,
@@ -1125,6 +1134,7 @@ private const val GALLERY_PAGE_SIZE = 5
 @Composable
 private fun ArtworkGallery(
     cachedArtwork: List<ArtworkPreview>,
+    onFullscreenImage: (ArtworkPreview) -> Unit = {},
     isLoggedIn: Boolean = false,
     onLogin: () -> Unit = {},
     onReactionClick: (token: String, emojiValue: Int) -> Unit = { _, _ -> },
@@ -1132,7 +1142,6 @@ private fun ArtworkGallery(
     emptyMessage: String = "No artwork yet.",
     isToday: Boolean = true,
 ) {
-    var fullscreenPreview by remember { mutableStateOf<ArtworkPreview?>(null) }
     var isRefreshing by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
@@ -1194,7 +1203,7 @@ private fun ArtworkGallery(
                 items(cachedArtwork.take(visibleCount)) { preview ->
                     ArtworkCard(
                         preview = preview,
-                        onImageClick = { fullscreenPreview = preview },
+                        onImageClick = { onFullscreenImage(preview) },
                         isLoggedIn = isLoggedIn,
                         onLogin = onLogin,
                         onReactionClick = onReactionClick,
@@ -1227,15 +1236,6 @@ private fun ArtworkGallery(
                 }
             }
         }
-    }
-
-    fullscreenPreview?.let { preview ->
-        FullscreenImageDialog(
-            preview = preview,
-            onDismiss = { fullscreenPreview = null },
-            isLoggedIn = isLoggedIn,
-            onReactionClick = onReactionClick,
-        )
     }
 }
 
@@ -1514,74 +1514,74 @@ private fun ReactionPickerDialog(onDismiss: () -> Unit, onEmojiSelected: (Int) -
 // ── Fullscreen Image Viewer ─────────────────────────────────────
 
 @Composable
-private fun FullscreenImageDialog(
-    preview: ArtworkPreview,
-    onDismiss: () -> Unit,
-    isLoggedIn: Boolean = false,
-    onReactionClick: (token: String, emojiValue: Int) -> Unit = { _, _ -> },
-) {
+private fun FullscreenImageOverlay(preview: ArtworkPreview, onDismiss: () -> Unit) {
     val context = LocalContext.current
+    val view = LocalView.current
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-    ) {
-        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-            AsyncImage(
-                model = ImageRequest.Builder(context).data(preview.uri).build(),
-                contentDescription = preview.filename,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize(),
-            )
+    var showAppBar by remember { mutableStateOf(false) }
+    val currentShowAppBar by rememberUpdatedState(showAppBar)
+    val zoomState = rememberZoomState()
 
-            IconButton(
-                onClick = onDismiss,
-                modifier =
-                    Modifier.align(Alignment.TopStart)
-                        .padding(16.dp)
-                        .background(
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-                            RoundedCornerShape(50),
-                        ),
-            ) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = "Close",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
+    BackHandler(onBack = onDismiss)
 
-            val overlayText =
-                if (preview.date.isNotBlank()) {
-                    "${preview.artistName}  ·  ${preview.date}"
-                } else {
-                    preview.artistName
+    // Force light system bar icons on black background
+    DisposableEffect(Unit) {
+        val window = (view.context as Activity).window
+        val controller = WindowCompat.getInsetsController(window, view)
+        val previousStatus = controller.isAppearanceLightStatusBars
+        val previousNav = controller.isAppearanceLightNavigationBars
+        val prevStatusColor = window.statusBarColor
+        val prevNavColor = window.navigationBarColor
+        controller.isAppearanceLightStatusBars = false
+        controller.isAppearanceLightNavigationBars = false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            window.statusBarColor = android.graphics.Color.BLACK
+            window.navigationBarColor = android.graphics.Color.BLACK
+        }
+        onDispose {
+            controller.isAppearanceLightStatusBars = previousStatus
+            controller.isAppearanceLightNavigationBars = previousNav
+            window.statusBarColor = prevStatusColor
+            window.navigationBarColor = prevNavColor
+        }
+    }
+
+    Box(
+        modifier =
+            Modifier.fillMaxSize().background(Color.Black).pointerInput(Unit) {
+                detectTapGestures {
+                    if (currentShowAppBar) showAppBar = false else showAppBar = true
                 }
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = overlayText,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier =
-                    Modifier.align(Alignment.BottomCenter)
-                        .padding(16.dp)
-                        .background(
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-                            RoundedCornerShape(8.dp),
-                        )
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-            )
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        AsyncImage(
+            model = ImageRequest.Builder(context).data(preview.uri).build(),
+            contentDescription = preview.filename,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxSize().zoomable(zoomState),
+        )
 
-            // Reactions overlay (bottom-end)
-            if (preview.reactions.isNotEmpty()) {
-                ReactionRow(
-                    reactions = preview.reactions,
-                    userEmoji = preview.userEmoji,
-                    token = preview.filename.substringBeforeLast('.'),
-                    isLoggedIn = isLoggedIn,
-                    onReactionClick = onReactionClick,
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-                )
+        AnimatedVisibility(
+            visible = showAppBar,
+            modifier = Modifier.align(Alignment.TopCenter),
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .statusBarsPadding()
+                        .background(Color.Black.copy(alpha = 0.4f))
+                        .padding(4.dp)
+            ) {
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Close",
+                        tint = Color.White,
+                    )
+                }
             }
         }
     }
