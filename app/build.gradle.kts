@@ -10,12 +10,12 @@ plugins {
 android {
     namespace = "me.eroi.lolidaily.muzei"
 
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "me.eroi.lolidaily.muzei"
-        minSdk = 26
-        targetSdk = 35
+        minSdk = 28
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
 
@@ -171,6 +171,7 @@ dependencies {
     // Coil — image loading in Compose
     implementation("io.coil-kt.coil3:coil-compose:3.0.4")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")
+    implementation("io.coil-kt.coil3:coil-gif:3.0.4")
 
     // AndroidX
     implementation("androidx.core:core-ktx:1.15.0")
