@@ -9,14 +9,12 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -73,7 +71,6 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -83,6 +80,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.WindowCompat
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -1516,71 +1514,60 @@ private fun ReactionPickerDialog(onDismiss: () -> Unit, onEmojiSelected: (Int) -
 @Composable
 private fun FullscreenImageOverlay(preview: ArtworkPreview, onDismiss: () -> Unit) {
     val context = LocalContext.current
-    val view = LocalView.current
+    val zoomState = rememberZoomState()
 
     var showAppBar by remember { mutableStateOf(false) }
     val currentShowAppBar by rememberUpdatedState(showAppBar)
-    val zoomState = rememberZoomState()
 
-    BackHandler(onBack = onDismiss)
-
-    // Force light system bar icons on black background
-    DisposableEffect(Unit) {
-        val window = (view.context as Activity).window
-        val controller = WindowCompat.getInsetsController(window, view)
-        val previousStatus = controller.isAppearanceLightStatusBars
-        val previousNav = controller.isAppearanceLightNavigationBars
-        val prevStatusColor = window.statusBarColor
-        val prevNavColor = window.navigationBarColor
-        controller.isAppearanceLightStatusBars = false
-        controller.isAppearanceLightNavigationBars = false
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            window.statusBarColor = android.graphics.Color.BLACK
-            window.navigationBarColor = android.graphics.Color.BLACK
-        }
-        onDispose {
-            controller.isAppearanceLightStatusBars = previousStatus
-            controller.isAppearanceLightNavigationBars = previousNav
-            window.statusBarColor = prevStatusColor
-            window.navigationBarColor = prevNavColor
-        }
-    }
-
-    Box(
-        modifier =
-            Modifier.fillMaxSize().background(Color.Black).pointerInput(Unit) {
-                detectTapGestures {
-                    if (currentShowAppBar) showAppBar = false else showAppBar = true
-                }
-            },
-        contentAlignment = Alignment.Center,
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties =
+            DialogProperties(
+                usePlatformDefaultWidth = false,
+                dismissOnBackPress = true,
+                dismissOnClickOutside = false,
+                decorFitsSystemWindows = false,
+            ),
     ) {
-        AsyncImage(
-            model = ImageRequest.Builder(context).data(preview.uri).build(),
-            contentDescription = preview.filename,
-            contentScale = ContentScale.Fit,
-            modifier = Modifier.fillMaxSize().zoomable(zoomState),
-        )
-
-        AnimatedVisibility(
-            visible = showAppBar,
-            modifier = Modifier.align(Alignment.TopCenter),
-            enter = fadeIn(),
-            exit = fadeOut(),
+        Box(
+            modifier = Modifier.fillMaxSize().background(Color.Black),
+            contentAlignment = Alignment.Center,
         ) {
-            Row(
+            AsyncImage(
+                model = ImageRequest.Builder(context).data(preview.uri).build(),
+                contentDescription = preview.filename,
+                contentScale = ContentScale.Fit,
                 modifier =
-                    Modifier.fillMaxWidth()
-                        .statusBarsPadding()
-                        .background(Color.Black.copy(alpha = 0.4f))
-                        .padding(4.dp)
+                    Modifier.fillMaxSize()
+                        .zoomable(
+                            zoomState,
+                            enableOneFingerZoom = false,
+                            onTap = {
+                                if (currentShowAppBar) showAppBar = false else showAppBar = true
+                            },
+                        ),
+            )
+
+            AnimatedVisibility(
+                visible = showAppBar,
+                modifier = Modifier.align(Alignment.TopCenter),
+                enter = fadeIn(),
+                exit = fadeOut(),
             ) {
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Close",
-                        tint = Color.White,
-                    )
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .background(Color.Black.copy(alpha = 0.4f))
+                            .statusBarsPadding()
+                            .padding(4.dp)
+                ) {
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Close",
+                            tint = Color.White,
+                        )
+                    }
                 }
             }
         }

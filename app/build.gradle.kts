@@ -143,7 +143,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions { jvmTarget = "17" }
+    kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
 }
 
 dependencies {
@@ -174,7 +174,7 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-gif:3.0.4")
 
     // Zoomable — pinch-to-zoom with snap-back
-    implementation("net.engawapg.lib:zoomable:2.0.0-kotlin2.0")
+    implementation("net.engawapg.lib:zoomable:2.11.1")
 
     // AndroidX
     implementation("androidx.core:core-ktx:1.15.0")
@@ -196,9 +196,10 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
     // Room — local database for artwork metadata persistence
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
+    val roomVersion = "2.7.1"
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    ksp("androidx.room:room-compiler:$roomVersion")
 }
 
 ktfmt { kotlinLangStyle() }
