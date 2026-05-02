@@ -72,26 +72,53 @@ function getBaseUrl(req) {
   return `${req.protocol}://${host}`;
 }
 
-// GET /api/v1/mock-image?t=1700000000 — returns a random-colour PNG with timestamp
-app.get("/api/v1/mock-image", async (_req, res) => {
-  const W = 1080, H = 1920;
+// Available Jimp bitmap font sizes (only those with both black & white variants)
+const FONT_SIZES = [
+  { size: 128, suffix: "128" },
+  { size: 64, suffix: "64" },
+  { size: 32, suffix: "32" },
+  { size: 16, suffix: "16" },
+  { size: 8, suffix: "8" },
+];
+
+function selectFontSize(minDim) {
+  for (const f of FONT_SIZES) {
+    if (f.size <= minDim * 0.4) return f.suffix;
+  }
+  return "8";
+}
+
+// GET /image?w=<width>&h=<height>&t=<cachebuster> — returns a random-colour PNG with timestamp
+app.get("/image", async (req, res) => {
+  const W = parseInt(req.query.w) || 1080;
+  const H = parseInt(req.query.h) || 1920;
   const r = Math.floor(Math.random() * 200) + 30;
   const g = Math.floor(Math.random() * 200) + 30;
   const b = Math.floor(Math.random() * 200) + 30;
   const bg = `rgb(${r},${g},${b})`;
-  const textColour = (r + g + b) / 3 > 127 ? Jimp.rgbaToInt(0, 0, 0, 255) : Jimp.rgbaToInt(255, 255, 255, 255);
   const bgInt = Jimp.rgbaToInt(r, g, b, 255);
   const ts = localShort(new Date());
 
+  const bright = (r + g + b) / 3 > 127;
+  const fontColor = bright ? "black" : "white";
+  const fontSize = selectFontSize(Math.min(W, H));
+
   const image = new Jimp(W, H, bgInt);
-  // Use absolute font path to avoid CWD mismatch when started via gradle
-  const fontPath = path.join(__dirname, "node_modules", "@jimp", "plugin-print", "fonts", "open-sans", "open-sans-128-black", "open-sans-128-black.fnt");
+  const fontPath = path.join(
+    __dirname, "node_modules", "@jimp", "plugin-print", "fonts",
+    "open-sans", `open-sans-${fontSize}-${fontColor}`,
+    `open-sans-${fontSize}-${fontColor}.fnt`
+  );
   const font = await Jimp.loadFont(fontPath);
-  image.print(font, 0, 0, { text: ts, alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER, alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE }, W, H);
+  image.print(font, 0, 0, {
+    text: ts,
+    alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+    alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE
+  }, W, H);
 
   const pngBuf = await image.getBufferAsync(Jimp.MIME_PNG);
 
-  console.log(`[mock] Serving mock image (bg=${bg}, ts=${ts}, size=${pngBuf.length} bytes)`);
+  console.log(`[mock] Serving mock image (bg=${bg}, ts=${ts}, size=${pngBuf.length} bytes, dims=${W}x${H})`);
   res.setHeader("Content-Type", "image/png");
   res.send(pngBuf);
 });
@@ -103,13 +130,13 @@ app.get("/api/v1/daily", (req, res) => {
     const baseUrl = getBaseUrl(req);
 
     fixture.cards.forEach(card => {
-      if (card.imgUrl && card.imgUrl.includes("{{randomImage}}")) {
+      if (card.imgUrl && card.imgUrl.includes("{{mockServer}}")) {
         const mockId = Date.now() + "_" + Math.random().toString(36).substring(2, 10);
-        card.imgUrl = `${baseUrl}/api/v1/mock-image?t=${encodeURIComponent(mockId)}`;
+        card.imgUrl = card.imgUrl.replace("{{mockServer}}", baseUrl) +
+          `&t=${encodeURIComponent(mockId)}`;
       }
     });
 
-    // 更新日期为今天，模拟"换日"
     fixture.date = localDate(new Date());
     console.log(`[mock] Returning daily with date=${fixture.date}, cards=${fixture.cards.length}`);
     res.json(fixture);
