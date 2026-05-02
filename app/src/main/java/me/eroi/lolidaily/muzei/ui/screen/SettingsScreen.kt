@@ -15,21 +15,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -41,35 +27,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -178,6 +142,7 @@ fun SettingsScreen(
                         onRefresh = onRefresh,
                     )
                 }
+
             1 ->
                 Box(modifier = Modifier.padding(padding)) {
                     ArtworkGallery(
@@ -192,6 +157,7 @@ fun SettingsScreen(
                         isToday = false,
                     )
                 }
+
             2 ->
                 Box(modifier = Modifier.padding(padding)) {
                     PreferenceTab(
@@ -736,43 +702,47 @@ private fun ReactionRow(
 
     val context = LocalContext.current
 
-    FlowRow(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
-        verticalArrangement = Arrangement.spacedBy(3.dp),
-    ) {
-        for ((reaction, resId) in valid) {
-            val selected = reaction.emojiValue == userEmoji
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        for (row in valid.chunked(4)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                for ((reaction, resId) in row) {
+                    val selected = reaction.emojiValue == userEmoji
 
-            val bg =
-                if (selected) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
-            val contentColor =
-                if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-                else MaterialTheme.colorScheme.onSurface
+                    val bg =
+                        if (selected) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
+                    val contentColor =
+                        if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSurface
 
-            Surface(
-                onClick = {
-                    if (isLoggedIn) onReactionClick(token, reaction.emojiValue)
-                    else
-                        Toast.makeText(context, "Login to Bangumi to react", Toast.LENGTH_SHORT)
-                            .show()
-                },
-                shape = RoundedCornerShape(50),
-                color = bg,
-                modifier = Modifier.height(26.dp),
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    PixelEmoji(resId = resId, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(2.dp))
-                    Text(
-                        text = "${reaction.count}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = contentColor,
-                    )
+                    Surface(
+                        onClick = {
+                            if (isLoggedIn) onReactionClick(token, reaction.emojiValue)
+                            else
+                                Toast.makeText(
+                                        context,
+                                        "Login to Bangumi to react",
+                                        Toast.LENGTH_SHORT,
+                                    )
+                                    .show()
+                        },
+                        shape = RoundedCornerShape(50),
+                        color = bg,
+                        modifier = Modifier.height(26.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            PixelEmoji(resId = resId, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(2.dp))
+                            Text(
+                                text = "${reaction.count}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = contentColor,
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1001,6 +971,7 @@ private fun HeroArtwork(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 8.dp),
             ) {
                 if (preview.tags.isNotBlank()) {
                     Surface(
@@ -1046,15 +1017,15 @@ private fun HeroArtwork(
                 color = Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = 8.dp),
             )
             if (preview.comment.isNotBlank()) {
                 Text(
                     text = preview.comment,
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.85f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 4.dp),
+                    softWrap = true,
+                    modifier = Modifier.padding(top = 4.dp, start = 8.dp, end = 56.dp),
                 )
             }
             if (preview.reactions.isNotEmpty()) {
