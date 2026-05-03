@@ -9,9 +9,12 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -30,6 +33,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Bookmarks
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -111,72 +117,102 @@ fun SettingsScreen(
                 NavigationBarItem(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    icon = { Icon(Icons.Default.Image, contentDescription = "Today") },
+                    icon = {
+                        val selected = selectedTab == 0
+                        Crossfade(targetState = selected, label = "today_icon") {
+                            Icon(
+                                imageVector = if (it) Icons.Filled.Image else Icons.Outlined.Image,
+                                contentDescription = "Today",
+                            )
+                        }
+                    },
                     label = { Text("Today") },
                 )
                 NavigationBarItem(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
                     icon = {
-                        Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = "History")
+                        val selected = selectedTab == 1
+                        Crossfade(targetState = selected, label = "bookmark_icon") {
+                            Icon(
+                                imageVector =
+                                    if (it) Icons.Filled.Bookmarks else Icons.Outlined.Bookmarks,
+                                contentDescription = "Bookmark",
+                            )
+                        }
                     },
-                    label = { Text("History") },
+                    label = { Text("Bookmark") },
                 )
                 NavigationBarItem(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
-                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                    icon = {
+                        val selected = selectedTab == 2
+                        Crossfade(targetState = selected, label = "settings_icon") {
+                            Icon(
+                                imageVector =
+                                    if (it) Icons.Filled.Settings else Icons.Outlined.Settings,
+                                contentDescription = "Settings",
+                            )
+                        }
+                    },
                     label = { Text("Settings") },
                 )
             }
         },
         modifier = modifier,
     ) { padding ->
-        when (selectedTab) {
-            0 ->
-                Box(modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
-                    TodayGallery(
-                        todayArtwork = todayArtwork,
-                        isLoggedIn = isLoggedIn,
-                        onLogin = onLogin,
-                        onFullscreenImage = { fullscreenPreview = it },
-                        onReactionClick = onReactionClick,
-                        onRefresh = onRefresh,
-                    )
-                }
+        AnimatedContent(
+            targetState = selectedTab,
+            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            label = "tab_content",
+        ) { tab ->
+            when (tab) {
+                0 ->
+                    Box(modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
+                        TodayGallery(
+                            todayArtwork = todayArtwork,
+                            isLoggedIn = isLoggedIn,
+                            onLogin = onLogin,
+                            onFullscreenImage = { fullscreenPreview = it },
+                            onReactionClick = onReactionClick,
+                            onRefresh = onRefresh,
+                        )
+                    }
 
-            1 ->
-                Box(modifier = Modifier.padding(padding)) {
-                    ArtworkGallery(
-                        cachedArtwork = historyArtwork,
-                        onFullscreenImage = { fullscreenPreview = it },
-                        isLoggedIn = isLoggedIn,
-                        onLogin = onLogin,
-                        onReactionClick = onReactionClick,
-                        emptyMessage =
-                            "No historical artwork saved yet.\nArtwork accumulates as new daily batches are fetched.",
-                        isToday = false,
-                    )
-                }
+                1 ->
+                    Box(modifier = Modifier.padding(padding)) {
+                        ArtworkGallery(
+                            cachedArtwork = historyArtwork,
+                            onFullscreenImage = { fullscreenPreview = it },
+                            isLoggedIn = isLoggedIn,
+                            onLogin = onLogin,
+                            onReactionClick = onReactionClick,
+                            emptyMessage =
+                                "No historical artwork saved yet.\nArtwork accumulates as new daily batches are fetched.",
+                            isToday = false,
+                        )
+                    }
 
-            2 ->
-                Box(modifier = Modifier.padding(padding)) {
-                    PreferenceTab(
-                        selectedTags = selectedTags,
-                        onTagsChanged = onTagsChanged,
-                        isLoggedIn = isLoggedIn,
-                        onLogin = onLogin,
-                        onLogout = onLogout,
-                        bgmDomain = bgmDomain,
-                        onDomainChanged = onDomainChanged,
-                        isSourceActivated = isSourceActivated,
-                        isMuzeiInstalled = isMuzeiInstalled,
-                        onOpenMuzei = onOpenMuzei,
-                        themeMode = themeMode,
-                        onThemeModeChanged = onThemeModeChanged,
-                        onOpenDebug = onOpenDebug,
-                    )
-                }
+                2 ->
+                    Box(modifier = Modifier.padding(padding)) {
+                        PreferenceTab(
+                            selectedTags = selectedTags,
+                            onTagsChanged = onTagsChanged,
+                            isLoggedIn = isLoggedIn,
+                            onLogin = onLogin,
+                            onLogout = onLogout,
+                            bgmDomain = bgmDomain,
+                            onDomainChanged = onDomainChanged,
+                            isSourceActivated = isSourceActivated,
+                            isMuzeiInstalled = isMuzeiInstalled,
+                            onOpenMuzei = onOpenMuzei,
+                            themeMode = themeMode,
+                            onThemeModeChanged = onThemeModeChanged,
+                            onOpenDebug = onOpenDebug,
+                        )
+                    }
+            }
         }
     }
 
@@ -1072,7 +1108,7 @@ private fun HeroArtwork(
                         Toast.makeText(context, "Login to Bangumi to react", Toast.LENGTH_SHORT)
                             .show()
                     } else if (hasReacted) {
-                        onReactionClick(token, preview.userEmoji!!)
+                        onReactionClick(token, preview.userEmoji)
                     } else {
                         showReactionPicker = true
                     }
@@ -1379,7 +1415,7 @@ private fun ArtworkCard(
                             Toast.makeText(context, "Login to Bangumi to react", Toast.LENGTH_SHORT)
                                 .show()
                         } else if (hasReacted) {
-                            onReactionClick(token, preview.userEmoji!!)
+                            onReactionClick(token, preview.userEmoji)
                         } else {
                             showReactionPicker = true
                         }
