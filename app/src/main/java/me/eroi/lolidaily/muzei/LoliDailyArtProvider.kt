@@ -8,13 +8,13 @@ import androidx.core.app.RemoteActionCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.google.android.apps.muzei.api.provider.Artwork
 import com.google.android.apps.muzei.api.provider.MuzeiArtProvider
+import kotlinx.serialization.json.Json
+import me.eroi.lolidaily.muzei.model.Card
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.InputStream
-import kotlinx.serialization.json.Json
-import me.eroi.lolidaily.muzei.model.Card
 
 /**
  * Muzei Art Provider that sources daily artwork from the Loli Daily API.
@@ -25,7 +25,6 @@ import me.eroi.lolidaily.muzei.model.Card
  * - View Artist (open artistUrl in browser)
  */
 class LoliDailyArtProvider : MuzeiArtProvider() {
-
     override fun onLoadRequested(initial: Boolean) {
         val appContext =
             context
@@ -74,7 +73,7 @@ class LoliDailyArtProvider : MuzeiArtProvider() {
                     "View Source",
                     card.sourceUrl,
                     sourcePending,
-                )
+                ),
             )
         }
 
@@ -100,7 +99,7 @@ class LoliDailyArtProvider : MuzeiArtProvider() {
                     "View Artist",
                     card.artistUrl,
                     artistPending,
-                )
+                ),
             )
         }
 
@@ -122,7 +121,7 @@ class LoliDailyArtProvider : MuzeiArtProvider() {
                 "Force Refresh",
                 "Fetch latest artwork from API (bypasses cache)",
                 refreshPending,
-            )
+            ),
         )
 
         return actions

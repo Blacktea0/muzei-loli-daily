@@ -15,7 +15,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.FileProvider
 import com.google.android.apps.muzei.api.MuzeiContract
-import java.io.File
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import me.eroi.lolidaily.muzei.db.DatabaseProvider
@@ -27,6 +26,7 @@ import me.eroi.lolidaily.muzei.ui.screen.SettingsScreen
 import me.eroi.lolidaily.muzei.ui.theme.LoliDailyTheme
 import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
 import me.eroi.lolidaily.muzei.util.Md5
+import java.io.File
 
 /**
  * Settings activity launched from Muzei's source configuration screen and the app drawer.
@@ -34,7 +34,6 @@ import me.eroi.lolidaily.muzei.util.Md5
  * Displays tag filter and cached artwork previews with metadata.
  */
 class SettingsActivity : AppCompatActivity() {
-
     private val prefs by lazy {
         getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
     }
@@ -99,7 +98,7 @@ class SettingsActivity : AppCompatActivity() {
                     },
                     onOpenDebug = {
                         startActivity(
-                            Intent(this@SettingsActivity, DebugSettingsActivity::class.java)
+                            Intent(this@SettingsActivity, DebugSettingsActivity::class.java),
                         )
                     },
                 )
@@ -123,24 +122,27 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    private fun handleReactionClick(token: String, emojiValue: Int) {
+    private fun handleReactionClick(
+        token: String,
+        emojiValue: Int,
+    ) {
         val cardIndex = LoliDailyArtWorker.getCardIndex(this, token) ?: return
         Thread {
-                val ok = LoliDailyArtWorker.patchReaction(this, cardIndex, emojiValue)
-                if (ok) {
-                    LoliDailyArtWorker.fetchAndCacheReactions(this)
-                    runOnUiThread { buildPreviews() }
-                } else {
-                    runOnUiThread {
-                        Toast.makeText(
-                                this,
-                                "Reaction failed — session may have expired",
-                                Toast.LENGTH_SHORT,
-                            )
-                            .show()
-                    }
+            val ok = LoliDailyArtWorker.patchReaction(this, cardIndex, emojiValue)
+            if (ok) {
+                LoliDailyArtWorker.fetchAndCacheReactions(this)
+                runOnUiThread { buildPreviews() }
+            } else {
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        "Reaction failed — session may have expired",
+                        Toast.LENGTH_SHORT,
+                    )
+                        .show()
                 }
             }
+        }
             .start()
     }
 
@@ -181,8 +183,8 @@ class SettingsActivity : AppCompatActivity() {
         try {
             startActivity(
                 MuzeiContract.Sources.createChooseProviderIntent(
-                    LoliDailyArtWorker.PROVIDER_AUTHORITY
-                )
+                    LoliDailyArtWorker.PROVIDER_AUTHORITY,
+                ),
             )
         } catch (_: ActivityNotFoundException) {
             val launchIntent = packageManager.getLaunchIntentForPackage(MUZEI_PACKAGE)
@@ -196,9 +198,9 @@ class SettingsActivity : AppCompatActivity() {
                         Intent(
                             Intent.ACTION_VIEW,
                             Uri.parse(
-                                "https://play.google.com/store/apps/details?id=$MUZEI_PACKAGE"
+                                "https://play.google.com/store/apps/details?id=$MUZEI_PACKAGE",
                             ),
-                        )
+                        ),
                     )
                 } catch (_: Exception) {
                     try {
@@ -206,7 +208,7 @@ class SettingsActivity : AppCompatActivity() {
                             Intent(
                                 Intent.ACTION_VIEW,
                                 Uri.parse("market://details?id=$MUZEI_PACKAGE"),
-                            )
+                            ),
                         )
                     } catch (_: Exception) {
                         Toast.makeText(this, "No app store available", Toast.LENGTH_SHORT).show()
@@ -233,9 +235,9 @@ class SettingsActivity : AppCompatActivity() {
         // Background fetch — mirrors the JS lazy-load behaviour:
         // reactions are fetched each time the gallery is opened
         Thread {
-                LoliDailyArtWorker.fetchAndCacheReactions(this@SettingsActivity)
-                runOnUiThread { buildPreviews() }
-            }
+            LoliDailyArtWorker.fetchAndCacheReactions(this@SettingsActivity)
+            runOnUiThread { buildPreviews() }
+        }
             .start()
     }
 
@@ -291,7 +293,7 @@ class SettingsActivity : AppCompatActivity() {
                                 "LC ES" -> 2
                                 else -> 3
                             }
-                        }
+                        },
                 )
 
         todayPreviews = previews.filter { it.date == apiDate }
@@ -301,9 +303,10 @@ class SettingsActivity : AppCompatActivity() {
     /** Loads all Room-persisted artwork fields, keyed by token. */
     private fun loadRoomArtworkFields(): Map<String, EntityMapper.CardFields> {
         return try {
-            val entities = runBlocking {
-                DatabaseProvider.getInstance(this@SettingsActivity).cachedArtworkDao().getAll()
-            }
+            val entities =
+                runBlocking {
+                    DatabaseProvider.getInstance(this@SettingsActivity).cachedArtworkDao().getAll()
+                }
             entities.associate { entity -> entity.token to EntityMapper.entityToCardFields(entity) }
         } catch (e: Exception) {
             Log.w("SettingsActivity", "Failed to load artwork metadata from Room", e)

@@ -4,7 +4,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
-    id("com.ncorti.ktfmt.gradle")
+    id("org.jlleitschuh.gradle.ktlint")
 }
 
 android {
@@ -27,9 +27,11 @@ android {
                     ?.readLines()
                     ?.mapNotNull { line ->
                         val eq = line.indexOf('=')
-                        if (eq > 0 && line.substring(0, eq).trim() == "loliApiUrl")
+                        if (eq > 0 && line.substring(0, eq).trim() == "loliApiUrl") {
                             line.substring(eq + 1).trim()
-                        else null
+                        } else {
+                            null
+                        }
                     }
                     ?.firstOrNull()
                 ?: rootProject
@@ -38,9 +40,11 @@ android {
                     ?.readLines()
                     ?.mapNotNull { line ->
                         val eq = line.indexOf('=')
-                        if (eq > 0 && line.substring(0, eq).trim() == "loliApiUrl")
+                        if (eq > 0 && line.substring(0, eq).trim() == "loliApiUrl") {
                             line.substring(eq + 1).trim()
-                        else null
+                        } else {
+                            null
+                        }
                     }
                     ?.firstOrNull()
                 ?: "https://loliconey.tsuki.ga"
@@ -202,4 +206,9 @@ dependencies {
     ksp("androidx.room:room-compiler:$roomVersion")
 }
 
-ktfmt { kotlinLangStyle() }
+ktlint {
+}
+
+tasks.named("lint") {
+    dependsOn("ktlintCheck")
+}

@@ -18,9 +18,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import kotlin.math.roundToInt
 import me.eroi.lolidaily.muzei.model.ReactionCount
 import me.eroi.lolidaily.muzei.worker.EmojiMap
+import kotlin.math.roundToInt
 
 @Composable
 fun rememberPixelBitmap(resId: Int): ImageBitmap {
@@ -33,7 +33,10 @@ fun rememberPixelBitmap(resId: Int): ImageBitmap {
 }
 
 @Composable
-fun PixelEmoji(resId: Int, modifier: Modifier = Modifier) {
+fun PixelEmoji(
+    resId: Int,
+    modifier: Modifier = Modifier,
+) {
     val imageBitmap = rememberPixelBitmap(resId)
     Canvas(modifier = modifier) {
         drawImage(
@@ -66,22 +69,30 @@ fun ReactionRow(
                     val selected = reaction.emojiValue == userEmoji
 
                     val bg =
-                        if (selected) MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
+                        if (selected) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
+                        }
                     val contentColor =
-                        if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-                        else MaterialTheme.colorScheme.onSurface
+                        if (selected) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        }
 
                     Surface(
                         onClick = {
-                            if (isLoggedIn) onReactionClick(token, reaction.emojiValue)
-                            else
+                            if (isLoggedIn) {
+                                onReactionClick(token, reaction.emojiValue)
+                            } else {
                                 Toast.makeText(
-                                        context,
-                                        "Login to Bangumi to react",
-                                        Toast.LENGTH_SHORT,
-                                    )
+                                    context,
+                                    "Login to Bangumi to react",
+                                    Toast.LENGTH_SHORT,
+                                )
                                     .show()
+                            }
                         },
                         shape = RoundedCornerShape(50),
                         color = bg,
@@ -107,7 +118,10 @@ fun ReactionRow(
 }
 
 @Composable
-fun ReactionPickerDialog(onDismiss: () -> Unit, onEmojiSelected: (Int) -> Unit) {
+fun ReactionPickerDialog(
+    onDismiss: () -> Unit,
+    onEmojiSelected: (Int) -> Unit,
+) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(24.dp),

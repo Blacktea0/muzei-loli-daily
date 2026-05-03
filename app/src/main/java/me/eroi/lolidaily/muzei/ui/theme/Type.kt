@@ -39,7 +39,6 @@ val Typography =
                 lineHeight = 44.sp,
                 letterSpacing = 0.sp,
             ),
-
         // ── Headline ───────────────────────────
         headlineLarge =
             TextStyle(
@@ -65,7 +64,6 @@ val Typography =
                 lineHeight = 32.sp,
                 letterSpacing = 0.sp,
             ),
-
         // ── Title ──────────────────────────────
         titleLarge =
             TextStyle(
@@ -91,7 +89,6 @@ val Typography =
                 lineHeight = 20.sp,
                 letterSpacing = 0.1.sp,
             ),
-
         // ── Body ───────────────────────────────
         bodyLarge =
             TextStyle(
@@ -117,7 +114,6 @@ val Typography =
                 lineHeight = 16.sp,
                 letterSpacing = 0.4.sp,
             ),
-
         // ── Label ──────────────────────────────
         labelLarge =
             TextStyle(

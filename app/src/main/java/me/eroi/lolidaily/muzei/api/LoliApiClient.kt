@@ -2,13 +2,13 @@ package me.eroi.lolidaily.muzei.api
 
 import android.content.Context
 import android.util.Log
-import java.util.concurrent.TimeUnit
 import kotlinx.serialization.json.Json
 import me.eroi.lolidaily.muzei.BuildConfig
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyResponse
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.util.concurrent.TimeUnit
 
 object LoliApiClient {
     private const val TAG = "LoliApiClient"

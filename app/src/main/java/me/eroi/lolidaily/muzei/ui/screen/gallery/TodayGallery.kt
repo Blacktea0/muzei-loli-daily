@@ -120,9 +120,9 @@ fun TodayGallery(
                                     0.0f to Color.Black.copy(alpha = 0.75f),
                                     0.7f to Color.Black.copy(alpha = 0.3f),
                                     1.0f to Color.Transparent,
-                                )
-                        )
-                    )
+                                ),
+                        ),
+                    ),
         )
 
         PrimaryTabRow(
@@ -147,8 +147,11 @@ fun TodayGallery(
                         Text(
                             tag,
                             color =
-                                if (pagerState.currentPage == index) Color.White
-                                else Color.White.copy(alpha = 0.6f),
+                                if (pagerState.currentPage == index) {
+                                    Color.White
+                                } else {
+                                    Color.White.copy(alpha = 0.6f)
+                                },
                         )
                     },
                 )
@@ -192,13 +195,13 @@ fun HeroArtwork(
                                     0.0f to Color.Transparent,
                                     0.6f to Color.Black.copy(alpha = 0.5f),
                                     1.0f to Color.Black.copy(alpha = 0.8f),
-                                )
-                        )
-                    )
+                                ),
+                        ),
+                    ),
         )
 
         Column(
-            modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 16.dp)
+            modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 16.dp),
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -296,7 +299,7 @@ fun HeroArtwork(
                     } else {
                         showReactionPicker = true
                     }
-                }
+                },
             ) {
                 Icon(
                     if (hasReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,

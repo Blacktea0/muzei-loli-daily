@@ -62,7 +62,7 @@ fun DebugSettingsScreen(onBack: () -> Unit) {
                     }
                 },
             )
-        }
+        },
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
@@ -87,12 +87,13 @@ fun DebugSettingsScreen(onBack: () -> Unit) {
 @Composable
 private fun CacheSwitchCard() {
     val context = LocalContext.current
-    val prefs = remember {
-        context.getSharedPreferences(
-            LoliDailyArtWorker.PREFS_NAME,
-            android.content.Context.MODE_PRIVATE,
-        )
-    }
+    val prefs =
+        remember {
+            context.getSharedPreferences(
+                LoliDailyArtWorker.PREFS_NAME,
+                android.content.Context.MODE_PRIVATE,
+            )
+        }
 
     var skipCache by remember { mutableStateOf(prefs.getBoolean("debug_skip_cache", false)) }
 
@@ -135,8 +136,11 @@ private fun CacheSwitchCard() {
                     text = "Status: ${if (skipCache) "Cache SKIPPED" else "Cache USED"}",
                     style = MaterialTheme.typography.bodyMedium,
                     color =
-                        if (skipCache) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.primary,
+                        if (skipCache) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        },
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -150,12 +154,13 @@ private fun CacheSwitchCard() {
 @Composable
 private fun RefreshTimeCard() {
     val context = LocalContext.current
-    val prefs = remember {
-        context.getSharedPreferences(
-            LoliDailyArtWorker.PREFS_NAME,
-            android.content.Context.MODE_PRIVATE,
-        )
-    }
+    val prefs =
+        remember {
+            context.getSharedPreferences(
+                LoliDailyArtWorker.PREFS_NAME,
+                android.content.Context.MODE_PRIVATE,
+            )
+        }
 
     var hour by remember {
         mutableStateOf(prefs.getInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_HOUR, 7))

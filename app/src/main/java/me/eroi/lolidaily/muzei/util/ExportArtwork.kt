@@ -5,20 +5,29 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
-import java.io.File
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
+import java.io.File
 
 /**
  * Copies the artwork file to the public Pictures/LoliDaily directory via [MediaStore], compatible
  * with API 24+.
  */
-fun exportArtwork(context: android.content.Context, preview: ArtworkPreview) {
+fun exportArtwork(
+    context: android.content.Context,
+    preview: ArtworkPreview,
+) {
     try {
         val resolver = context.contentResolver
         val mimeType =
-            if (preview.filename.endsWith(".png", true)) "image/png"
-            else if (preview.filename.endsWith(".gif", true)) "image/gif"
-            else if (preview.filename.endsWith(".webp", true)) "image/webp" else "image/jpeg"
+            if (preview.filename.endsWith(".png", true)) {
+                "image/png"
+            } else if (preview.filename.endsWith(".gif", true)) {
+                "image/gif"
+            } else if (preview.filename.endsWith(".webp", true)) {
+                "image/webp"
+            } else {
+                "image/jpeg"
+            }
 
         val relativePath = Environment.DIRECTORY_PICTURES + "/LoliDaily"
 

@@ -15,7 +15,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun SourceStatusCard(isSourceActivated: Boolean, isMuzeiInstalled: Boolean, onClick: () -> Unit) {
+fun SourceStatusCard(
+    isSourceActivated: Boolean,
+    isMuzeiInstalled: Boolean,
+    onClick: () -> Unit,
+) {
     val colors = MaterialTheme.colorScheme
 
     val icon: ImageVector

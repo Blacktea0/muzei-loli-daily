@@ -12,10 +12,13 @@ import me.eroi.lolidaily.muzei.model.SuggestedBy
  * the Room schema stays flat and migration-free.
  */
 object EntityMapper {
-
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun cardToEntity(card: Card, token: String, date: String): CachedArtworkEntity {
+    fun cardToEntity(
+        card: Card,
+        token: String,
+        date: String,
+    ): CachedArtworkEntity {
         return CachedArtworkEntity(
             token = token,
             artistName = card.artistName,

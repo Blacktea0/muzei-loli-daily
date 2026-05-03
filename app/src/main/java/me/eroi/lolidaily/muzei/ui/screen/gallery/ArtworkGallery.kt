@@ -293,8 +293,11 @@ fun ArtworkCard(
                     colors =
                         IconButtonDefaults.filledTonalIconButtonColors(
                             contentColor =
-                                if (hasReacted) MaterialTheme.colorScheme.error
-                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                if (hasReacted) {
+                                    MaterialTheme.colorScheme.error
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
                         ),
                 ) {
                     Icon(
@@ -326,7 +329,10 @@ fun ArtworkCard(
 }
 
 @Composable
-fun FullscreenImageOverlay(preview: ArtworkPreview, onDismiss: () -> Unit) {
+fun FullscreenImageOverlay(
+    preview: ArtworkPreview,
+    onDismiss: () -> Unit,
+) {
     val context = LocalContext.current
     val zoomState = rememberZoomState()
 
@@ -373,7 +379,7 @@ fun FullscreenImageOverlay(preview: ArtworkPreview, onDismiss: () -> Unit) {
                         Modifier.fillMaxWidth()
                             .background(Color.Black.copy(alpha = 0.4f))
                             .statusBarsPadding()
-                            .padding(4.dp)
+                            .padding(4.dp),
                 ) {
                     IconButton(onClick = onDismiss) {
                         Icon(

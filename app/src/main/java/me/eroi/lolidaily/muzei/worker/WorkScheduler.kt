@@ -3,10 +3,10 @@ package me.eroi.lolidaily.muzei.worker
 import android.content.Context
 import android.util.Log
 import androidx.work.*
+import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
-import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 
 object WorkScheduler {
     private const val TAG = "LoliDailyWorker"
@@ -18,7 +18,11 @@ object WorkScheduler {
     private const val KEY_REFILTER_ONLY = "refilter_only"
     private const val WORK_COOLDOWN_MS = 10_000L
 
-    fun enqueueLoad(context: Context, forceRefresh: Boolean = false, initial: Boolean = true) {
+    fun enqueueLoad(
+        context: Context,
+        forceRefresh: Boolean = false,
+        initial: Boolean = true,
+    ) {
         val prefs =
             context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -48,13 +52,13 @@ object WorkScheduler {
         val work =
             OneTimeWorkRequestBuilder<LoliDailyArtWorker>()
                 .setConstraints(
-                    Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+                    Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build(),
                 )
                 .setInputData(
                     Data.Builder()
                         .putBoolean(KEY_FORCE_REFRESH, forceRefresh || shouldDailyRefresh)
                         .putBoolean(KEY_INITIAL, initial)
-                        .build()
+                        .build(),
                 )
                 .build()
 
@@ -66,7 +70,7 @@ object WorkScheduler {
         val work =
             OneTimeWorkRequestBuilder<LoliDailyArtWorker>()
                 .setConstraints(
-                    Constraints.Builder().setRequiredNetworkType(NetworkType.NOT_REQUIRED).build()
+                    Constraints.Builder().setRequiredNetworkType(NetworkType.NOT_REQUIRED).build(),
                 )
                 .setInputData(Data.Builder().putBoolean(KEY_REFILTER_ONLY, true).build())
                 .build()

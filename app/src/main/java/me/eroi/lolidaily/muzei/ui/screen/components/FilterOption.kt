@@ -9,7 +9,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun FilterOption(label: String, selected: Boolean, onClick: () -> Unit) {
+fun FilterOption(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
     Row(
         modifier =
             Modifier.fillMaxWidth()
@@ -24,6 +28,10 @@ fun FilterOption(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-fun ThemeOption(label: String, selected: Boolean, onClick: () -> Unit) {
+fun ThemeOption(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
     FilterOption(label = label, selected = selected, onClick = onClick)
 }

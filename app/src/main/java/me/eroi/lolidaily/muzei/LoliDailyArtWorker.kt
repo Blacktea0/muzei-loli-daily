@@ -6,7 +6,6 @@ import android.content.SharedPreferences
 import android.util.Log
 import androidx.work.*
 import com.google.android.apps.muzei.api.provider.ProviderContract
-import java.io.File
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.serializer
@@ -23,6 +22,7 @@ import me.eroi.lolidaily.muzei.worker.ArtworkBuilder
 import me.eroi.lolidaily.muzei.worker.EmojiMap
 import me.eroi.lolidaily.muzei.worker.ImageDownloader
 import me.eroi.lolidaily.muzei.worker.WorkScheduler
+import java.io.File
 
 /**
  * WorkManager Worker that fetches artwork from the Loli Daily API and keeps the Muzei queue in sync
@@ -40,7 +40,6 @@ import me.eroi.lolidaily.muzei.worker.WorkScheduler
  *   uses cached data without touching the network.
  */
 class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
-
     private val prefs: SharedPreferences by lazy {
         applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
@@ -203,11 +202,14 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
     private val cacheFile: File
         get() = File(applicationContext.filesDir, CACHE_FILE)
 
-    private fun saveCachedResponse(cards: List<Card>, date: String) {
+    private fun saveCachedResponse(
+        cards: List<Card>,
+        date: String,
+    ) {
         try {
             val response = DailyResponse(cards = cards, date = date)
             cacheFile.writeText(
-                LoliApiClient.json.encodeToString(DailyResponse.serializer(), response)
+                LoliApiClient.json.encodeToString(DailyResponse.serializer(), response),
             )
         } catch (e: Exception) {
             Log.e(TAG, "Failed to cache API response", e)
@@ -226,7 +228,10 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
     // ── Per-image download date tracking ───────────────────────────
 
-    private fun recordImageDates(cards: List<Card>, date: String) {
+    private fun recordImageDates(
+        cards: List<Card>,
+        date: String,
+    ) {
         val current = loadImageDatesInternal().toMutableMap()
         for (card in cards) {
             if (card.imgUrl.isNotBlank()) {
@@ -256,12 +261,16 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
     // ── Room metadata persistence ──────────────────────────────────────
 
-    private fun saveCardsMetadata(cards: List<Card>, date: String) {
+    private fun saveCardsMetadata(
+        cards: List<Card>,
+        date: String,
+    ) {
         try {
-            val entities = cards.mapNotNull { card ->
-                if (card.imgUrl.isBlank()) return@mapNotNull null
-                EntityMapper.cardToEntity(card, Md5.hash(card.imgUrl), date)
-            }
+            val entities =
+                cards.mapNotNull { card ->
+                    if (card.imgUrl.isBlank()) return@mapNotNull null
+                    EntityMapper.cardToEntity(card, Md5.hash(card.imgUrl), date)
+                }
             if (entities.isEmpty()) return
             runBlocking {
                 DatabaseProvider.getInstance(applicationContext)
@@ -276,7 +285,10 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
     // ── Bulk image download ───────────────────────────────────────
 
-    private fun downloadNewImages(cards: List<Card>, forceDownload: Boolean) {
+    private fun downloadNewImages(
+        cards: List<Card>,
+        forceDownload: Boolean,
+    ) {
         val dir = ImageDownloader.ensureArtworksDir(applicationContext)
         for (card in cards) {
             if (card.imgUrl.isBlank()) continue
@@ -293,7 +305,11 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
     // ── Filter + push to Muzei ────────────────────────────────────
 
-    private fun pushFilteredArtworks(cards: List<Card>, apiDate: String, isNewDay: Boolean) {
+    private fun pushFilteredArtworks(
+        cards: List<Card>,
+        apiDate: String,
+        isNewDay: Boolean,
+    ) {
         val enabledTags = prefs.getStringSet(KEY_ENABLED_TAGS, null)
 
         val filteredCards =
@@ -306,9 +322,10 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         Log.d(TAG, "Filtered ${cards.size} → ${filteredCards.size} (tags=$enabledTags)")
 
         val artworksDir = ImageDownloader.ensureArtworksDir(applicationContext)
-        val artworks = filteredCards.mapNotNull { card ->
-            ArtworkBuilder.buildArtworkFromCache(applicationContext, card, artworksDir, apiDate)
-        }
+        val artworks =
+            filteredCards.mapNotNull { card ->
+                ArtworkBuilder.buildArtworkFromCache(applicationContext, card, artworksDir, apiDate)
+            }
 
         val client =
             ProviderContract.getProviderClient(applicationContext, LoliDailyArtProvider::class.java)
@@ -318,7 +335,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
             applicationContext.sendBroadcast(
                 Intent("com.google.android.apps.muzei.action.NEXT_ARTWORK").apply {
                     setPackage("net.nurik.roman.muzei")
-                }
+                },
             )
             Log.d(TAG, "New day — advancing Muzei rotation")
         }
@@ -359,15 +376,17 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         val EMOJI_URL_MAP
             get() = EmojiMap.EMOJI_URL_MAP
 
-        fun enqueueLoad(context: Context, forceRefresh: Boolean = false, initial: Boolean = true) =
-            WorkScheduler.enqueueLoad(context, forceRefresh, initial)
+        fun enqueueLoad(
+            context: Context,
+            forceRefresh: Boolean = false,
+            initial: Boolean = true,
+        ) = WorkScheduler.enqueueLoad(context, forceRefresh, initial)
 
         fun enqueueRefilter(context: Context) = WorkScheduler.enqueueRefilter(context)
 
         fun resetDailyRefreshState(context: Context) = WorkScheduler.resetDailyRefreshState(context)
 
-        fun getRefreshTimeFromPrefrence(context: Context): Pair<Int, Int> =
-            WorkScheduler.getRefreshTimeFromPrefrence(context)
+        fun getRefreshTimeFromPrefrence(context: Context): Pair<Int, Int> = WorkScheduler.getRefreshTimeFromPrefrence(context)
 
         fun loadImageDates(context: Context): Map<String, String> {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -379,33 +398,43 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
             }
         }
 
-        fun fetchAndCacheReactions(context: Context) =
-            ReactionService.fetchAndCacheReactions(context)
+        fun fetchAndCacheReactions(context: Context) = ReactionService.fetchAndCacheReactions(context)
 
         fun loadReactions(context: Context) = ReactionService.loadReactions(context)
 
         fun loadUserReactions(context: Context) = ReactionService.loadUserReactions(context)
 
-        fun getCardIndex(context: Context, token: String) =
-            ReactionService.getCardIndex(context, token)
+        fun getCardIndex(
+            context: Context,
+            token: String,
+        ) = ReactionService.getCardIndex(context, token)
 
-        fun patchReaction(context: Context, cardIndex: Int, emojiValue: Int) =
-            ReactionService.patchReaction(context, cardIndex, emojiValue)
+        fun patchReaction(
+            context: Context,
+            cardIndex: Int,
+            emojiValue: Int,
+        ) = ReactionService.patchReaction(context, cardIndex, emojiValue)
 
         fun loadSession(context: Context): Session? = SessionManager.loadSession(context)
 
-        fun saveSession(context: Context, session: Session) =
-            SessionManager.saveSession(context, session)
+        fun saveSession(
+            context: Context,
+            session: Session,
+        ) = SessionManager.saveSession(context, session)
 
         fun clearSession(context: Context) = SessionManager.clearSession(context)
 
-        fun saveUsername(context: Context, username: String) =
-            SessionManager.saveUsername(context, username)
+        fun saveUsername(
+            context: Context,
+            username: String,
+        ) = SessionManager.saveUsername(context, username)
 
         fun loadUsername(context: Context): String? = SessionManager.loadUsername(context)
 
-        fun saveDomain(context: Context, domain: String) =
-            SessionManager.saveDomain(context, domain)
+        fun saveDomain(
+            context: Context,
+            domain: String,
+        ) = SessionManager.saveDomain(context, domain)
 
         fun loadDomain(context: Context): String = SessionManager.loadDomain(context)
 

@@ -69,7 +69,7 @@ fun SettingsScreen(
                     title = { Text("Loli Daily Settings") },
                     colors =
                         TopAppBarDefaults.centerAlignedTopAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface
+                            containerColor = MaterialTheme.colorScheme.surface,
                         ),
                 )
             }

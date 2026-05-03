@@ -33,7 +33,10 @@ object SessionManager {
         }
     }
 
-    fun saveSession(context: Context, session: Session) {
+    fun saveSession(
+        context: Context,
+        session: Session,
+    ) {
         val prefs =
             context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
         val raw = json.encodeToString(Session.serializer(), session)
@@ -50,7 +53,10 @@ object SessionManager {
             .apply()
     }
 
-    fun saveUsername(context: Context, username: String) {
+    fun saveUsername(
+        context: Context,
+        username: String,
+    ) {
         context
             .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
@@ -64,7 +70,10 @@ object SessionManager {
             .getString(KEY_BGM_USERNAME, null)
     }
 
-    fun saveDomain(context: Context, domain: String) {
+    fun saveDomain(
+        context: Context,
+        domain: String,
+    ) {
         context
             .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
             .edit()

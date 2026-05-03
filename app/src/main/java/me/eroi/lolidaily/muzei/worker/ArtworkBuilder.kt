@@ -3,13 +3,12 @@ package me.eroi.lolidaily.muzei.worker
 import android.content.Context
 import android.net.Uri
 import com.google.android.apps.muzei.api.provider.Artwork
-import java.io.File
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.util.Md5
+import java.io.File
 
 object ArtworkBuilder {
-
     fun buildArtwork(
         context: Context,
         card: Card,
@@ -39,11 +38,19 @@ object ArtworkBuilder {
             .build()
     }
 
-    fun buildArtworkFromCache(context: Context, card: Card, dir: File, apiDate: String): Artwork? {
+    fun buildArtworkFromCache(
+        context: Context,
+        card: Card,
+        dir: File,
+        apiDate: String,
+    ): Artwork? {
         return buildArtwork(context, card, dir, apiDate, download = false)
     }
 
-    fun buildTitle(card: Card, apiDate: String): String {
+    fun buildTitle(
+        card: Card,
+        apiDate: String,
+    ): String {
         return card.comment.ifBlank {
             if (card.tags.isNotBlank()) "$apiDate [${card.tags}]" else apiDate
         }
@@ -53,7 +60,10 @@ object ArtworkBuilder {
         return card.artistName.ifBlank { "Unknown Artist" }
     }
 
-    fun buildAttribution(card: Card, apiDate: String): String {
+    fun buildAttribution(
+        card: Card,
+        apiDate: String,
+    ): String {
         val parts = mutableListOf<String>()
         if (card.tags.isNotBlank()) parts.add("[${card.tags}]")
         if (card.characterNames.isNotEmpty()) parts.add(card.characterNames.joinToString(", "))

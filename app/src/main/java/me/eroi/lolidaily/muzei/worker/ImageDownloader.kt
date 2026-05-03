@@ -4,13 +4,13 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.core.content.FileProvider
-import java.io.File
-import java.net.URI
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import okhttp3.Request
 import okio.buffer
 import okio.sink
+import java.io.File
+import java.net.URI
 
 object ImageDownloader {
     private const val TAG = "ImageDownloader"
@@ -77,7 +77,11 @@ object ImageDownloader {
         return null
     }
 
-    private fun downloadImageOnce(url: String, token: String, dir: File): File? {
+    private fun downloadImageOnce(
+        url: String,
+        token: String,
+        dir: File,
+    ): File? {
         val request = Request.Builder().url(url).header("User-Agent", USER_AGENT).get().build()
 
         val response = LoliApiClient.httpClient.newCall(request).execute()
@@ -136,7 +140,10 @@ object ImageDownloader {
         }
     }
 
-    private fun detectExtension(subtype: String?, url: String): String {
+    private fun detectExtension(
+        subtype: String?,
+        url: String,
+    ): String {
         val fromMime =
             when (subtype?.lowercase()) {
                 "png" -> "png"
@@ -161,7 +168,11 @@ object ImageDownloader {
         return "jpg"
     }
 
-    fun getCachedUri(context: Context, token: String, dir: File): Uri? {
+    fun getCachedUri(
+        context: Context,
+        token: String,
+        dir: File,
+    ): Uri? {
         val file = findExistingFile(token, dir)
         if (file != null) {
             Log.d(TAG, "Reusing cached image for $token")
@@ -171,13 +182,19 @@ object ImageDownloader {
         return null
     }
 
-    fun findExistingFile(token: String, dir: File): File? {
+    fun findExistingFile(
+        token: String,
+        dir: File,
+    ): File? {
         val prefix = "$token."
         val files = dir.listFiles { f -> f.name.startsWith(prefix) && f.length() > 0 }
         return files?.firstOrNull()
     }
 
-    fun fileToUri(context: Context, file: File): Uri {
+    fun fileToUri(
+        context: Context,
+        file: File,
+    ): Uri {
         return FileProvider.getUriForFile(context, FILE_PROVIDER_AUTHORITY, file)
     }
 

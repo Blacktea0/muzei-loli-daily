@@ -2,7 +2,6 @@ package me.eroi.lolidaily.muzei.api
 
 import android.content.Context
 import android.util.Log
-import java.io.File
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import me.eroi.lolidaily.muzei.BuildConfig
@@ -14,6 +13,7 @@ import me.eroi.lolidaily.muzei.util.Md5
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
 
 object ReactionService {
     private const val TAG = "ReactionService"
@@ -124,7 +124,10 @@ object ReactionService {
     }
 
     /** Find the index of a card (by image token) in the cached daily response. */
-    fun getCardIndex(context: Context, token: String): Int? {
+    fun getCardIndex(
+        context: Context,
+        token: String,
+    ): Int? {
         val cacheFile = File(context.filesDir, "api_cache.json")
         if (!cacheFile.exists()) return null
         return try {
@@ -136,7 +139,11 @@ object ReactionService {
     }
 
     /** Submits a reaction to the LC API with the current session. */
-    fun patchReaction(context: Context, cardIndex: Int, emojiValue: Int): Boolean {
+    fun patchReaction(
+        context: Context,
+        cardIndex: Int,
+        emojiValue: Int,
+    ): Boolean {
         val session = SessionManager.loadSession(context) ?: return false
         val body = "{\"react\":$emojiValue}".toRequestBody("application/json".toMediaType())
 
@@ -167,7 +174,9 @@ object ReactionService {
                         } catch (_: Exception) {
                             mutableMapOf()
                         }
-                    } else mutableMapOf()
+                    } else {
+                        mutableMapOf()
+                    }
                 val cacheFile = File(context.filesDir, "api_cache.json")
                 val daily = json.decodeFromString<DailyResponse>(cacheFile.readText())
                 val token = Md5.hash(daily.cards[cardIndex].imgUrl)

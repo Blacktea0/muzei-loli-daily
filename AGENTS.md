@@ -49,17 +49,19 @@ git-ignored.
 
 ## Code formatting
 
-We use [ktfmt](https://github.com/facebookincubator/ktfmt) via the
-[ktfmt-gradle](https://github.com/cortinico/ktfmt-gradle) plugin configured
-with `kotlinLangStyle()` (4-space indent, matching
+We use [ktlint](https://github.com/pinterest/ktlint) via the
+[ktlint-gradle](https://github.com/jlleitschuh/ktlint-gradle) plugin configured
+with `ktlint_official` code style (4-space indent, matching
 [kotlinlang.org coding conventions](https://kotlinlang.org/docs/coding-conventions.html)).
+Rules are defined in `.editorconfig`.
 
-A **git pre-commit hook** runs `ktfmtFormat` automatically before every commit.
+A **git pre-commit hook** runs `ktlintFormat` automatically before every commit.
 If the hook ever fails or you want to run manually:
 
 ```bash
-./gradlew ktfmtFormat   # format all Kotlin sources
-./gradlew ktfmtCheck    # check formatting (dry-run, for CI)
+./gradlew ktlintFormat   # format all Kotlin sources
+./gradlew ktlintCheck    # check formatting (dry-run, for CI)
+./gradlew lint           # static analysis (includes ktlintCheck)
 ```
 
 ## Mock server

@@ -32,7 +32,7 @@ fun ArtworkDetailBottomSheet(
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp)
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp),
         ) {
             Text(
                 text = "Artwork Details",
@@ -132,9 +132,9 @@ fun ArtworkDetailBottomSheet(
                     FilledTonalButton(
                         onClick = {
                             context.startActivity(
-                                Intent(Intent.ACTION_VIEW, Uri.parse(preview.sourceUrl))
+                                Intent(Intent.ACTION_VIEW, Uri.parse(preview.sourceUrl)),
                             )
-                        }
+                        },
                     ) {
                         Icon(
                             Icons.Default.Image,
@@ -149,9 +149,9 @@ fun ArtworkDetailBottomSheet(
                     FilledTonalButton(
                         onClick = {
                             context.startActivity(
-                                Intent(Intent.ACTION_VIEW, Uri.parse(preview.artistUrl))
+                                Intent(Intent.ACTION_VIEW, Uri.parse(preview.artistUrl)),
                             )
-                        }
+                        },
                     ) {
                         Icon(
                             Icons.Default.Person,

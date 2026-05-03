@@ -10,8 +10,10 @@ import android.util.Log
  * the Worker with bypass.
  */
 class RefreshReceiver : BroadcastReceiver() {
-
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         Log.d(TAG, "Force refresh triggered via broadcast")
         LoliDailyArtWorker.enqueueLoad(context, forceRefresh = true)
     }

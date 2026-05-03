@@ -16,7 +16,11 @@ import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 private const val KEY_BANNER_DISMISSED = "banner_dismissed_status"
 
 @Composable
-fun SetupBanner(isMuzeiInstalled: Boolean, isSourceActivated: Boolean, onOpenMuzei: () -> Unit) {
+fun SetupBanner(
+    isMuzeiInstalled: Boolean,
+    isSourceActivated: Boolean,
+    onOpenMuzei: () -> Unit,
+) {
     val context = LocalContext.current
     val currentStatus = "installed=$isMuzeiInstalled,activated=$isSourceActivated"
     val prefs =
@@ -78,7 +82,8 @@ fun SetupBanner(isMuzeiInstalled: Boolean, isSourceActivated: Boolean, onOpenMuz
 
             Text(
                 text =
-                    "You can browse artwork and manage tags without Muzei. To set images as your wallpaper, install Muzei and enable this source.",
+                    "You can browse artwork and manage tags without Muzei. " +
+                        "To set images as your wallpaper, install Muzei and enable this source.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

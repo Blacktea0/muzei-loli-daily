@@ -10,7 +10,6 @@ import androidx.room.Room
  * BroadcastReceiver) without leaking short-lived contexts.
  */
 object DatabaseProvider {
-
     @Volatile private var instance: AppDatabase? = null
 
     fun getInstance(context: Context): AppDatabase {
@@ -18,10 +17,10 @@ object DatabaseProvider {
             ?: synchronized(this) {
                 instance
                     ?: Room.databaseBuilder(
-                            context.applicationContext,
-                            AppDatabase::class.java,
-                            "lolidaily_artwork_cache.db",
-                        )
+                        context.applicationContext,
+                        AppDatabase::class.java,
+                        "lolidaily_artwork_cache.db",
+                    )
                         .fallbackToDestructiveMigration()
                         .build()
                         .also { instance = it }
