@@ -16,7 +16,6 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.FileProvider
 import com.google.android.apps.muzei.api.MuzeiContract
 import java.io.File
-import java.security.MessageDigest
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import me.eroi.lolidaily.muzei.db.DatabaseProvider
@@ -27,6 +26,7 @@ import me.eroi.lolidaily.muzei.model.DailyResponse
 import me.eroi.lolidaily.muzei.ui.screen.SettingsScreen
 import me.eroi.lolidaily.muzei.ui.theme.LoliDailyTheme
 import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
+import me.eroi.lolidaily.muzei.util.Md5
 
 /**
  * Settings activity launched from Muzei's source configuration screen and the app drawer.
@@ -246,7 +246,7 @@ class SettingsActivity : AppCompatActivity() {
 
         // Load cached API response for current-day metadata
         val (cards, apiDate) = loadCachedDaily()
-        val cardByToken = cards.associateBy { md5(it.imgUrl) }
+        val cardByToken = cards.associateBy { Md5.hash(it.imgUrl) }
         val dateMap = LoliDailyArtWorker.loadImageDates(this)
         val reactionsMap = LoliDailyArtWorker.loadReactions(this)
         val userReactionsMap = LoliDailyArtWorker.loadUserReactions(this)
@@ -320,10 +320,5 @@ class SettingsActivity : AppCompatActivity() {
         } catch (_: Exception) {
             Pair(emptyList(), "")
         }
-    }
-
-    private fun md5(input: String): String {
-        val digest = MessageDigest.getInstance("MD5")
-        return digest.digest(input.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 }

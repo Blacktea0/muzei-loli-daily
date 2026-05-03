@@ -3,34 +3,26 @@ package me.eroi.lolidaily.muzei
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.net.Uri
-import android.util.Base64
 import android.util.Log
-import androidx.core.content.FileProvider
 import androidx.work.*
-import com.google.android.apps.muzei.api.provider.Artwork
 import com.google.android.apps.muzei.api.provider.ProviderContract
 import java.io.File
-import java.security.MessageDigest
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.builtins.MapSerializer
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
-import me.eroi.lolidaily.muzei.LoliDailyArtWorker.Companion.DEFAULT_BGM_DOMAIN
-import me.eroi.lolidaily.muzei.LoliDailyArtWorker.Companion.KEY_ENABLED_TAGS
+import me.eroi.lolidaily.muzei.api.LoliApiClient
+import me.eroi.lolidaily.muzei.api.ReactionService
+import me.eroi.lolidaily.muzei.api.Session
+import me.eroi.lolidaily.muzei.api.SessionManager
 import me.eroi.lolidaily.muzei.db.DatabaseProvider
 import me.eroi.lolidaily.muzei.db.EntityMapper
 import me.eroi.lolidaily.muzei.model.Card
-import me.eroi.lolidaily.muzei.model.DailyReactResponse
 import me.eroi.lolidaily.muzei.model.DailyResponse
-import me.eroi.lolidaily.muzei.model.ReactionCount
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import okio.buffer
-import okio.sink
+import me.eroi.lolidaily.muzei.util.Md5
+import me.eroi.lolidaily.muzei.worker.ArtworkBuilder
+import me.eroi.lolidaily.muzei.worker.EmojiMap
+import me.eroi.lolidaily.muzei.worker.ImageDownloader
+import me.eroi.lolidaily.muzei.worker.WorkScheduler
 
 /**
  * WorkManager Worker that fetches artwork from the Loli Daily API and keeps the Muzei queue in sync
@@ -49,16 +41,6 @@ import okio.sink
  */
 class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
 
-    /**
-     * Mirrors the JS session data structure: { token: "JWT", expiresAt: 1234567890000 }. Top-level
-     * nested so it's accessible as LoliDailyArtWorker.Session.
-     */
-    @kotlinx.serialization.Serializable
-    data class Session(val token: String, val expiresAt: Long) {
-        val isValid: Boolean
-            get() = token.isNotBlank() && expiresAt > System.currentTimeMillis()
-    }
-
     private val prefs: SharedPreferences by lazy {
         applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
@@ -76,11 +58,9 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
             // ── Step 1: Obtain card data ──────────────────────────
             if (!refilterOnly && shouldFetchApi(forceRefresh)) {
-                // Read cached date BEFORE overwriting with new response
                 val cachedDate = loadCachedResponse()?.date
 
-                // Call the API (normal cycle / force-refresh)
-                val fetched = fetchDailyResponse()
+                val fetched = LoliApiClient.fetchDailyResponse(applicationContext)
                 if (fetched != null) {
                     didFetchApi = true
                     val (fetchedCards, fetchedDate) = fetched
@@ -97,19 +77,31 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                         recordImageDates(cards, fetchedDate)
                         prefs.edit().putString(KEY_LAST_API_DATE, fetchedDate).apply()
 
-                        // Deduplicate by date + tag: for this date, keep only tokens in the current
-                        // batch
                         val newTokens =
                             cards
-                                .mapNotNull { if (it.imgUrl.isNotBlank()) md5(it.imgUrl) else null }
+                                .mapNotNull {
+                                    if (it.imgUrl.isNotBlank()) Md5.hash(it.imgUrl) else null
+                                }
                                 .toSet()
-                        val staleTokens = findStaleTokensForDate(fetchedDate, newTokens)
+                        val allDates = loadImageDatesInternal()
+                        val staleTokens =
+                            ImageDownloader.findStaleTokensForDate(
+                                prefs,
+                                fetchedDate,
+                                newTokens,
+                                allDates,
+                            )
                         if (staleTokens.isNotEmpty()) {
                             Log.d(
                                 TAG,
                                 "Date $fetchedDate — cleaning ${staleTokens.size} stale artworks",
                             )
-                            cleanupStaleArtworks(staleTokens.toList())
+                            ImageDownloader.cleanupStaleArtworks(
+                                applicationContext,
+                                staleTokens.toList(),
+                                prefs,
+                                allDates,
+                            )
                         }
 
                         Log.d(
@@ -127,7 +119,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                     cards = cached.cards
                     apiDate = cached.date
                 } else if (!refilterOnly) {
-                    val fetched = fetchDailyResponse()
+                    val fetched = LoliApiClient.fetchDailyResponse(applicationContext)
                     if (fetched != null) {
                         val (fbCards, fbDate) = fetched
                         cards = fbCards
@@ -142,12 +134,24 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                             val newTokens =
                                 cards
                                     .mapNotNull {
-                                        if (it.imgUrl.isNotBlank()) md5(it.imgUrl) else null
+                                        if (it.imgUrl.isNotBlank()) Md5.hash(it.imgUrl) else null
                                     }
                                     .toSet()
-                            val staleTokens = findStaleTokensForDate(fbDate, newTokens)
+                            val allDates = loadImageDatesInternal()
+                            val staleTokens =
+                                ImageDownloader.findStaleTokensForDate(
+                                    prefs,
+                                    fbDate,
+                                    newTokens,
+                                    allDates,
+                                )
                             if (staleTokens.isNotEmpty()) {
-                                cleanupStaleArtworks(staleTokens.toList())
+                                ImageDownloader.cleanupStaleArtworks(
+                                    applicationContext,
+                                    staleTokens.toList(),
+                                    prefs,
+                                    allDates,
+                                )
                             }
                         }
                     } else {
@@ -178,20 +182,11 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
     // ── API fetch gating ──────────────────────────────────────────
 
-    /**
-     * Returns true if the API should be called now. Always true for force-refresh or if cached data
-     * is from a different date. Otherwise, if we already fetched today (GMT+8 07:21), skip API
-     * call. Debug option: skip cache forces API call regardless of date.
-     */
     private fun shouldFetchApi(forceRefresh: Boolean): Boolean {
         if (forceRefresh) return true
-
-        // Debug: skip cache if enabled
         val skipCache = prefs.getBoolean("debug_skip_cache", false)
         if (skipCache) return true
-
         val cached = loadCachedResponse()
-        // No cache or cached date differs from today (GMT+8 07:21) — fetch immediately
         return cached == null
     }
 
@@ -211,7 +206,9 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
     private fun saveCachedResponse(cards: List<Card>, date: String) {
         try {
             val response = DailyResponse(cards = cards, date = date)
-            cacheFile.writeText(json.encodeToString(DailyResponse.serializer(), response))
+            cacheFile.writeText(
+                LoliApiClient.json.encodeToString(DailyResponse.serializer(), response)
+            )
         } catch (e: Exception) {
             Log.e(TAG, "Failed to cache API response", e)
         }
@@ -220,7 +217,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
     private fun loadCachedResponse(): DailyResponse? {
         return try {
             if (!cacheFile.exists()) return null
-            json.decodeFromString<DailyResponse>(cacheFile.readText())
+            LoliApiClient.json.decodeFromString<DailyResponse>(cacheFile.readText())
         } catch (e: Exception) {
             Log.w(TAG, "Failed to load cached response", e)
             null
@@ -229,19 +226,18 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
     // ── Per-image download date tracking ───────────────────────────
 
-    /** Records per-token download date using the API response date field. */
     private fun recordImageDates(cards: List<Card>, date: String) {
         val current = loadImageDatesInternal().toMutableMap()
         for (card in cards) {
             if (card.imgUrl.isNotBlank()) {
-                current[md5(card.imgUrl)] = date
+                current[Md5.hash(card.imgUrl)] = date
             }
         }
         prefs
             .edit()
             .putString(
                 KEY_IMAGE_DATES,
-                json.encodeToString(
+                LoliApiClient.json.encodeToString(
                     MapSerializer(serializer<String>(), serializer<String>()),
                     current,
                 ),
@@ -252,7 +248,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
     private fun loadImageDatesInternal(): Map<String, String> {
         val raw = prefs.getString(KEY_IMAGE_DATES, null) ?: return emptyMap()
         return try {
-            json.decodeFromString<Map<String, String>>(raw)
+            LoliApiClient.json.decodeFromString<Map<String, String>>(raw)
         } catch (_: Exception) {
             emptyMap()
         }
@@ -260,12 +256,11 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
     // ── Room metadata persistence ──────────────────────────────────────
 
-    /** Batch-upserts all cards into Room so metadata survives API rotation. */
     private fun saveCardsMetadata(cards: List<Card>, date: String) {
         try {
             val entities = cards.mapNotNull { card ->
                 if (card.imgUrl.isBlank()) return@mapNotNull null
-                EntityMapper.cardToEntity(card, md5(card.imgUrl), date)
+                EntityMapper.cardToEntity(card, Md5.hash(card.imgUrl), date)
             }
             if (entities.isEmpty()) return
             runBlocking {
@@ -281,78 +276,18 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
     // ── Bulk image download ───────────────────────────────────────
 
-    /** Downloads every card's image regardless of tag filter. */
     private fun downloadNewImages(cards: List<Card>, forceDownload: Boolean) {
-        val dir = ensureArtworksDir()
+        val dir = ImageDownloader.ensureArtworksDir(applicationContext)
         for (card in cards) {
             if (card.imgUrl.isBlank()) continue
-            val token = md5(card.imgUrl)
-            downloadImage(card.imgUrl, token, dir, forceDownload)
-        }
-    }
-
-    // ── Stale artwork cleanup ─────────────────────────────────────
-
-    /**
-     * Scans all stored image_dates entries for the given date and returns tokens that are NOT in
-     * [keepTokens]. This ensures at most one image per (date, tag) pair — the one from the latest
-     * API response.
-     */
-    private fun findStaleTokensForDate(date: String, keepTokens: Set<String>): Set<String> {
-        return loadImageDatesInternal()
-            .filterKeys { it !in keepTokens }
-            .filterValues { it == date }
-            .keys
-    }
-
-    /**
-     * Removes artwork files, date records, and Room rows for tokens no longer in the current batch.
-     */
-    private fun cleanupStaleArtworks(staleTokens: List<String>) {
-        val dir = ensureArtworksDir()
-
-        // 1. Delete stale image files
-        for (token in staleTokens) {
-            val prefix = "$token."
-            dir.listFiles { f -> f.name.startsWith(prefix) }
-                ?.forEach { file ->
-                    if (file.delete()) {
-                        Log.d(TAG, "Cleaned stale artwork file: ${file.name}")
-                    }
-                }
-        }
-
-        // 2. Remove stale entries from image_dates SharedPreferences
-        val dates = loadImageDatesInternal().toMutableMap()
-        var datesChanged = false
-        for (token in staleTokens) {
-            if (dates.remove(token) != null) {
-                datesChanged = true
-            }
-        }
-        if (datesChanged) {
-            prefs
-                .edit()
-                .putString(
-                    KEY_IMAGE_DATES,
-                    json.encodeToString(
-                        MapSerializer(serializer<String>(), serializer<String>()),
-                        dates,
-                    ),
-                )
-                .apply()
-        }
-
-        // 3. Remove stale rows from Room
-        try {
-            runBlocking {
-                DatabaseProvider.getInstance(applicationContext)
-                    .cachedArtworkDao()
-                    .deleteByTokens(staleTokens)
-            }
-            Log.d(TAG, "Cleaned ${staleTokens.size} stale Room rows")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to clean stale Room rows", e)
+            val token = Md5.hash(card.imgUrl)
+            ImageDownloader.downloadImage(
+                applicationContext,
+                card.imgUrl,
+                token,
+                dir,
+                forceDownload,
+            )
         }
     }
 
@@ -363,24 +298,22 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
         val filteredCards =
             if (enabledTags.isNullOrEmpty()) {
-                cards // No filter — show all
+                cards
             } else {
                 cards.filter { card -> enabledTags.contains(card.tags) }
             }
 
         Log.d(TAG, "Filtered ${cards.size} → ${filteredCards.size} (tags=$enabledTags)")
 
-        val artworksDir = ensureArtworksDir()
+        val artworksDir = ImageDownloader.ensureArtworksDir(applicationContext)
         val artworks = filteredCards.mapNotNull { card ->
-            buildArtwork(card, artworksDir, apiDate, download = false)
+            ArtworkBuilder.buildArtworkFromCache(applicationContext, card, artworksDir, apiDate)
         }
 
-        // Replace Muzei queue (even if empty — clears when filter matches nothing)
         val client =
             ProviderContract.getProviderClient(applicationContext, LoliDailyArtProvider::class.java)
         client.setArtwork(artworks)
 
-        // Force Muzei to rotate if new daily batch arrived
         if (isNewDay) {
             applicationContext.sendBroadcast(
                 Intent("com.google.android.apps.muzei.action.NEXT_ARTWORK").apply {
@@ -393,284 +326,12 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         Log.d(TAG, "Set ${artworks.size} artworks (newDay=$isNewDay, tags=$enabledTags)")
     }
 
-    // ── Artwork construction ──────────────────────────────────────────
-
-    private fun buildArtwork(card: Card, dir: File, apiDate: String, download: Boolean): Artwork? {
-        if (card.imgUrl.isBlank()) return null
-
-        val token = md5(card.imgUrl)
-        val localUri =
-            if (download) {
-                downloadImage(card.imgUrl, token, dir) ?: getCachedUri(token, dir)
-            } else {
-                getCachedUri(token, dir)
-            } ?: return null
-
-        return Artwork.Builder()
-            .token(token)
-            .title(buildTitle(card, apiDate))
-            .byline(buildByline(card))
-            .attribution(buildAttribution(card, apiDate))
-            .persistentUri(localUri)
-            .webUri(card.sourceUrl.takeIf { it.isNotBlank() }?.let(Uri::parse))
-            .metadata(buildMetadata(card))
-            .build()
-    }
-
-    // ── Filesystem ────────────────────────────────────────────────────
-
-    private fun ensureArtworksDir(): File {
-        val dir = File(applicationContext.filesDir, "artworks")
-        if (!dir.exists()) dir.mkdirs()
-        return dir
-    }
-
-    private fun downloadImage(
-        url: String,
-        token: String,
-        dir: File,
-        forceDownload: Boolean = false,
-    ): Uri? {
-        // On force-refresh, always re-download from network
-        if (forceDownload) {
-            val existing = findExistingFile(token, dir)
-            if (existing != null) {
-                Log.d(TAG, "Force-refresh — deleting cached $token")
-                existing.delete()
-            }
-        } else {
-            val existingFile = findExistingFile(token, dir)
-            if (existingFile != null) {
-                if (isFileValid(existingFile)) {
-                    Log.d(TAG, "Using cached image for $token")
-                    return fileToUri(existingFile)
-                } else {
-                    Log.w(TAG, "Cached image corrupted for $token — re-downloading")
-                    existingFile.delete()
-                }
-            }
-        }
-
-        // Retry up to 3 attempts with exponential backoff
-        var lastError: Exception? = null
-        for (attempt in 1..MAX_DOWNLOAD_RETRIES) {
-            try {
-                val file = downloadImageOnce(url, token, dir)
-                if (file != null) {
-                    if (attempt > 1) Log.d(TAG, "Download succeeded on attempt $attempt for $token")
-                    return fileToUri(file)
-                }
-            } catch (e: Exception) {
-                lastError = e
-                Log.w(
-                    TAG,
-                    "Download attempt $attempt/$MAX_DOWNLOAD_RETRIES failed for $token: ${e.message}",
-                )
-            }
-
-            if (attempt < MAX_DOWNLOAD_RETRIES) {
-                val delayMs = 1000L * attempt * attempt // 1s, 4s, 9s
-                Log.d(TAG, "Retrying download in ${delayMs}ms (attempt ${attempt + 1})")
-                Thread.sleep(delayMs)
-            }
-        }
-
-        Log.e(TAG, "All $MAX_DOWNLOAD_RETRIES download attempts failed for $token", lastError)
-        return null
-    }
-
-    /** Single download attempt with integrity validation. */
-    private fun downloadImageOnce(url: String, token: String, dir: File): File? {
-        val request = Request.Builder().url(url).header("User-Agent", USER_AGENT).get().build()
-
-        val response = httpClient.newCall(request).execute()
-        response.use { resp ->
-            if (!resp.isSuccessful) {
-                Log.w(TAG, "HTTP ${resp.code} for $url")
-                return null
-            }
-
-            val body = resp.body ?: return null
-            val ext = detectExtension(body.contentType()?.subtype, url)
-            val file = File(dir, "$token.$ext")
-
-            body.source().use { source ->
-                file.sink().buffer().use { sink -> sink.writeAll(source) }
-            }
-
-            if (file.length() == 0L) {
-                Log.w(TAG, "Empty download for $token")
-                file.delete()
-                return null
-            }
-
-            if (!isFileValid(file)) {
-                Log.w(
-                    TAG,
-                    "File integrity check failed for $token (${file.length()} bytes, ext=$ext)",
-                )
-                file.delete()
-                return null
-            }
-
-            Log.d(TAG, "Downloaded ${file.length()} bytes → ${file.name}")
-            return file
-        }
-    }
-
-    /** Verify file starts with expected magic bytes for its extension. */
-    private fun isFileValid(file: File): Boolean {
-        if (!file.exists() || file.length() < 8) return false
-        return try {
-            val header = ByteArray(4)
-            file.inputStream().use { it.read(header) }
-            val ext = file.extension.lowercase()
-            when {
-                ext in listOf("jpg", "jpeg") ->
-                    header[0] == 0xFF.toByte() && header[1] == 0xD8.toByte()
-
-                ext == "png" -> header[0] == 0x89.toByte() && header[1] == 0x50.toByte()
-                ext == "webp" -> header[0] == 0x52.toByte() && header[1] == 0x49.toByte()
-                ext == "gif" -> header[0] == 0x47.toByte() && header[1] == 0x49.toByte()
-                ext == "bmp" -> header[0] == 0x42.toByte() && header[1] == 0x4D.toByte()
-                else -> true // Unknown format — accept as-is
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Cannot verify file: ${file.name}", e)
-            true // Don't reject if we can't read it
-        }
-    }
-
-    /** Determine file extension from content-type or URL path. */
-    private fun detectExtension(subtype: String?, url: String): String {
-        // 1. Content-Type
-        val fromMime =
-            when (subtype?.lowercase()) {
-                "png" -> "png"
-                "webp" -> "webp"
-                "jpeg" -> "jpg"
-                else -> null
-            }
-        if (fromMime != null) return fromMime
-
-        // 2. URL path extension
-        val path =
-            try {
-                java.net.URI(url).path
-            } catch (_: Exception) {
-                null
-            }
-        val fromUrl =
-            path?.substringAfterLast('.')?.lowercase()?.takeIf {
-                it in listOf("jpg", "jpeg", "png", "webp", "gif", "bmp")
-            }
-        if (fromUrl != null) return fromUrl
-
-        // 3. Default
-        return "jpg"
-    }
-
-    /** Returns a FileProvider URI for an already-cached file, or null. */
-    private fun getCachedUri(token: String, dir: File): Uri? {
-        val file = findExistingFile(token, dir)
-        if (file != null) {
-            Log.d(TAG, "Reusing cached image for $token")
-            return fileToUri(file)
-        }
-        Log.w(TAG, "No cached file for $token")
-        return null
-    }
-
-    private fun findExistingFile(token: String, dir: File): File? {
-        val prefix = "$token."
-        val files = dir.listFiles { f -> f.name.startsWith(prefix) && f.length() > 0 }
-        return files?.firstOrNull()
-    }
-
-    private fun fileToUri(file: File): Uri {
-        return FileProvider.getUriForFile(applicationContext, FILE_PROVIDER_AUTHORITY, file)
-    }
-
-    // ── API ───────────────────────────────────────────────────────────
-
-    /** Returns parsed cards + the response `date` field, or null on failure. */
-    private fun fetchDailyResponse(): Pair<List<Card>, String>? {
-        // Check if mock API should be used
-        val useMock = prefs.getBoolean("debug_use_mock_api", false)
-        val url =
-            if (useMock) {
-                prefs.getString("debug_mock_api_url", null) ?: API_URL
-            } else {
-                API_URL
-            }
-
-        val request = Request.Builder().url(url).header("User-Agent", USER_AGENT).get().build()
-
-        val response = httpClient.newCall(request).execute()
-        val body = response.body?.string() ?: return null
-
-        if (!response.isSuccessful) {
-            Log.w(TAG, "API returned ${response.code}: $body")
-            return null
-        }
-
-        val daily = json.decodeFromString<DailyResponse>(body)
-        return daily.cards to daily.date
-    }
-
-    // ── Metadata builders ─────────────────────────────────────────────
-
-    private fun buildTitle(card: Card, apiDate: String): String {
-        return card.comment.ifBlank {
-            if (card.tags.isNotBlank()) "$apiDate [${card.tags}]" else apiDate
-        }
-    }
-
-    private fun buildByline(card: Card): String {
-        return card.artistName.ifBlank { "Unknown Artist" }
-    }
-
-    private fun buildAttribution(card: Card, apiDate: String): String {
-        val parts = mutableListOf<String>()
-        if (card.tags.isNotBlank()) parts.add("[${card.tags}]")
-        if (card.characterNames.isNotEmpty()) parts.add(card.characterNames.joinToString(", "))
-        card.suggestedBy?.let { parts.add("by ${it.nickname}") }
-        parts.add(apiDate)
-        if (card.sourceUrl.isNotBlank()) parts.add(card.sourceUrl)
-        return parts.joinToString("  ·  ")
-    }
-
-    private fun buildMetadata(card: Card): String {
-        return json.encodeToString(Card.serializer(), card)
-    }
-
-    /**
-     * Returns the "business date" in GMT+8 timezone. Date switches at 07:21 GMT+8 (not midnight).
-     */
-    private fun currentDateFormatted(): String {
-        val gmt8Zone = java.time.ZoneId.of("GMT+8")
-        val now = java.time.ZonedDateTime.now(gmt8Zone)
-        val switchTime = java.time.LocalTime.of(7, 21)
-
-        // If current time is before 07:21, use yesterday's date
-        val businessDate =
-            if (now.toLocalTime().isBefore(switchTime)) {
-                now.minusDays(1).toLocalDate()
-            } else {
-                now.toLocalDate()
-            }
-
-        return businessDate.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-    }
-
     // ── Companion ─────────────────────────────────────────────────────
 
     companion object {
         private const val TAG = "LoliDailyWorker"
-        private const val WORK_NAME = "lolidaily_art_load"
         private const val CACHE_FILE = "api_cache.json"
 
-        // ── SharedPreferences keys (public for SettingsActivity access) ──
         const val PREFS_NAME = "lolidaily_prefs"
         private const val KEY_LAST_API_DATE = "last_api_date"
         const val KEY_FORCE_REFRESH = "force_refresh"
@@ -679,464 +340,75 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         private const val KEY_LAST_WORK_COMPLETED = "last_work_completed"
         private const val KEY_REFILTER_ONLY = "refilter_only"
         const val KEY_IMAGE_DATES = "image_dates"
-        const val KEY_REACTIONS = "reactions"
-        private const val KEY_LC_SESSION = "lc_session"
-        private const val KEY_USER_REACTIONS = "user_reactions"
-        private const val KEY_BGM_USERNAME = "bgm_username"
-        private const val KEY_BGM_DOMAIN = "bgm_domain"
+        private const val KEY_INITIAL = "initial"
 
         const val KEY_DEBUG_REFRESH_HOUR = "debug_refresh_hour"
         const val KEY_DEBUG_REFRESH_MINUTE = "debug_refresh_minute"
 
-        private const val KEY_NEXT_DAILY_REFRESH_TS = "next_daily_refresh_ts"
-
-        private const val DEFAULT_BGM_DOMAIN = "chii.in"
-        private const val WORK_COOLDOWN_MS = 10_000L
-
-        private const val KEY_INITIAL = "initial"
+        const val DEFAULT_BGM_DOMAIN = "chii.in"
 
         const val PROVIDER_AUTHORITY = "me.eroi.lolidaily.muzei.provider"
-        private const val FILE_PROVIDER_AUTHORITY = "me.eroi.lolidaily.muzei.fileprovider"
 
-        private val API_URL
-            get() = "${BuildConfig.API_BASE_URL}/api/v1/daily?badge=LC%20YJ-ES-NC-PG"
+        // ── Delegation wrappers (implementation moved to api/ + worker/) ──
 
-        private val REACT_API_URL
-            get() = "${BuildConfig.API_BASE_URL}/api/v1/daily/react?badge=LC%20YJ-ES-NC-PG"
+        fun md5(input: String): String = Md5.hash(input)
 
-        private const val USER_AGENT = "LoliDaily/1.0 (Android)"
-        private const val MAX_DOWNLOAD_RETRIES = 3
-
-        private val json = Json { ignoreUnknownKeys = true }
-        private val httpClient =
-            OkHttpClient.Builder()
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .build()
-
-        /** Map of reaction emoji value → drawable resource ID. */
-        fun emojiResId(value: Int): Int? =
-            when (value) {
-                0 -> R.drawable.reaction_44
-                104 -> R.drawable.reaction_65
-                54 -> R.drawable.reaction_15
-                140 -> R.drawable.reaction_101
-                122 -> R.drawable.reaction_83
-                90 -> R.drawable.reaction_51
-                88 -> R.drawable.reaction_49
-                80 -> R.drawable.reaction_41
-                else -> null
-            }
+        fun emojiResId(value: Int): Int? = EmojiMap.emojiResId(value)
 
         @Deprecated("Use emojiResId() with local drawable resources instead")
-        val EMOJI_URL_MAP =
-            mapOf(
-                0 to "https://bgm.tv/img/smiles/tv/44.gif",
-                104 to "https://bgm.tv/img/smiles/tv/65.gif",
-                54 to "https://bgm.tv/img/smiles/tv/15.gif",
-                140 to "https://bgm.tv/img/smiles/tv/101.gif",
-                122 to "https://bgm.tv/img/smiles/tv/83.gif",
-                90 to "https://bgm.tv/img/smiles/tv/51.gif",
-                88 to "https://bgm.tv/img/smiles/tv/49.gif",
-                80 to "https://bgm.tv/img/smiles/tv/41.gif",
-            )
+        val EMOJI_URL_MAP
+            get() = EmojiMap.EMOJI_URL_MAP
 
-        private fun md5(input: String): String {
-            val digest = MessageDigest.getInstance("MD5")
-            return digest.digest(input.toByteArray()).joinToString("") { "%02x".format(it) }
-        }
+        fun enqueueLoad(context: Context, forceRefresh: Boolean = false, initial: Boolean = true) =
+            WorkScheduler.enqueueLoad(context, forceRefresh, initial)
 
-        /**
-         * Enqueue a one-shot work request that may call the API and will always re-filter + push to
-         * Muzei. Requires network. Deduplicates via REPLACE strategy.
-         *
-         * Before enqueuing, checks whether the current time has passed the stored
-         * next-daily-refresh timestamp. If so, forces a fresh API fetch and advances the timestamp
-         * to the next future occurrence.
-         */
-        fun enqueueLoad(context: Context, forceRefresh: Boolean = false, initial: Boolean = true) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        fun enqueueRefilter(context: Context) = WorkScheduler.enqueueRefilter(context)
 
-            // Cooldown: skip if work completed recently and not a force-refresh
-            if (!forceRefresh) {
-                val lastCompleted = prefs.getLong(KEY_LAST_WORK_COMPLETED, 0L)
-                if (
-                    lastCompleted > 0L &&
-                        System.currentTimeMillis() - lastCompleted < WORK_COOLDOWN_MS
-                ) {
-                    Log.d(TAG, "enqueueLoad skipped — within ${WORK_COOLDOWN_MS / 1000}s cooldown")
-                    return
-                }
-            }
+        fun resetDailyRefreshState(context: Context) = WorkScheduler.resetDailyRefreshState(context)
 
-            // Check if daily refresh is due — compare current time against next scheduled timestamp
-            var nextRefreshTs = prefs.getLong(KEY_NEXT_DAILY_REFRESH_TS, 0L)
-            if (nextRefreshTs == 0L) {
-                nextRefreshTs = computeNextRefreshTime(context)
-                prefs.edit().putLong(KEY_NEXT_DAILY_REFRESH_TS, nextRefreshTs).apply()
-            }
+        fun getRefreshTimeFromPrefrence(context: Context): Pair<Int, Int> =
+            WorkScheduler.getRefreshTimeFromPrefrence(context)
 
-            val shouldDailyRefresh = !forceRefresh && System.currentTimeMillis() > nextRefreshTs
-            if (shouldDailyRefresh) {
-                Log.d(TAG, "Daily refresh triggered — past scheduled time")
-                val newNext = computeNextRefreshTime(context)
-                prefs.edit().putLong(KEY_NEXT_DAILY_REFRESH_TS, newNext).apply()
-            }
-
-            val work =
-                OneTimeWorkRequestBuilder<LoliDailyArtWorker>()
-                    .setConstraints(
-                        Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
-                    )
-                    .setInputData(
-                        Data.Builder()
-                            .putBoolean(KEY_FORCE_REFRESH, forceRefresh || shouldDailyRefresh)
-                            .putBoolean(KEY_INITIAL, initial)
-                            .build()
-                    )
-                    .build()
-
-            WorkManager.getInstance(context)
-                .enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.REPLACE, work)
-        }
-
-        /**
-         * Compute the next daily refresh timestamp (epoch millis) based on the configured time
-         * (default 07:30 GMT+8). If the target time has already passed today, returns tomorrow's.
-         */
-        private fun computeNextRefreshTime(context: Context): Long {
-            val (hour, minute) = getRefreshTimeFromPrefrence(context)
-            val gmt8Zone = java.time.ZoneId.of("GMT+8")
-            val now = java.time.ZonedDateTime.now(gmt8Zone)
-            val targetTime = java.time.LocalTime.of(hour, minute)
-
-            var targetDateTime = now.toLocalDate().atTime(targetTime).atZone(gmt8Zone)
-            if (!targetDateTime.isAfter(now)) {
-                targetDateTime = targetDateTime.plusDays(1)
-            }
-
-            return targetDateTime.toInstant().toEpochMilli()
-        }
-
-        /**
-         * Recompute the next daily refresh timestamp and write it to prefs. Called when the user
-         * changes the configured refresh time in debug settings so the next [enqueueLoad] call
-         * evaluates against the new time.
-         */
-        fun resetDailyRefreshState(context: Context) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val nextTs = computeNextRefreshTime(context)
-            prefs.edit().putLong(KEY_NEXT_DAILY_REFRESH_TS, nextTs).apply()
-        }
-
-        fun getRefreshTimeFromPrefrence(context: Context): Pair<Int, Int> {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val hour = prefs.getInt(KEY_DEBUG_REFRESH_HOUR, 7)
-            val minute = prefs.getInt(KEY_DEBUG_REFRESH_MINUTE, 30)
-            return Pair(hour, minute)
-        }
-
-        /**
-         * Enqueue a lightweight re-filter that uses cached card data without touching the network.
-         * Used when the user changes tag preferences in Settings.
-         *
-         * Network is NOT required — runs immediately if available, or when the device next comes
-         * online if offline.
-         */
-        fun enqueueRefilter(context: Context) {
-            val work =
-                OneTimeWorkRequestBuilder<LoliDailyArtWorker>()
-                    .setConstraints(
-                        Constraints.Builder()
-                            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
-                            .build()
-                    )
-                    .setInputData(Data.Builder().putBoolean(KEY_REFILTER_ONLY, true).build())
-                    .build()
-
-            WorkManager.getInstance(context)
-                .enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.REPLACE, work)
-        }
-
-        /**
-         * Loads per-image download dates stored as a JSON map (token → API date string) from
-         * SharedPreferences.
-         */
         fun loadImageDates(context: Context): Map<String, String> {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val raw = prefs.getString(KEY_IMAGE_DATES, null) ?: return emptyMap()
             return try {
-                json.decodeFromString<Map<String, String>>(raw)
+                LoliApiClient.json.decodeFromString<Map<String, String>>(raw)
             } catch (_: Exception) {
                 emptyMap()
             }
         }
 
-        /**
-         * Fetches reactions for the current daily batch from the API, maps them to image tokens,
-         * and caches in SharedPreferences.
-         *
-         * Safe to call on the main thread — blocks briefly for network I/O. Call from a coroutine
-         * or background thread in UI contexts.
-         */
-        fun fetchAndCacheReactions(context: Context) {
-            try {
-                val cacheFile = File(context.filesDir, "api_cache.json")
-                if (!cacheFile.exists()) return
-                val daily = json.decodeFromString<DailyResponse>(cacheFile.readText())
-                if (daily.cards.isEmpty()) return
+        fun fetchAndCacheReactions(context: Context) =
+            ReactionService.fetchAndCacheReactions(context)
 
-                val request =
-                    Request.Builder()
-                        .url(REACT_API_URL)
-                        .header("User-Agent", USER_AGENT)
-                        .get()
-                        .build()
-                val response = httpClient.newCall(request).execute()
-                if (!response.isSuccessful) {
-                    Log.w(TAG, "Reactions API returned ${response.code}")
-                    return
-                }
-                val body = response.body?.string() ?: return
-                val reactData = json.decodeFromString<DailyReactResponse>(body)
+        fun loadReactions(context: Context) = ReactionService.loadReactions(context)
 
-                val tokenReactions = mutableMapOf<String, List<ReactionCount>>()
-                reactData.reactions.forEachIndexed { idx, reactionMap ->
-                    if (idx >= daily.cards.size) return@forEachIndexed
-                    val token = md5(daily.cards[idx].imgUrl)
-                    val counts =
-                        reactionMap
-                            .mapKeys { it.key.toInt() }
-                            .mapValues { it.value.size }
-                            .filter { it.value > 0 }
-                            .map { ReactionCount(it.key, it.value) }
-                            .sortedByDescending { it.count }
-                    if (counts.isNotEmpty()) {
-                        tokenReactions[token] = counts
-                    }
-                }
+        fun loadUserReactions(context: Context) = ReactionService.loadUserReactions(context)
 
-                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                val serialized =
-                    json.encodeToString(
-                        serializer<Map<String, List<ReactionCount>>>(),
-                        tokenReactions,
-                    )
-                prefs.edit().putString(KEY_REACTIONS, serialized).apply()
+        fun getCardIndex(context: Context, token: String) =
+            ReactionService.getCardIndex(context, token)
 
-                // Also record which emoji the current user selected per card
-                val username = loadUsername(context)
-                Log.d(TAG, "loadUsername = $username")
-                if (username != null) {
-                    val userReactions = mutableMapOf<String, Int>()
-                    reactData.reactions.forEachIndexed { idx, reactionMap ->
-                        if (idx >= daily.cards.size) return@forEachIndexed
-                        val token = md5(daily.cards[idx].imgUrl)
-                        for ((emojiKey, users) in reactionMap) {
-                            val matched = users.any { it.firstOrNull() == username }
-                            Log.d(
-                                TAG,
-                                "card=$idx emoji=$emojiKey users=$users matched=$matched username=$username",
-                            )
-                            if (matched) {
-                                userReactions[token] = emojiKey.toInt()
-                                break
-                            }
-                        }
-                    }
-                    Log.d(TAG, "userReactions map = $userReactions")
-                    prefs
-                        .edit()
-                        .putString(
-                            KEY_USER_REACTIONS,
-                            json.encodeToString(serializer<Map<String, Int>>(), userReactions),
-                        )
-                        .apply()
-                }
+        fun patchReaction(context: Context, cardIndex: Int, emojiValue: Int) =
+            ReactionService.patchReaction(context, cardIndex, emojiValue)
 
-                Log.d(TAG, "Cached reactions for ${tokenReactions.size} cards")
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to fetch reactions", e)
-            }
-        }
+        fun loadSession(context: Context): Session? = SessionManager.loadSession(context)
 
-        /**
-         * Loads cached per-image reaction counts as a JSON map (token → reaction counts) from
-         * SharedPreferences.
-         */
-        fun loadReactions(context: Context): Map<String, List<ReactionCount>> {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val raw = prefs.getString(KEY_REACTIONS, null) ?: return emptyMap()
-            return try {
-                json.decodeFromString<Map<String, List<ReactionCount>>>(raw)
-            } catch (_: Exception) {
-                emptyMap()
-            }
-        }
+        fun saveSession(context: Context, session: Session) =
+            SessionManager.saveSession(context, session)
 
-        // ── Session Management ──────────────────────────────────
+        fun clearSession(context: Context) = SessionManager.clearSession(context)
 
-        /** Load the stored LC session from SharedPreferences, or null. */
-        fun loadSession(context: Context): Session? {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val raw = prefs.getString(KEY_LC_SESSION, null) ?: return null
-            return try {
-                val s = json.decodeFromString<Session>(raw)
-                if (s.isValid) s else null
-            } catch (_: Exception) {
-                null
-            }
-        }
+        fun saveUsername(context: Context, username: String) =
+            SessionManager.saveUsername(context, username)
 
-        /** Persist a session to SharedPreferences. */
-        fun saveSession(context: Context, session: Session) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val raw = json.encodeToString(Session.serializer(), session)
-            prefs.edit().putString(KEY_LC_SESSION, raw).apply()
-        }
+        fun loadUsername(context: Context): String? = SessionManager.loadUsername(context)
 
-        /** Remove the stored session (logout). */
-        fun clearSession(context: Context) {
-            context
-                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .edit()
-                .remove(KEY_LC_SESSION)
-                .remove(KEY_BGM_USERNAME)
-                .remove(KEY_USER_REACTIONS)
-                .apply()
-        }
+        fun saveDomain(context: Context, domain: String) =
+            SessionManager.saveDomain(context, domain)
 
-        /** Store the bgm.tv username extracted from the OAuth callback URL. */
-        fun saveUsername(context: Context, username: String) {
-            context
-                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .edit()
-                .putString(KEY_BGM_USERNAME, username)
-                .apply()
-        }
+        fun loadDomain(context: Context): String = SessionManager.loadDomain(context)
 
-        /** Load the stored bgm.tv username, or null. */
-        fun loadUsername(context: Context): String? {
-            return context
-                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getString(KEY_BGM_USERNAME, null)
-        }
-
-        /** Save the chosen Bangumi domain (bgm.tv / bangumi.tv / chii.in). */
-        fun saveDomain(context: Context, domain: String) {
-            context
-                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .edit()
-                .putString(KEY_BGM_DOMAIN, domain)
-                .apply()
-        }
-
-        /** Load the chosen Bangumi domain, defaulting to [DEFAULT_BGM_DOMAIN]. */
-        fun loadDomain(context: Context): String {
-            return context
-                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .getString(KEY_BGM_DOMAIN, DEFAULT_BGM_DOMAIN) ?: DEFAULT_BGM_DOMAIN
-        }
-
-        /**
-         * Extracts the Bangumi username from a JWT session token. The JWT payload is expected to
-         * contain a "username" or "sub" claim.
-         */
-        fun getUsername(session: Session): String? {
-            return try {
-                val parts = session.token.split('.')
-                if (parts.size < 2) return null
-                val payload = String(Base64.decode(parts[1], Base64.DEFAULT))
-                val json = org.json.JSONObject(payload)
-                val name =
-                    json.optString("username", "").ifEmpty { null }
-                        ?: json.optString("sub", "").ifEmpty { null }
-                name
-            } catch (_: Exception) {
-                null
-            }
-        }
-
-        /**
-         * Loads the user's own reaction map (token → emojiValue) for cards they have reacted to.
-         */
-        fun loadUserReactions(context: Context): Map<String, Int> {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val raw = prefs.getString(KEY_USER_REACTIONS, null) ?: return emptyMap()
-            return try {
-                json.decodeFromString<Map<String, Int>>(raw)
-            } catch (_: Exception) {
-                emptyMap()
-            }
-        }
-
-        /**
-         * Find the index of a card (by image token) in the cached daily response. Needed because
-         * the PATCH reactions API uses card index, not token.
-         */
-        fun getCardIndex(context: Context, token: String): Int? {
-            val cacheFile = File(context.filesDir, "api_cache.json")
-            if (!cacheFile.exists()) return null
-            return try {
-                val daily = json.decodeFromString<DailyResponse>(cacheFile.readText())
-                daily.cards.indexOfFirst { md5(it.imgUrl) == token }.takeIf { it >= 0 }
-            } catch (_: Exception) {
-                null
-            }
-        }
-
-        /**
-         * Submits a reaction to the LC API with the current session. Returns true if the request
-         * was accepted by the server.
-         */
-        fun patchReaction(context: Context, cardIndex: Int, emojiValue: Int): Boolean {
-            val session = loadSession(context) ?: return false
-            val body = "{\"react\":$emojiValue}".toRequestBody("application/json".toMediaType())
-
-            val request =
-                Request.Builder()
-                    .url("${BuildConfig.API_BASE_URL}/api/v1/daily/react?cardTypeIdx=$cardIndex")
-                    .header("Authorization", "Bearer ${session.token}")
-                    .header("User-Agent", USER_AGENT)
-                    .method("PATCH", body)
-                    .build()
-
-            return try {
-                val response = httpClient.newCall(request).execute()
-                val ok = response.isSuccessful
-                response.close()
-
-                if (ok) {
-                    // Track locally so UI can show heart immediately
-                    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                    val raw = prefs.getString(KEY_USER_REACTIONS, null)
-                    val map =
-                        if (raw != null) {
-                            try {
-                                json.decodeFromString<MutableMap<String, Int>>(raw).toMutableMap()
-                            } catch (_: Exception) {
-                                mutableMapOf()
-                            }
-                        } else mutableMapOf()
-                    val cacheFile = File(context.filesDir, "api_cache.json")
-                    val daily = json.decodeFromString<DailyResponse>(cacheFile.readText())
-                    val token = md5(daily.cards[cardIndex].imgUrl)
-                    map[token] = emojiValue
-                    prefs
-                        .edit()
-                        .putString(
-                            KEY_USER_REACTIONS,
-                            json.encodeToString(serializer<Map<String, Int>>(), map),
-                        )
-                        .apply()
-                } else {
-                    Log.w(TAG, "Reaction PATCH returned ${response.code}")
-                }
-                ok
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to submit reaction", e)
-                false
-            }
-        }
+        fun getUsername(session: Session): String? = SessionManager.getUsername(session)
     }
 }

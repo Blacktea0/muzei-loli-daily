@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import me.eroi.lolidaily.muzei.api.Session
 import me.eroi.lolidaily.muzei.ui.theme.LoliDailyTheme
 
 class LoginActivity : ComponentActivity() {
@@ -89,10 +90,7 @@ class LoginActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-private fun LoginScreen(
-    onSessionReceived: (LoliDailyArtWorker.Session) -> Unit,
-    onClose: () -> Unit,
-) {
+private fun LoginScreen(onSessionReceived: (Session) -> Unit, onClose: () -> Unit) {
     var isLoading by remember { mutableStateOf(true) }
     var pageTitle by remember { mutableStateOf("Login to Bangumi") }
     var statusMessage by remember { mutableStateOf("Connecting to Bangumi\u2026") }
@@ -185,7 +183,7 @@ private fun LoginScreen(
                                     expiresAt > System.currentTimeMillis()
                             ) {
                                 username?.let { LoliDailyArtWorker.saveUsername(context, it) }
-                                onSessionReceived(LoliDailyArtWorker.Session(token, expiresAt))
+                                onSessionReceived(Session(token, expiresAt))
                             } else {
                                 Toast.makeText(context, "Login failed", Toast.LENGTH_LONG).show()
                                 onClose()

@@ -40,6 +40,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
+import me.eroi.lolidaily.muzei.util.SectionTitle
 
 /**
  * Debug settings screen for development testing. Each option lives in its own M3-style section
@@ -79,18 +80,6 @@ fun DebugSettingsScreen(onBack: () -> Unit) {
             item { RefreshTimeCard() }
         }
     }
-}
-
-// ── Section Title ───────────────────────────────────────────────
-
-@Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 4.dp),
-    )
 }
 
 // ── Skip API Cache Card ─────────────────────────────────────────
