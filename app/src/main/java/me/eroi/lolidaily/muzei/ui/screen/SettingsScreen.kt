@@ -21,8 +21,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Comment
@@ -151,7 +153,6 @@ fun SettingsScreen(
                         isLoggedIn = isLoggedIn,
                         onLogin = onLogin,
                         onReactionClick = onReactionClick,
-                        onRefresh = onRefresh,
                         emptyMessage =
                             "No historical artwork saved yet.\nArtwork accumulates as new daily batches are fetched.",
                         isToday = false,
@@ -850,23 +851,32 @@ private fun TodayGallery(
                 },
                 modifier = Modifier.fillMaxSize(),
             ) {
-                if (preview != null) {
-                    HeroArtwork(
-                        preview = preview,
-                        isLoggedIn = isLoggedIn,
-                        onLogin = onLogin,
-                        onFullscreenImage = onFullscreenImage,
-                        onReactionClick = onReactionClick,
-                    )
-                } else {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "No $tag artwork for today.\nPull down to refresh.",
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(32.dp),
-                        )
+                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                    val viewportHeight = maxHeight
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                        if (preview != null) {
+                            HeroArtwork(
+                                preview = preview,
+                                isLoggedIn = isLoggedIn,
+                                onLogin = onLogin,
+                                onFullscreenImage = onFullscreenImage,
+                                onReactionClick = onReactionClick,
+                                modifier = Modifier.fillMaxWidth().height(viewportHeight),
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().height(viewportHeight),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = "No $tag artwork for today.\nPull down to refresh.",
+                                    textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(32.dp),
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -932,13 +942,14 @@ private fun HeroArtwork(
     onLogin: () -> Unit,
     onFullscreenImage: (ArtworkPreview) -> Unit,
     onReactionClick: (String, Int) -> Unit,
+    modifier: Modifier = Modifier.fillMaxSize(),
 ) {
     val context = LocalContext.current
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val token = preview.filename.substringBeforeLast('.')
 
-    Box(modifier = Modifier.fillMaxSize().clickable { onFullscreenImage(preview) }) {
+    Box(modifier = modifier.clickable { onFullscreenImage(preview) }) {
         AsyncImage(
             model = ImageRequest.Builder(context).data(preview.uri).build(),
             contentDescription = preview.artistName.ifBlank { preview.filename },
@@ -1107,13 +1118,9 @@ private fun ArtworkGallery(
     isLoggedIn: Boolean = false,
     onLogin: () -> Unit = {},
     onReactionClick: (token: String, emojiValue: Int) -> Unit = { _, _ -> },
-    onRefresh: () -> Unit = {},
     emptyMessage: String = "No artwork yet.",
     isToday: Boolean = true,
 ) {
-    var isRefreshing by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-
     // Pagination state
     var visibleCount by remember { mutableStateOf(GALLERY_PAGE_SIZE) }
     val listState = rememberLazyListState()
@@ -1139,69 +1146,55 @@ private fun ArtworkGallery(
         visibleCount = minOf(GALLERY_PAGE_SIZE, cachedArtwork.size)
     }
 
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = {
-            isRefreshing = true
-            onRefresh()
-            scope.launch {
-                kotlinx.coroutines.delay(4000)
-                isRefreshing = false
-            }
-        },
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        if (cachedArtwork.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = emptyMessage,
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(32.dp),
+    if (cachedArtwork.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(
+                text = emptyMessage,
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(32.dp),
+            )
+        }
+    } else {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 88.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            items(cachedArtwork.take(visibleCount)) { preview ->
+                ArtworkCard(
+                    preview = preview,
+                    onImageClick = { onFullscreenImage(preview) },
+                    isLoggedIn = isLoggedIn,
+                    onLogin = onLogin,
+                    onReactionClick = onReactionClick,
                 )
             }
-        } else {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding =
-                    PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 88.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                items(cachedArtwork.take(visibleCount)) { preview ->
-                    ArtworkCard(
-                        preview = preview,
-                        onImageClick = { onFullscreenImage(preview) },
-                        isLoggedIn = isLoggedIn,
-                        onLogin = onLogin,
-                        onReactionClick = onReactionClick,
-                    )
-                }
 
-                // Loading footer when there are more items to load
-                if (visibleCount < cachedArtwork.size) {
-                    item {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            androidx.compose.material3.CircularProgressIndicator(
-                                modifier = Modifier.size(32.dp),
-                                strokeWidth = 3.dp,
-                            )
-                        }
-                    }
-                } else if (cachedArtwork.size > GALLERY_PAGE_SIZE) {
-                    item {
-                        Text(
-                            text = "— End of gallery —",
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+            // Loading footer when there are more items to load
+            if (visibleCount < cachedArtwork.size) {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            strokeWidth = 3.dp,
                         )
                     }
+                }
+            } else if (cachedArtwork.size > GALLERY_PAGE_SIZE) {
+                item {
+                    Text(
+                        text = "— End of gallery —",
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    )
                 }
             }
         }
