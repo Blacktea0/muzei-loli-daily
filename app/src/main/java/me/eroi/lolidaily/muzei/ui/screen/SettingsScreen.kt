@@ -24,6 +24,7 @@ import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
 import me.eroi.lolidaily.muzei.util.SectionTitle
 
 private const val KEY_BANNER_DISMISSED = "banner_dismissed_status"
+private const val KEY_LAST_TAB = "settings_last_tab"
 
 /**
  * MD3 settings screen for the Loli Daily Muzei plugin.
@@ -55,8 +56,17 @@ fun SettingsScreen(
     onThemeModeChanged: (ThemeMode) -> Unit = {},
     onOpenDebug: () -> Unit = {},
 ) {
-    var selectedTab by remember { mutableStateOf(0) }
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, android.content.Context.MODE_PRIVATE) }
+    var selectedTab by remember {
+        mutableIntStateOf(prefs.getInt(KEY_LAST_TAB, 0))
+    }
+    var todayPagerPage by remember { mutableIntStateOf(0) }
     var fullscreenPreview by remember { mutableStateOf<ArtworkPreview?>(null) }
+
+    LaunchedEffect(selectedTab) {
+        prefs.edit().putInt(KEY_LAST_TAB, selectedTab).apply()
+    }
 
     Scaffold(
         topBar = {
@@ -130,6 +140,8 @@ fun SettingsScreen(
                         onFullscreenImage = { fullscreenPreview = it },
                         onReactionClick = onReactionClick,
                         onRefresh = onRefresh,
+                        initialPage = todayPagerPage,
+                        onPageChanged = { todayPagerPage = it },
                     )
                 }
 
@@ -223,7 +235,7 @@ private fun PreferenceTab(
             }
         }
 
-        item { SectionTitle("TAG FILTERS") }
+        item { SectionTitle("MUZEI WALLPAPER") }
 
         item {
             Surface(
@@ -258,6 +270,14 @@ private fun PreferenceTab(
             }
         }
 
+        item {
+            SourceStatusCard(
+                isSourceActivated = isSourceActivated,
+                isMuzeiInstalled = isMuzeiInstalled,
+                onClick = onOpenMuzei,
+            )
+        }
+
         item { SectionTitle("ACCOUNT") }
 
         item {
@@ -267,16 +287,6 @@ private fun PreferenceTab(
                 onLogin = onLogin,
                 onLogout = onLogout,
                 onDomainChanged = onDomainChanged,
-            )
-        }
-
-        item { SectionTitle("SOURCE STATUS") }
-
-        item {
-            SourceStatusCard(
-                isSourceActivated = isSourceActivated,
-                isMuzeiInstalled = isMuzeiInstalled,
-                onClick = onOpenMuzei,
             )
         }
 

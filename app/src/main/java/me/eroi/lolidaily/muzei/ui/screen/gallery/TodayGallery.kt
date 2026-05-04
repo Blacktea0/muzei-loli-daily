@@ -39,9 +39,15 @@ fun TodayGallery(
     onFullscreenImage: (ArtworkPreview) -> Unit,
     onReactionClick: (String, Int) -> Unit,
     onRefresh: () -> Unit,
+    initialPage: Int = 0,
+    onPageChanged: (Int) -> Unit = {},
 ) {
     val tags = listOf("LC0", "LC ES")
-    val pagerState = rememberPagerState(pageCount = { tags.size })
+    val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { tags.size })
+
+    LaunchedEffect(pagerState.currentPage) {
+        onPageChanged(pagerState.currentPage)
+    }
     val scope = rememberCoroutineScope()
 
     var isRefreshing by remember { mutableStateOf(false) }
