@@ -40,7 +40,8 @@ class SettingsActivity : AppCompatActivity() {
 
     private var selectedTags by mutableStateOf(emptySet<String>())
     private var todayPreviews by mutableStateOf(emptyList<ArtworkPreview>())
-    private var historyPreviews by mutableStateOf(emptyList<ArtworkPreview>())
+    private var bookmarkPreviews by mutableStateOf(emptyList<ArtworkPreview>())
+    private var cachedCardsByToken: Map<String, Card> = emptyMap()
     private var isLoggedIn by mutableStateOf(false)
     private var bgmDomain by mutableStateOf("chii.in")
     private var isSourceActivated by mutableStateOf(false)
@@ -65,7 +66,7 @@ class SettingsActivity : AppCompatActivity() {
                         saveState()
                     },
                     todayArtwork = todayPreviews,
-                    historyArtwork = historyPreviews,
+                    bookmarkArtwork = bookmarkPreviews,
                     isLoggedIn = isLoggedIn,
                     onLogin = { startActivity(Intent(this, LoginActivity::class.java)) },
                     onLogout = {
@@ -116,6 +117,12 @@ class SettingsActivity : AppCompatActivity() {
                         startActivity(
                             Intent(this@SettingsActivity, DebugSettingsActivity::class.java),
                         )
+                    },
+                    onBookmarkToggle = { token, fileName, bookmarked ->
+                        toggleBookmark(token, fileName, bookmarked)
+                    },
+                    onRemoveBookmark = { preview ->
+                        removeBookmark(preview)
                     },
                 )
             }
@@ -274,6 +281,7 @@ class SettingsActivity : AppCompatActivity() {
         // Load cached API response for current-day metadata
         val (cards, apiDate) = loadCachedDaily()
         val cardByToken = cards.associateBy { Md5.hash(it.imgUrl) }
+        cachedCardsByToken = cardByToken
         val dateMap = LoliDailyArtWorker.loadImageDates(this)
         val reactionsMap = LoliDailyArtWorker.loadReactions(this)
         val userReactionsMap = LoliDailyArtWorker.loadUserReactions(this)
@@ -307,6 +315,7 @@ class SettingsActivity : AppCompatActivity() {
                         date = dateMap[token] ?: roomFields?.date ?: apiDate,
                         reactions = reactionsMap[token] ?: emptyList(),
                         userEmoji = userReactionsMap[token],
+                        isBookmarked = roomFields?.bookmarked?.let { it != 0 } ?: false,
                     )
                 }
                 .sortedWith(
@@ -322,7 +331,7 @@ class SettingsActivity : AppCompatActivity() {
                 )
 
         todayPreviews = previews.filter { it.date == apiDate }
-        historyPreviews = previews.filter { it.date != apiDate }
+        bookmarkPreviews = previews.filter { it.isBookmarked }
     }
 
     /** Loads all Room-persisted artwork fields, keyed by token. */
@@ -348,5 +357,43 @@ class SettingsActivity : AppCompatActivity() {
         } catch (_: Exception) {
             Pair(emptyList(), "")
         }
+    }
+
+    private fun toggleBookmark(
+        token: String,
+        fileName: String,
+        bookmarked: Boolean,
+    ) {
+        Thread {
+            try {
+                val dao = DatabaseProvider.getInstance(this).cachedArtworkDao()
+                val existing = runBlocking { dao.getByToken(token) }
+                if (existing != null) {
+                    runBlocking { dao.setBookmarked(token, if (bookmarked) 1 else 0) }
+                } else {
+                    val card = cachedCardsByToken[token] ?: return@Thread
+                    val (_, apiDate) = loadCachedDaily()
+                    val entity = EntityMapper.cardToEntity(card, token, apiDate, if (bookmarked) 1 else 0)
+                    runBlocking { dao.upsert(entity) }
+                }
+                runOnUiThread { buildPreviews() }
+            } catch (e: Exception) {
+                Log.w("SettingsActivity", "Failed to toggle bookmark", e)
+            }
+        }.start()
+    }
+
+    private fun removeBookmark(preview: ArtworkPreview) {
+        Thread {
+            try {
+                val dao = DatabaseProvider.getInstance(this).cachedArtworkDao()
+                runBlocking { dao.setBookmarked(preview.filename.substringBeforeLast('.'), 0) }
+                val imageFile = File(filesDir, "artworks/${preview.filename}")
+                if (imageFile.exists()) imageFile.delete()
+                runOnUiThread { buildPreviews() }
+            } catch (e: Exception) {
+                Log.w("SettingsActivity", "Failed to remove bookmark", e)
+            }
+        }.start()
     }
 }

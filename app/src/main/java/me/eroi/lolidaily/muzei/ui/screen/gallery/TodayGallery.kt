@@ -39,6 +39,7 @@ fun TodayGallery(
     onFullscreenImage: (ArtworkPreview) -> Unit,
     onReactionClick: (String, Int) -> Unit,
     onRefresh: () -> Unit,
+    onBookmarkToggle: (token: String, fileName: String, bookmarked: Boolean) -> Unit = { _, _, _ -> },
     initialPage: Int = 0,
     onPageChanged: (Int) -> Unit = {},
 ) {
@@ -96,6 +97,7 @@ fun TodayGallery(
                             isLoggedIn = isLoggedIn,
                             onFullscreenImage = onFullscreenImage,
                             onReactionClick = onReactionClick,
+                            onBookmarkToggle = onBookmarkToggle,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -125,6 +127,7 @@ fun HeroArtwork(
     isLoggedIn: Boolean,
     onFullscreenImage: (ArtworkPreview) -> Unit,
     onReactionClick: (String, Int) -> Unit,
+    onBookmarkToggle: (token: String, fileName: String, bookmarked: Boolean) -> Unit = { _, _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -302,6 +305,27 @@ fun HeroArtwork(
                         onReactionClick(token, value)
                         showReactionPicker = false
                     },
+                )
+            }
+
+            FilledTonalIconButton(
+                onClick = {
+                    val newState = !preview.isBookmarked
+                    onBookmarkToggle(token, preview.filename, newState)
+                },
+                colors =
+                    IconButtonDefaults.filledTonalIconButtonColors(
+                        contentColor =
+                            if (preview.isBookmarked) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                    ),
+            ) {
+                Icon(
+                    if (preview.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                    contentDescription = "Bookmark",
                 )
             }
         }
