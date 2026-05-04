@@ -86,7 +86,23 @@ class SettingsActivity : AppCompatActivity() {
                     onRefresh = {
                         LoliDailyArtWorker.enqueueLoad(this, forceRefresh = true)
                         Toast.makeText(this, "Refresh enqueued", Toast.LENGTH_SHORT).show()
-                        window.decorView.postDelayed({ loadPreview() }, 5000)
+                        Thread {
+                            val cacheFile = File(filesDir, "api_cache.json")
+                            val initialModTime =
+                                if (cacheFile.exists()) cacheFile.lastModified() else 0L
+                            var attempts = 0
+                            while (attempts < 20) {
+                                Thread.sleep(500)
+                                attempts++
+                                if (cacheFile.exists() &&
+                                    cacheFile.lastModified() != initialModTime
+                                ) {
+                                    break
+                                }
+                            }
+                            runOnUiThread { loadPreview() }
+                        }
+                            .start()
                     },
                     isSourceActivated = isSourceActivated,
                     isMuzeiInstalled = isMuzeiInstalled,
