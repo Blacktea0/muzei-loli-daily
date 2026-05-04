@@ -355,6 +355,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         const val KEY_ENABLED_TAGS = "enabled_tags"
         private const val KEY_LAST_FETCH_TIME = "last_fetch_time"
         private const val KEY_LAST_WORK_COMPLETED = "last_work_completed"
+        const val KEY_LAST_REACTION_FETCH = "last_reaction_fetch"
         private const val KEY_REFILTER_ONLY = "refilter_only"
         const val KEY_IMAGE_DATES = "image_dates"
         private const val KEY_INITIAL = "initial"
