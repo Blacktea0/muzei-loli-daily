@@ -10,7 +10,7 @@ art source. It pulls a daily batch of artwork from the Loli Commons API
 cards via Bangumi (bgm.tv) OAuth.
 
 - Package: `me.eroi.lolidaily.muzei`
-- Min SDK 26, Target/Compile SDK 35, JVM 17
+- Min SDK 28, Target/Compile SDK 35, JVM 17
 - Kotlin + Jetpack Compose + Material 3
 - Single module: `:app`
 
@@ -108,6 +108,10 @@ Supporting pieces:
 
 - `LoginActivity` — WebView OAuth flow against `loliconey.tsuki.ga`.
 - `RefreshReceiver` — broadcast handler for the Force Refresh command action.
+- `api/ReactionService.kt` — fetches, caches, and submits reactions for the
+  daily batch.
+- `api/SessionManager.kt` — persists the OAuth JWT session and username.
+- `api/LoliApiClient.kt` — OkHttp HTTP client with API endpoint URLs.
 - `model/ApiModels.kt` — Kotlinx-serializable DTOs for the API.
 - `model/ArtworkPreview.kt` — UI model for the settings gallery.
 
