@@ -1,10 +1,6 @@
 package me.eroi.lolidaily.muzei.ui.screen
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -124,57 +120,51 @@ fun SettingsScreen(
         },
         modifier = modifier,
     ) { padding ->
-        AnimatedContent(
-            targetState = selectedTab,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
-            label = "tab_content",
-        ) { tab ->
-            when (tab) {
-                0 ->
-                    Box(modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
-                        TodayGallery(
-                            todayArtwork = todayArtwork,
-                            isLoggedIn = isLoggedIn,
-                            onLogin = onLogin,
-                            onFullscreenImage = { fullscreenPreview = it },
-                            onReactionClick = onReactionClick,
-                            onRefresh = onRefresh,
-                        )
-                    }
+        when (selectedTab) {
+            0 ->
+                Box(modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
+                    TodayGallery(
+                        todayArtwork = todayArtwork,
+                        isLoggedIn = isLoggedIn,
+                        onLogin = onLogin,
+                        onFullscreenImage = { fullscreenPreview = it },
+                        onReactionClick = onReactionClick,
+                        onRefresh = onRefresh,
+                    )
+                }
 
-                1 ->
-                    Box(modifier = Modifier.padding(padding)) {
-                        ArtworkGallery(
-                            cachedArtwork = historyArtwork,
-                            onFullscreenImage = { fullscreenPreview = it },
-                            isLoggedIn = isLoggedIn,
-                            onLogin = onLogin,
-                            onReactionClick = onReactionClick,
-                            emptyMessage =
-                                "No historical artwork saved yet.\nArtwork accumulates as new daily batches are fetched.",
-                            isToday = false,
-                        )
-                    }
+            1 ->
+                Box(modifier = Modifier.padding(padding)) {
+                    ArtworkGallery(
+                        cachedArtwork = historyArtwork,
+                        onFullscreenImage = { fullscreenPreview = it },
+                        isLoggedIn = isLoggedIn,
+                        onLogin = onLogin,
+                        onReactionClick = onReactionClick,
+                        emptyMessage =
+                            "No historical artwork saved yet.\nArtwork accumulates as new daily batches are fetched.",
+                        isToday = false,
+                    )
+                }
 
-                2 ->
-                    Box(modifier = Modifier.padding(padding)) {
-                        PreferenceTab(
-                            selectedTags = selectedTags,
-                            onTagsChanged = onTagsChanged,
-                            isLoggedIn = isLoggedIn,
-                            onLogin = onLogin,
-                            onLogout = onLogout,
-                            bgmDomain = bgmDomain,
-                            onDomainChanged = onDomainChanged,
-                            isSourceActivated = isSourceActivated,
-                            isMuzeiInstalled = isMuzeiInstalled,
-                            onOpenMuzei = onOpenMuzei,
-                            themeMode = themeMode,
-                            onThemeModeChanged = onThemeModeChanged,
-                            onOpenDebug = onOpenDebug,
-                        )
-                    }
-            }
+            2 ->
+                Box(modifier = Modifier.padding(padding)) {
+                    PreferenceTab(
+                        selectedTags = selectedTags,
+                        onTagsChanged = onTagsChanged,
+                        isLoggedIn = isLoggedIn,
+                        onLogin = onLogin,
+                        onLogout = onLogout,
+                        bgmDomain = bgmDomain,
+                        onDomainChanged = onDomainChanged,
+                        isSourceActivated = isSourceActivated,
+                        isMuzeiInstalled = isMuzeiInstalled,
+                        onOpenMuzei = onOpenMuzei,
+                        themeMode = themeMode,
+                        onThemeModeChanged = onThemeModeChanged,
+                        onOpenDebug = onOpenDebug,
+                    )
+                }
         }
     }
 
