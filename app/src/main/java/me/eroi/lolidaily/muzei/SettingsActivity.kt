@@ -387,9 +387,15 @@ class SettingsActivity : AppCompatActivity() {
         Thread {
             try {
                 val dao = DatabaseProvider.getInstance(this).cachedArtworkDao()
-                runBlocking { dao.setBookmarked(preview.filename.substringBeforeLast('.'), 0) }
-                val imageFile = File(filesDir, "artworks/${preview.filename}")
-                if (imageFile.exists()) imageFile.delete()
+                val token = preview.filename.substringBeforeLast('.')
+                runBlocking { dao.setBookmarked(token, 0) }
+
+                val (_, apiDate) = loadCachedDaily()
+                if (preview.date != apiDate) {
+                    val imageFile = File(filesDir, "artworks/${preview.filename}")
+                    if (imageFile.exists()) imageFile.delete()
+                }
+
                 runOnUiThread { buildPreviews() }
             } catch (e: Exception) {
                 Log.w("SettingsActivity", "Failed to remove bookmark", e)

@@ -103,6 +103,23 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                             )
                         }
 
+                        if (isNewDay) {
+                            val oldDateTokens =
+                                allDates.filterValues { it != fetchedDate }.keys
+                            if (oldDateTokens.isNotEmpty()) {
+                                Log.d(
+                                    TAG,
+                                    "New day — scanning ${oldDateTokens.size} old-date tokens",
+                                )
+                                ImageDownloader.cleanupNonBookmarkedFromOldDates(
+                                    applicationContext,
+                                    oldDateTokens,
+                                    prefs,
+                                    allDates,
+                                )
+                            }
+                        }
+
                         Log.d(
                             TAG,
                             "Synced ${cards.size} artworks for $fetchedDate (newDay=$isNewDay)",
@@ -150,6 +167,17 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                                     staleTokens.toList(),
                                     prefs,
                                     allDates,
+                                )
+                            }
+
+                            val oldDateTokens =
+                                loadImageDatesInternal().filterValues { it != fbDate }.keys
+                            if (oldDateTokens.isNotEmpty()) {
+                                ImageDownloader.cleanupNonBookmarkedFromOldDates(
+                                    applicationContext,
+                                    oldDateTokens,
+                                    prefs,
+                                    loadImageDatesInternal(),
                                 )
                             }
                         }

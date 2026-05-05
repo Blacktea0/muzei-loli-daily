@@ -264,4 +264,33 @@ object ImageDownloader {
             Log.e(TAG, "Failed to clean stale Room rows", e)
         }
     }
+
+    /**
+     * Filters [oldTokens] against Room bookmark status and deletes only non-bookmarked entries
+     * via [cleanupStaleArtworks]. Called by the worker on day-shift to reclaim space.
+     */
+    fun cleanupNonBookmarkedFromOldDates(
+        context: Context,
+        oldTokens: Set<String>,
+        prefs: android.content.SharedPreferences,
+        allDates: Map<String, String>,
+    ) {
+        val tokensToDelete = mutableListOf<String>()
+        val dao =
+            me.eroi.lolidaily.muzei.db.DatabaseProvider.getInstance(context)
+                .cachedArtworkDao()
+
+        for (token in oldTokens) {
+            val bookmarked =
+                kotlinx.coroutines.runBlocking { dao.getBookmarkedStatus(token) }
+            if (bookmarked == null || bookmarked == 0) {
+                tokensToDelete.add(token)
+            }
+        }
+
+        if (tokensToDelete.isNotEmpty()) {
+            Log.d(TAG, "Cleaning ${tokensToDelete.size} non-bookmarked artworks from old dates")
+            cleanupStaleArtworks(context, tokensToDelete, prefs, allDates)
+        }
+    }
 }
