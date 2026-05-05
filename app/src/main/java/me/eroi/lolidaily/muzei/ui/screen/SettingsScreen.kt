@@ -40,7 +40,7 @@ fun SettingsScreen(
     selectedTags: Set<String>,
     onTagsChanged: (Set<String>) -> Unit,
     todayArtwork: List<ArtworkPreview>,
-    historyArtwork: List<ArtworkPreview>,
+    bookmarkArtwork: List<ArtworkPreview>,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
     isLoggedIn: Boolean = false,
@@ -55,6 +55,8 @@ fun SettingsScreen(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChanged: (ThemeMode) -> Unit = {},
     onOpenDebug: () -> Unit = {},
+    onBookmarkToggle: (token: String, fileName: String, bookmarked: Boolean) -> Unit = { _, _, _ -> },
+    onRemoveBookmark: (ArtworkPreview) -> Unit = {},
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, android.content.Context.MODE_PRIVATE) }
@@ -109,7 +111,7 @@ fun SettingsScreen(
                             )
                         }
                     },
-                    label = { Text("Bookmark") },
+                    label = { Text("Bookmarks") },
                 )
                 NavigationBarItem(
                     selected = selectedTab == 2,
@@ -140,6 +142,7 @@ fun SettingsScreen(
                         onFullscreenImage = { fullscreenPreview = it },
                         onReactionClick = onReactionClick,
                         onRefresh = onRefresh,
+                        onBookmarkToggle = onBookmarkToggle,
                         initialPage = todayPagerPage,
                         onPageChanged = { todayPagerPage = it },
                     )
@@ -148,13 +151,14 @@ fun SettingsScreen(
             1 ->
                 Box(modifier = Modifier.padding(padding)) {
                     ArtworkGallery(
-                        cachedArtwork = historyArtwork,
+                        cachedArtwork = bookmarkArtwork,
                         onFullscreenImage = { fullscreenPreview = it },
                         isLoggedIn = isLoggedIn,
                         onLogin = onLogin,
                         onReactionClick = onReactionClick,
+                        onRemoveBookmark = onRemoveBookmark,
                         emptyMessage =
-                            "No historical artwork saved yet.\nArtwork accumulates as new daily batches are fetched.",
+                            "No bookmarked artwork yet.\nTap the bookmark icon on Today's artwork to save it here.",
                         isToday = false,
                     )
                 }

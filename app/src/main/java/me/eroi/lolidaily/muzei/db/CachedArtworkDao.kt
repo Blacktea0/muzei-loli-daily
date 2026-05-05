@@ -30,4 +30,15 @@ interface CachedArtworkDao {
     /** Delete rows by token list. */
     @Query("DELETE FROM cached_artworks WHERE token IN (:tokens)")
     suspend fun deleteByTokens(tokens: List<String>)
+
+    /** Update bookmark status for a single artwork. */
+    @Query("UPDATE cached_artworks SET bookmarked = :bookmarked WHERE token = :token")
+    suspend fun setBookmarked(
+        token: String,
+        bookmarked: Int,
+    )
+
+    /** Get bookmark status for a single artwork, or null if not in DB. */
+    @Query("SELECT bookmarked FROM cached_artworks WHERE token = :token")
+    suspend fun getBookmarkedStatus(token: String): Int?
 }

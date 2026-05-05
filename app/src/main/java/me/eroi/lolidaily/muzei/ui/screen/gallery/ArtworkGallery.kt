@@ -1,6 +1,5 @@
 package me.eroi.lolidaily.muzei.ui.screen.gallery
 
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -30,7 +29,6 @@ import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
-import me.eroi.lolidaily.muzei.ui.screen.components.ReactionPickerDialog
 import me.eroi.lolidaily.muzei.ui.screen.components.ReactionRow
 import me.eroi.lolidaily.muzei.util.exportArtwork
 import net.engawapg.lib.zoomable.rememberZoomState
@@ -46,6 +44,7 @@ fun ArtworkGallery(
     isLoggedIn: Boolean = false,
     onLogin: () -> Unit = {},
     onReactionClick: (token: String, emojiValue: Int) -> Unit = { _, _ -> },
+    onRemoveBookmark: (ArtworkPreview) -> Unit = {},
     emptyMessage: String = "No artwork yet.",
     isToday: Boolean = true,
 ) {
@@ -95,6 +94,7 @@ fun ArtworkGallery(
                     isLoggedIn = isLoggedIn,
                     onLogin = onLogin,
                     onReactionClick = onReactionClick,
+                    onRemoveBookmark = onRemoveBookmark,
                 )
             }
 
@@ -133,6 +133,7 @@ fun ArtworkCard(
     isLoggedIn: Boolean = false,
     onLogin: () -> Unit = {},
     onReactionClick: (token: String, emojiValue: Int) -> Unit = { _, _ -> },
+    onRemoveBookmark: (ArtworkPreview) -> Unit = {},
 ) {
     val context = LocalContext.current
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -276,42 +277,42 @@ fun ArtworkCard(
                     Icon(Icons.Default.Info, contentDescription = "Artwork details")
                 }
 
-                var showReactionPicker by remember { mutableStateOf(false) }
-                val hasReacted = preview.userEmoji != null
+                var showRemoveDialog by remember { mutableStateOf(false) }
 
                 FilledTonalIconButton(
-                    onClick = {
-                        if (!isLoggedIn) {
-                            Toast.makeText(context, "Login to Bangumi to react", Toast.LENGTH_SHORT)
-                                .show()
-                        } else if (hasReacted) {
-                            onReactionClick(token, preview.userEmoji)
-                        } else {
-                            showReactionPicker = true
-                        }
-                    },
+                    onClick = { showRemoveDialog = true },
                     colors =
                         IconButtonDefaults.filledTonalIconButtonColors(
-                            contentColor =
-                                if (hasReacted) {
-                                    MaterialTheme.colorScheme.error
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         ),
                 ) {
                     Icon(
-                        if (hasReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "React",
+                        Icons.Default.BookmarkRemove,
+                        contentDescription = "Remove from Bookmarks",
                     )
                 }
 
-                if (showReactionPicker && isLoggedIn) {
-                    ReactionPickerDialog(
-                        onDismiss = { showReactionPicker = false },
-                        onEmojiSelected = { value ->
-                            onReactionClick(token, value)
-                            showReactionPicker = false
+                if (showRemoveDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showRemoveDialog = false },
+                        title = { Text("Remove from Bookmarks") },
+                        text = {
+                            Text("Remove this artwork from your bookmarks? The cached image will also be deleted.")
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    onRemoveBookmark(preview)
+                                    showRemoveDialog = false
+                                },
+                            ) {
+                                Text("Remove", color = MaterialTheme.colorScheme.error)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showRemoveDialog = false }) {
+                                Text("Cancel")
+                            }
                         },
                     )
                 }

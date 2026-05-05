@@ -18,6 +18,7 @@ object EntityMapper {
         card: Card,
         token: String,
         date: String,
+        bookmarked: Int = 0,
     ): CachedArtworkEntity {
         return CachedArtworkEntity(
             token = token,
@@ -35,6 +36,7 @@ object EntityMapper {
                 card.suggestedBy?.let { json.encodeToString(SuggestedBy.serializer(), it) },
             date = date,
             downloadedAt = System.currentTimeMillis(),
+            bookmarked = bookmarked,
         )
     }
 
@@ -66,6 +68,7 @@ object EntityMapper {
             suggestedByNickname = suggested?.nickname,
             suggestedByUsername = suggested?.username,
             date = entity.date,
+            bookmarked = entity.bookmarked,
         )
     }
 
@@ -80,5 +83,6 @@ object EntityMapper {
         val suggestedByNickname: String?,
         val suggestedByUsername: String?,
         val date: String,
+        val bookmarked: Int = 1,
     )
 }
