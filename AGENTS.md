@@ -2,178 +2,88 @@
 
 Quick orientation for AI coding agents working in this repo.
 
-## What this is
+## Project overview
 
-An Android app that plugs into [Muzei Live Wallpaper](https://muzei.co/) as an
-art source. It pulls a daily batch of artwork from the Loli Commons API
-(`loliconey.tsuki.ga`) and feeds it to Muzei. It also lets the user react to
-cards via Bangumi (bgm.tv) OAuth.
+Android app (Kotlin + Jetpack Compose + Material 3) that acts as a [Muzei Live Wallpaper](https://muzei.co/) art source, pulling daily artwork from the Loli Commons API (`loliconey.tsuki.ga`). Users can react to artwork via Bangumi (bgm.tv) OAuth.
 
 - Package: `me.eroi.lolidaily.muzei`
-- Min SDK 28, Target/Compile SDK 35, JVM 17
-- Kotlin + Jetpack Compose + Material 3
+- Min SDK 28, Target/Compile SDK 36, JVM 17, Kotlin 2.3.21
 - Single module: `:app`
-
-## Conventional Commits
-
-Follow [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/).
-
-```
-<type>[(<scope>)]: <description>
-```
-
-Types:
-- `feat` — new feature
-- `fix` — bug fix
-- `chore` — build tooling, deps, misc maintenance
-- `refactor` — code change that neither fixes a bug nor adds a feature
-- `docs` — documentation only
-- `style` — formatting, whitespace (no logic change)
-
-Scopes: `settings`, `worker`, `provider`, `auth`, `model`, `ui`, `api`. Omit if
-change spans multiple or doesn't fit one.
-
-Keep descriptions lowercase, imperative ("add" not "added"), no period at end.
+- Detailed reference: `AGENTS.md`
 
 ## Build & run
 
 ```bash
 ./gradlew assembleDebug         # build APK
 ./gradlew installDebug          # build + install to connected device
-./gradlew lint                  # static analysis
-./gradlew build                 # full build (no tests defined yet)
+./gradlew ktlintFormat          # format all Kotlin sources (4-space indent, ktlint_official)
+./gradlew ktlintCheck           # check formatting (dry-run, CI)
+./gradlew lint                  # static analysis (includes ktlintCheck)
+./gradlew build                 # full build
 ```
 
-There is no test source set yet. `local.properties` holds the SDK path and is
-git-ignored.
-
-## Code formatting
-
-We use [ktlint](https://github.com/pinterest/ktlint) via the
-[ktlint-gradle](https://github.com/jlleitschuh/ktlint-gradle) plugin configured
-with `ktlint_official` code style (4-space indent, matching
-[kotlinlang.org coding conventions](https://kotlinlang.org/docs/coding-conventions.html)).
-Rules are defined in `.editorconfig`.
-
-A **git pre-commit hook** runs `ktlintFormat` automatically before every commit.
-If the hook ever fails or you want to run manually:
-
-```bash
-./gradlew ktlintFormat   # format all Kotlin sources
-./gradlew ktlintCheck    # check formatting (dry-run, for CI)
-./gradlew lint           # static analysis (includes ktlintCheck)
-```
+A git pre-commit hook runs `ktlintFormat` automatically. There are no tests defined yet.
 
 ## Mock server
 
-The `mock/` directory contains a Node.js Express server that simulates the Loli
-Commons API. It's useful for testing without hitting the real backend.
-
-### Setting the API base URL
-
-The app reads `BuildConfig.API_BASE_URL` at runtime. It is resolved at build
-time from the first available source:
-
-1. Env var `LOLI_API_URL`
-2. Key `loliApiUrl` in `local.properties`
-3. Key `loliApiUrl` in `gradle.properties`
-4. Fallback: `https://loliconey.tsuki.ga`
-
-### Running the mock server
-
 ```bash
-./gradlew startMockServer    # installs npm deps if needed, starts server in background
-./gradlew stopMockServer     # kills the background server
-./gradlew mockLogs           # prints server.log to console
+./gradlew startMockServer       # starts Node.js Express mock at 0.0.0.0:50303
+./gradlew stopMockServer        # kills the background server
+./gradlew mockLogs              # prints server.log
 ```
 
-The server binds to `0.0.0.0:50303`. Logs go to `mock/server.log`. The PID is
-stored in `mock/.server.pid`.
+The app reads `BuildConfig.API_BASE_URL` at build time, resolved from: env `LOLI_API_URL` → `local.properties` key `loliApiUrl` → `gradle.properties` key `loliApiUrl` → fallback `https://loliconey.tsuki.ga`. Set `debug_use_mock_api` in SharedPreferences (via Debug Settings screen) to route requests to the mock server at runtime.
 
 ## Architecture
 
-Three components fan out from `LoliDailyArtWorker`, which is the core:
+Three core components fan out from `LoliDailyArtWorker` (the central orchestrator):
 
-- `LoliDailyArtProvider` (`MuzeiArtProvider`) — Muzei's entry point. On
-  `onLoadRequested` it just enqueues the worker. Also provides per-artwork
-  command actions (View Source / View Artist / Force Refresh).
-- `LoliDailyArtWorker` (`WorkManager` `Worker`) — fetches the daily JSON,
-  downloads images, writes them to `filesDir/artworks/`, filters by user's
-  selected tags, and pushes the result to Muzei via
-  `ProviderContract.getProviderClient(...).setArtwork(...)`.
-- `SettingsActivity` (Compose) — launched from Muzei's source config and the
-  app drawer. Tag filter, cached gallery, reaction buttons, Bangumi login.
+- **`LoliDailyArtProvider`** (`MuzeiArtProvider`) — Muzei's entry point. `onLoadRequested` enqueues the Worker. Provides command actions (View Source / View Artist / Force Refresh).
+- **`LoliDailyArtWorker`** (`WorkManager` `Worker`) — fetches daily JSON via `LoliApiClient`, downloads images to `filesDir/artworks/`, persists metadata to Room, filters by user's selected tags, and pushes to Muzei via `ProviderClient.setArtwork()`.
+- **`SettingsActivity`** (Compose, 3-tab NavigationBar: Today / Bookmark / Settings) — tag filter, cached gallery with reactions, Bangumi login, theme selector.
 
 Supporting pieces:
-
-- `LoginActivity` — WebView OAuth flow against `loliconey.tsuki.ga`.
-- `RefreshReceiver` — broadcast handler for the Force Refresh command action.
-- `api/ReactionService.kt` — fetches, caches, and submits reactions for the
-  daily batch.
-- `api/SessionManager.kt` — persists the OAuth JWT session and username.
-- `api/LoliApiClient.kt` — OkHttp HTTP client with API endpoint URLs.
-- `model/ApiModels.kt` — Kotlinx-serializable DTOs for the API.
-- `model/ArtworkPreview.kt` — UI model for the settings gallery.
+- `LoginActivity` — WebView OAuth flow against Bangumi, extracts JWT session from redirect URL
+- `RefreshReceiver` — broadcast handler for the Force Refresh command action
+- `api/LoliApiClient.kt` — OkHttp client with API endpoint URLs
+- `api/ReactionService.kt` — fetches, caches, and submits reactions (5-min cooldown on fetch)
+- `api/SessionManager.kt` — persists OAuth JWT session + username in SharedPreferences
+- `model/ApiModels.kt` — `DailyResponse`, `Card`, `DailyReactResponse`, etc. (kotlinx-serialization)
+- `model/ArtworkPreview.kt` — UI model combining local file URI with API metadata + reactions
+- `db/` — Room database (`cached_artworks` table) for persisting artwork metadata across daily rotations
+- `worker/WorkScheduler.kt` — enqueues OneTimeWorkRequests with network constraints
+- `worker/ImageDownloader.kt` — downloads images with retry, file integrity validation via magic bytes
+- `worker/EmojiMap.kt` — maps Bangumi emoji IDs to local `res/drawable/reaction_*.gif` resources
 
 ### Data flow
 
 ```
 Muzei → LoliDailyArtProvider.onLoadRequested
       → LoliDailyArtWorker.enqueueLoad
-        → fetch /api/v1/daily (gated to once/hour, bypassed on force-refresh)
+        → fetch /api/v1/daily (gated: once per date change, or force-refresh)
         → cache JSON to filesDir/api_cache.json
-        → on new daily date: download all images to filesDir/artworks/<md5>.<ext>
+        → download all images to filesDir/artworks/<md5>.<ext> (regardless of tag filter)
+        → persist metadata to Room (cached_artworks table)
         → filter cards by KEY_ENABLED_TAGS
         → ProviderClient.setArtwork(filtered)
         → if new day: broadcast NEXT_ARTWORK to net.nurik.roman.muzei
 ```
 
-Tokens are MD5 of `card.imgUrl`. That's how `Artwork` rows, cached files, and
-reaction lookups are all keyed.
+### Key design decisions
 
-### Tag filter behaviour
+- **Tokens are MD5 of `card.imgUrl`**. This is how Artwork rows, cached files, and reaction lookups are all keyed.
+- **All images downloaded, filtering at push time**. Tag filter is applied when pushing to Muzei, so changing filters only requires a re-filter (no network call).
+- **Room stores complex fields as JSON strings** (`characterNames`, `suggestedBy`) to keep the schema flat and migration-free.
+- **`LoliDailyArtWorker.companion` is the public API surface**. Most callers go through static methods on the companion object which delegate to the appropriate service class (`WorkScheduler`, `ReactionService`, `SessionManager`).
+- **Daily refresh is scheduled in GMT+8** (default 07:30). `WorkScheduler.computeNextRefreshTime()` calculates the next trigger epoch.
+- **Cooldown enforcement**: 10s between worker enqueues, 5-min between reaction fetches.
 
-All images for the day are downloaded regardless of filter — the filter is
-applied at push time. Changing the filter in Settings calls
-`enqueueRefilter()`, which re-pushes from cached data without hitting the
-network. Tags currently surfaced in UI: `LC0`, `LC YJ`, `LC ES`. The full list
-is whatever the API returns; the strings file (`res/values/strings.xml`) only
-labels the ones we expose.
+## Conventional Commits
 
-### Reactions
+```
+<type>[(<scope>)]: <description>
+```
 
-Reactions come from `/api/v1/daily/react` and are submitted via
-`PATCH /api/v1/daily/react?cardTypeIdx=<index>`. The PATCH API uses card index,
-not token — see `getCardIndex(...)`. Auth is a Bearer JWT obtained via the
-WebView OAuth flow and persisted in SharedPreferences as
-`LoliDailyArtWorker.Session`.
-
-Emoji IDs (e.g. `0`, `54`, `104`...) map to bgm.tv smiley GIFs; we ship local
-copies in `res/drawable/reaction_*.gif`. The map lives in
-`LoliDailyArtWorker.emojiResId(...)`.
-
-## Reference
-
-### Muzei API
-
-- Official API docs: https://api.muzei.co/
-- GitHub repo: https://github.com/muzei/muzei (Apache 2.0)
-- MuzeiArtProvider: https://api.muzei.co/reference/com.google.android.apps.muzei.api.provider/-muzei-art-provider/index.html
-- ProviderContract: https://api.muzei.co/reference/com.google.android.apps.muzei.api.provider/-provider-contract/index.html
-- ProviderClient: https://api.muzei.co/reference/com.google.android.apps.muzei.api.provider/-provider-client/index.html
-- Artwork: https://api.muzei.co/reference/com.google.android.apps.muzei.api.provider/-artwork/index.html
-- Example sources: https://github.com/muzei/muzei/tree/main/example-unsplash
-
-**Latest**: `com.google.android.apps.muzei:muzei-api:3.4.2` (2024-06-16).
-Two API surfaces: **Provider API** (`com.google.android.apps.muzei.api.provider`)
-for building sources, **Contract API** (`com.google.android.apps.muzei.api`) for
-reading wallpaper state.
-
-### Material Design 3 (Compose)
-
-- M3 design spec: https://m3.material.io/
-- Compose M3 developer guide: https://developer.android.com/develop/ui/compose/designsystems/material3
-- M3 theming codelab: https://developer.android.com/codelabs/m3-design-theming
-
-Key Compose M3 entry points: `MaterialTheme`, `ColorScheme`, `Typography`,
-`Shapes`. Theme builder tools at https://m3.material.io/theme-builder.
+Types: `feat`, `fix`, `chore`, `refactor`, `docs`, `style`
+Scopes: `settings`, `worker`, `provider`, `auth`, `model`, `ui`, `api`
+Keep descriptions lowercase, imperative, no trailing period.
