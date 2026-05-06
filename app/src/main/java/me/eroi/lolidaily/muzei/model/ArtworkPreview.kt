@@ -17,6 +17,7 @@ data class ArtworkPreview(
     val reactions: List<ReactionCount> = emptyList(),
     val userEmoji: Int? = null,
     val isBookmarked: Boolean = true,
+    val suggestedByName: String? = null,
 )
 
 /**

@@ -57,11 +57,12 @@ fun SettingsScreen(
     onOpenDebug: () -> Unit = {},
     onBookmarkToggle: (token: String, fileName: String, bookmarked: Boolean) -> Unit = { _, _, _ -> },
     onRemoveBookmark: (ArtworkPreview) -> Unit = {},
+    initialTab: Int? = null,
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, android.content.Context.MODE_PRIVATE) }
     var selectedTab by remember {
-        mutableIntStateOf(prefs.getInt(KEY_LAST_TAB, 0))
+        mutableIntStateOf(initialTab ?: prefs.getInt(KEY_LAST_TAB, 0))
     }
     var todayPagerPage by remember { mutableIntStateOf(0) }
     var fullscreenPreview by remember { mutableStateOf<ArtworkPreview?>(null) }

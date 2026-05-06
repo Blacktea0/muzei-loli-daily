@@ -57,6 +57,9 @@ class SettingsActivity : AppCompatActivity() {
         loadState()
         loadSourceStatus()
 
+        // Muzei launches with an explicit Intent (no action); launcher uses ACTION_MAIN
+        val fromMuzei = intent?.action != Intent.ACTION_MAIN
+
         setContent {
             LoliDailyTheme(themeMode = themeMode) {
                 SettingsScreen(
@@ -101,7 +104,7 @@ class SettingsActivity : AppCompatActivity() {
                                     break
                                 }
                             }
-                            runOnUiThread { loadPreview() }
+                            runOnUiThread { loadPreview(forceRefresh = true) }
                         }
                             .start()
                     },
@@ -124,6 +127,7 @@ class SettingsActivity : AppCompatActivity() {
                     onRemoveBookmark = { preview ->
                         removeBookmark(preview)
                     },
+                    initialTab = if (fromMuzei) 2 else null,
                 )
             }
         }
@@ -252,17 +256,19 @@ class SettingsActivity : AppCompatActivity() {
      * Full refresh cycle: builds previews from current cache, then fetches fresh reactions in the
      * background. Called on every onCreate / onResume.
      */
-    private fun loadPreview() {
+    private fun loadPreview(forceRefresh: Boolean = false) {
         buildPreviews()
 
         // Background fetch — mirrors the JS lazy-load behaviour:
         // reactions are fetched each time the gallery is opened.
         // Gated by a 5-minute cooldown to avoid spamming the API.
         Thread {
-            val lastFetch = prefs.getLong(LoliDailyArtWorker.KEY_LAST_REACTION_FETCH, 0)
-            val cooldownMs = 5 * 60 * 1000L
-            if (System.currentTimeMillis() - lastFetch < cooldownMs) {
-                return@Thread
+            if (!forceRefresh) {
+                val lastFetch = prefs.getLong(LoliDailyArtWorker.KEY_LAST_REACTION_FETCH, 0)
+                val cooldownMs = 5 * 60 * 1000L
+                if (System.currentTimeMillis() - lastFetch < cooldownMs) {
+                    return@Thread
+                }
             }
             LoliDailyArtWorker.fetchAndCacheReactions(this@SettingsActivity)
             prefs.edit()
@@ -316,6 +322,7 @@ class SettingsActivity : AppCompatActivity() {
                         reactions = reactionsMap[token] ?: emptyList(),
                         userEmoji = userReactionsMap[token],
                         isBookmarked = roomFields?.bookmarked?.let { it != 0 } ?: false,
+                        suggestedByName = card?.suggestedBy?.nickname ?: roomFields?.suggestedByNickname,
                     )
                 }
                 .sortedWith(

@@ -1,24 +1,30 @@
 package me.eroi.lolidaily.muzei.ui.screen.gallery
 
+import android.content.Intent
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Comment
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -91,15 +97,17 @@ fun TodayGallery(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 if (preview != null) {
-                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                        HeroArtwork(
-                            preview = preview,
-                            isLoggedIn = isLoggedIn,
-                            onFullscreenImage = onFullscreenImage,
-                            onReactionClick = onReactionClick,
-                            onBookmarkToggle = onBookmarkToggle,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                    LazyColumn(overscrollEffect = null) {
+                        item {
+                            HeroArtwork(
+                                preview = preview,
+                                isLoggedIn = isLoggedIn,
+                                onFullscreenImage = onFullscreenImage,
+                                onReactionClick = onReactionClick,
+                                onBookmarkToggle = onBookmarkToggle,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     }
                 } else {
                     Box(
@@ -131,8 +139,6 @@ fun HeroArtwork(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    var showBottomSheet by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val token = preview.filename.substringBeforeLast('.')
 
     val aspectRatio =
@@ -152,6 +158,7 @@ fun HeroArtwork(
         }
 
     Column(modifier = modifier) {
+        // ── Zone 1: Full-bleed image with overlaid info ──
         Box(
             modifier =
                 Modifier
@@ -167,135 +174,196 @@ fun HeroArtwork(
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize(),
             )
-        }
 
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Icon(
-                    Icons.Default.Palette,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = preview.artistName.ifBlank { "Unknown Artist" },
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            // Gradient scrim at bottom of image
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.45f)
+                        .heightIn(max = 200.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            Brush.verticalGradient(
+                                0f to Color.Transparent,
+                                1f to MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f),
+                            ),
+                        ),
+            )
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            // Artist info overlay (bottom-start)
+            Column(
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 16.dp, bottom = 12.dp, end = 100.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                if (preview.tags.isNotBlank()) {
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                    ) {
-                        Text(
-                            text = preview.tags,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Palette,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = Color.White,
+                    )
+                    Text(
+                        text = preview.artistName.ifBlank { "Unknown Artist" },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (preview.tags.isNotBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
+                        ) {
+                            Text(
+                                text = preview.tags,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            )
+                        }
+                    }
+                    if (preview.date.isNotBlank()) {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .background(
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                                        RoundedCornerShape(50),
+                                    )
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Icon(
+                                Icons.Default.CalendarToday,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = Color.White,
+                            )
+                            Text(
+                                text = preview.date,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White,
+                            )
+                        }
                     }
                 }
-                if (preview.date.isNotBlank()) {
-                    Row(
-                        modifier =
-                            Modifier
-                                .background(
-                                    MaterialTheme.colorScheme.surfaceVariant,
-                                    RoundedCornerShape(50),
-                                )
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            Icons.Default.CalendarToday,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = preview.date,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = Color.White.copy(alpha = 0.7f),
+                    )
+                    Text(
+                        text = "Suggested by ${preview.suggestedByName ?: "Anonymous"}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.7f),
+                    )
                 }
             }
 
-            if (preview.comment.isNotBlank()) {
-                Text(
-                    text = preview.comment,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    softWrap = true,
-                )
-            }
-
-            if (preview.reactions.isNotEmpty()) {
-                ReactionRow(
-                    reactions = preview.reactions,
-                    userEmoji = preview.userEmoji,
-                    token = token,
-                    isLoggedIn = isLoggedIn,
-                    onReactionClick = onReactionClick,
-                )
-            }
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            FilledTonalIconButton(onClick = { exportArtwork(context, preview) }) {
-                Icon(Icons.Default.Save, contentDescription = "Export artwork")
-            }
-
-            FilledTonalIconButton(onClick = { showBottomSheet = true }) {
-                Icon(Icons.Default.Info, contentDescription = "Artwork details")
-            }
-
+            // Action buttons overlay (bottom-end)
             var showReactionPicker by remember { mutableStateOf(false) }
             val hasReacted = preview.userEmoji != null
 
-            FilledTonalIconButton(
-                onClick = {
-                    if (!isLoggedIn) {
-                        Toast.makeText(context, "Login to Bangumi to react", Toast.LENGTH_SHORT)
-                            .show()
-                    } else if (hasReacted) {
-                        onReactionClick(token, preview.userEmoji)
-                    } else {
-                        showReactionPicker = true
-                    }
-                },
-                colors =
-                    IconButtonDefaults.filledTonalIconButtonColors(
-                        contentColor =
-                            if (hasReacted) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                    ),
+            Surface(
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 12.dp, bottom = 12.dp),
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                tonalElevation = 4.dp,
             ) {
-                Icon(
-                    if (hasReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = "React",
-                )
+                Row(
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = { exportArtwork(context, preview) }) {
+                        Icon(
+                            Icons.Default.Save,
+                            contentDescription = "Export artwork",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            if (!isLoggedIn) {
+                                Toast.makeText(
+                                    context,
+                                    "Login to Bangumi to react",
+                                    Toast.LENGTH_SHORT,
+                                )
+                                    .show()
+                            } else if (hasReacted) {
+                                onReactionClick(token, preview.userEmoji)
+                            } else {
+                                showReactionPicker = true
+                            }
+                        },
+                        colors =
+                            IconButtonDefaults.iconButtonColors(
+                                contentColor =
+                                    if (hasReacted) {
+                                        MaterialTheme.colorScheme.error
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                            ),
+                    ) {
+                        Icon(
+                            if (hasReacted) {
+                                Icons.Default.Favorite
+                            } else {
+                                Icons.Default.FavoriteBorder
+                            },
+                            contentDescription = "React",
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            val newState = !preview.isBookmarked
+                            onBookmarkToggle(token, preview.filename, newState)
+                        },
+                        colors =
+                            IconButtonDefaults.iconButtonColors(
+                                contentColor =
+                                    if (preview.isBookmarked) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                            ),
+                    ) {
+                        Icon(
+                            if (preview.isBookmarked) {
+                                Icons.Default.Bookmark
+                            } else {
+                                Icons.Default.BookmarkBorder
+                            },
+                            contentDescription = "Bookmark",
+                        )
+                    }
+                }
             }
 
             if (showReactionPicker && isLoggedIn) {
@@ -307,37 +375,137 @@ fun HeroArtwork(
                     },
                 )
             }
-
-            FilledTonalIconButton(
-                onClick = {
-                    val newState = !preview.isBookmarked
-                    onBookmarkToggle(token, preview.filename, newState)
-                },
-                colors =
-                    IconButtonDefaults.filledTonalIconButtonColors(
-                        contentColor =
-                            if (preview.isBookmarked) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                    ),
-            ) {
-                Icon(
-                    if (preview.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                    contentDescription = "Bookmark",
-                )
-            }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(top = 4.dp))
-    }
+        // ── Zone 2: Metadata content area ──
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            // Comment card
+            if (preview.comment.isNotBlank()) {
+                ElevatedCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors =
+                        CardDefaults.elevatedCardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        ),
+                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.Comment,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text =
+                                    if (!preview.suggestedByName.isNullOrBlank()) {
+                                        "${preview.suggestedByName}'s comment"
+                                    } else {
+                                        "Anonymous's comment"
+                                    },
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = preview.comment,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            softWrap = true,
+                        )
+                    }
+                }
+            }
 
-    if (showBottomSheet) {
-        ArtworkDetailBottomSheet(
-            preview = preview,
-            sheetState = sheetState,
-            onDismiss = { showBottomSheet = false },
-        )
+            // Reactions
+            if (preview.reactions.isNotEmpty()) {
+                ReactionRow(
+                    reactions = preview.reactions,
+                    userEmoji = preview.userEmoji,
+                    token = token,
+                    isLoggedIn = isLoggedIn,
+                    onReactionClick = onReactionClick,
+                )
+            }
+
+            // Characters
+            if (preview.characterNames.isNotEmpty()) {
+                Text(
+                    text = "Characters",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    preview.characterNames.forEach { name ->
+                        SuggestionChip(
+                            onClick = {},
+                            label = { Text(name, style = MaterialTheme.typography.labelMedium) },
+                        )
+                    }
+                }
+            }
+
+            // Source / Artist links
+            if (preview.sourceUrl.isNotBlank() || preview.artistUrl.isNotBlank()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (preview.sourceUrl.isNotBlank()) {
+                        OutlinedButton(
+                            onClick = {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse(preview.sourceUrl)),
+                                )
+                            },
+                        ) {
+                            Icon(
+                                Icons.Default.Image,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("Source")
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                Icons.AutoMirrored.Filled.OpenInNew,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        }
+                    }
+                    if (preview.artistUrl.isNotBlank()) {
+                        OutlinedButton(
+                            onClick = {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse(preview.artistUrl)),
+                                )
+                            },
+                        ) {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("Artist")
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                Icons.AutoMirrored.Filled.OpenInNew,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
