@@ -1,8 +1,6 @@
 package me.eroi.lolidaily.muzei.ui.screen.gallery
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,9 +16,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -47,81 +53,183 @@ fun ArtworkGallery(
     onRemoveBookmark: (ArtworkPreview) -> Unit = {},
     emptyMessage: String = "No artwork yet.",
     isToday: Boolean = true,
+    searchQuery: String = "",
+    selectedTag: String? = null,
+    onSearchQueryChange: (String) -> Unit = {},
+    onTagSelected: (String?) -> Unit = {},
 ) {
+    val filteredArtwork =
+        remember(cachedArtwork, searchQuery, selectedTag) {
+            cachedArtwork.filter { preview ->
+                val matchesSearch =
+                    searchQuery.isBlank() ||
+                        preview.artistName.contains(searchQuery, ignoreCase = true) ||
+                        preview.comment.contains(searchQuery, ignoreCase = true) ||
+                        (preview.suggestedByName?.contains(searchQuery, ignoreCase = true) == true)
+                val matchesTag = selectedTag == null || preview.tags == selectedTag
+                matchesSearch && matchesTag
+            }
+        }
+
     var visibleCount by remember { mutableStateOf(GALLERY_PAGE_SIZE) }
     val listState = rememberLazyListState()
+    val density = LocalDensity.current
+    var searchContentHeightPx by remember { mutableFloatStateOf(0f) }
+    var searchBarOffsetY by remember { mutableFloatStateOf(0f) }
+
+    val topPaddingPx by remember {
+        derivedStateOf {
+            (searchContentHeightPx + searchBarOffsetY).coerceAtLeast(0f)
+        }
+    }
+
+    val nestedScrollConnection =
+        remember {
+            object : NestedScrollConnection {
+                override fun onPreScroll(
+                    available: Offset,
+                    source: NestedScrollSource,
+                ): Offset {
+                    val delta = available.y
+                    val newOffset = (searchBarOffsetY + delta).coerceIn(-searchContentHeightPx, 0f)
+                    val consumed = newOffset - searchBarOffsetY
+                    searchBarOffsetY = newOffset
+                    return Offset(0f, consumed)
+                }
+            }
+        }
+
+    LaunchedEffect(filteredArtwork.size) {
+        visibleCount = minOf(GALLERY_PAGE_SIZE, filteredArtwork.size)
+    }
 
     val shouldLoadMore by remember {
         derivedStateOf {
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()
             lastVisible != null &&
                 lastVisible.index >= (visibleCount - 2) &&
-                visibleCount < cachedArtwork.size
+                visibleCount < filteredArtwork.size
         }
     }
 
     LaunchedEffect(shouldLoadMore) {
         if (shouldLoadMore) {
-            visibleCount = minOf(visibleCount + GALLERY_PAGE_SIZE, cachedArtwork.size)
+            visibleCount = minOf(visibleCount + GALLERY_PAGE_SIZE, filteredArtwork.size)
         }
     }
 
-    LaunchedEffect(cachedArtwork.size) {
-        visibleCount = minOf(GALLERY_PAGE_SIZE, cachedArtwork.size)
-    }
-
-    if (cachedArtwork.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                text = emptyMessage,
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(32.dp),
-            )
-        }
-    } else {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 88.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Content area \u2014 statusBarsPadding keeps content out of the status bar region
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .clipToBounds(),
         ) {
-            items(cachedArtwork.take(visibleCount)) { preview ->
-                ArtworkCard(
-                    preview = preview,
-                    onImageClick = { onFullscreenImage(preview) },
-                    isLoggedIn = isLoggedIn,
-                    onLogin = onLogin,
-                    onReactionClick = onReactionClick,
-                    onRemoveBookmark = onRemoveBookmark,
-                )
-            }
-
-            if (visibleCount < cachedArtwork.size) {
-                item {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(32.dp),
-                            strokeWidth = 3.dp,
-                        )
-                    }
-                }
-            } else if (cachedArtwork.size > GALLERY_PAGE_SIZE) {
-                item {
+            if (filteredArtwork.isEmpty() && searchQuery.isBlank() && selectedTag == null) {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(top = with(density) { searchContentHeightPx.toDp() }),
+                    contentAlignment = Alignment.Center,
+                ) {
                     Text(
-                        text = "\u2014 End of gallery \u2014",
+                        text = emptyMessage,
                         textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                        modifier = Modifier.padding(32.dp),
                     )
                 }
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .nestedScroll(nestedScrollConnection),
+                    contentPadding =
+                        PaddingValues(
+                            start = 16.dp,
+                            end = 16.dp,
+                            bottom = 88.dp,
+                            top = with(density) { topPaddingPx.toDp() },
+                        ),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    items(filteredArtwork.take(visibleCount)) { preview ->
+                        ArtworkCard(
+                            preview = preview,
+                            onImageClick = { onFullscreenImage(preview) },
+                            isLoggedIn = isLoggedIn,
+                            onLogin = onLogin,
+                            onReactionClick = onReactionClick,
+                            onRemoveBookmark = onRemoveBookmark,
+                        )
+                    }
+                    if (visibleCount < filteredArtwork.size) {
+                        item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(32.dp),
+                                    strokeWidth = 3.dp,
+                                )
+                            }
+                        }
+                    } else if (filteredArtwork.size > GALLERY_PAGE_SIZE) {
+                        item {
+                            Text(
+                                text = "\u2014 End of gallery \u2014",
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                            )
+                        }
+                    }
+                }
             }
         }
+
+        // Search bar overlay \u2014 hides on scroll down, appears on scroll up
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .clipToBounds(),
+        ) {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer { translationY = searchBarOffsetY }
+                        .background(MaterialTheme.colorScheme.background)
+                        .onGloballyPositioned { coordinates ->
+                            searchContentHeightPx = coordinates.size.height.toFloat()
+                        }
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 8.dp, bottom = 4.dp),
+            ) {
+                BookmarkSearchField(query = searchQuery, onQueryChange = onSearchQueryChange)
+                Spacer(Modifier.height(8.dp))
+                BookmarkFilterRow(selectedTag = selectedTag, onTagSelected = onTagSelected)
+            }
+        }
+
+        // Fixed status bar background — keeps system bar opaque when search bar slides up
+        Spacer(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .background(MaterialTheme.colorScheme.background),
+        )
     }
 }
 
@@ -391,6 +499,58 @@ fun FullscreenImageOverlay(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun BookmarkSearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+) {
+    TextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+        placeholder = {
+            Text("Search bookmarks...", style = MaterialTheme.typography.bodyMedium)
+        },
+        leadingIcon = {
+            Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp))
+        },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(20.dp))
+                }
+            }
+        },
+        singleLine = true,
+        shape = RoundedCornerShape(28.dp),
+        colors =
+            TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+            ),
+        textStyle = MaterialTheme.typography.bodyMedium,
+    )
+}
+
+@Composable
+private fun BookmarkFilterRow(
+    selectedTag: String?,
+    onTagSelected: (String?) -> Unit,
+) {
+    val tags = listOf(null to "All", "LC0" to "LC0", "LC YJ" to "LC YJ", "LC ES" to "LC ES")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        tags.forEach { (tagValue, label) ->
+            FilterChip(
+                selected = selectedTag == tagValue,
+                onClick = { onTagSelected(tagValue) },
+                label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+            )
         }
     }
 }

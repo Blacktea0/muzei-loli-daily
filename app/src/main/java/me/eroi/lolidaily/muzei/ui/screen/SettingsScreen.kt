@@ -1,6 +1,6 @@
 package me.eroi.lolidaily.muzei.ui.screen
 
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -66,6 +66,8 @@ fun SettingsScreen(
     }
     var todayPagerPage by remember { mutableIntStateOf(0) }
     var fullscreenPreview by remember { mutableStateOf<ArtworkPreview?>(null) }
+    var bookmarkSearchQuery by remember { mutableStateOf("") }
+    var bookmarkSelectedTag by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(selectedTab) {
         prefs.edit().putInt(KEY_LAST_TAB, selectedTab).apply()
@@ -73,7 +75,7 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            if (selectedTab != 0) {
+            if (selectedTab == 2) {
                 CenterAlignedTopAppBar(
                     title = { Text("Loli Daily Settings") },
                     colors =
@@ -150,7 +152,7 @@ fun SettingsScreen(
                 }
 
             1 ->
-                Box(modifier = Modifier.padding(padding)) {
+                Box(modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
                     ArtworkGallery(
                         cachedArtwork = bookmarkArtwork,
                         onFullscreenImage = { fullscreenPreview = it },
@@ -161,6 +163,10 @@ fun SettingsScreen(
                         emptyMessage =
                             "No bookmarked artwork yet.\nTap the bookmark icon on Today's artwork to save it here.",
                         isToday = false,
+                        searchQuery = bookmarkSearchQuery,
+                        selectedTag = bookmarkSelectedTag,
+                        onSearchQueryChange = { bookmarkSearchQuery = it },
+                        onTagSelected = { bookmarkSelectedTag = it },
                     )
                 }
 
