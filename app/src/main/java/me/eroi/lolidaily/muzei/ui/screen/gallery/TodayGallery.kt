@@ -1,5 +1,6 @@
 package me.eroi.lolidaily.muzei.ui.screen.gallery
 
+import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -33,6 +34,7 @@ import coil3.request.ImageRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.api.BangumiApiClient
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.BangumiReply
@@ -111,10 +113,24 @@ fun TodayGallery(
 
                     LaunchedEffect(discussionId) {
                         if (discussionId == null) return@LaunchedEffect
+
+                        val prefs =
+                            context.getSharedPreferences(
+                                LoliDailyArtWorker.PREFS_NAME,
+                                Context.MODE_PRIVATE,
+                            )
+                        val lastFetch =
+                            prefs.getLong(LoliDailyArtWorker.KEY_LAST_COMMENT_FETCH, 0)
+                        val cooldownMs = 5 * 60 * 1000L
+                        if (System.currentTimeMillis() - lastFetch < cooldownMs) {
+                            return@LaunchedEffect
+                        }
+
                         commentsLoading = true
                         commentsError = null
                         try {
-                            val (topicId, _) = BangumiApiClient.parseDiscussionId(discussionId)
+                            val (topicId, _) =
+                                BangumiApiClient.parseDiscussionId(discussionId)
                             val fetched =
                                 withContext(Dispatchers.IO) {
                                     BangumiApiClient.fetchTopic(context, topicId)
@@ -124,6 +140,13 @@ fun TodayGallery(
                                     BangumiApiClient.findTodayFloor(
                                         fetched, preview.date, preview.tags,
                                     )
+                                prefs
+                                    .edit()
+                                    .putLong(
+                                        LoliDailyArtWorker.KEY_LAST_COMMENT_FETCH,
+                                        System.currentTimeMillis(),
+                                    )
+                                    .apply()
                             } else {
                                 commentsError = "Failed to load comments"
                             }
