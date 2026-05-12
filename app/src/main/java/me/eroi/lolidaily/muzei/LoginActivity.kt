@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.api.Session
 import me.eroi.lolidaily.muzei.ui.theme.LoliDailyTheme
 
@@ -75,8 +76,7 @@ class LoginActivity : ComponentActivity() {
     }
 
     companion object {
-        val OAUTH_URL
-            get() = "${BuildConfig.API_BASE_URL}/api/v1/oauth/request"
+        fun oauthUrl(context: android.content.Context) = "${LoliApiClient.getApiBaseUrl(context)}/api/v1/oauth/request"
 
         fun clearBgmCookies() {
             val cm = CookieManager.getInstance()
@@ -139,7 +139,7 @@ private fun LoginScreen(
                             if (url != null && !oauthTriggered && url.contains(domain)) {
                                 oauthTriggered = true
                                 Log.d("LoginActivity", "Domain loaded — navigating to OAuth")
-                                view?.loadUrl(LoginActivity.OAUTH_URL)
+                                view?.loadUrl(LoginActivity.oauthUrl(context))
                                 return
                             }
                             statusMessage =
@@ -205,7 +205,7 @@ private fun LoginScreen(
                             // "invalid_uri". Re-start the OAuth flow from LC instead.
                             if (url.contains("oauth/authorize") && !url.contains("redirect_uri")) {
                                 Log.d("LoginActivity", "Detected truncated OAuth — reloading from LC")
-                                view?.loadUrl(LoginActivity.OAUTH_URL)
+                                view?.loadUrl(LoginActivity.oauthUrl(context))
                                 return true
                             }
 

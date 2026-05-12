@@ -3,7 +3,7 @@ package me.eroi.lolidaily.muzei.api
 import android.content.Context
 import android.util.Log
 import kotlinx.serialization.json.Json
-import me.eroi.lolidaily.muzei.BuildConfig
+import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyResponse
 import okhttp3.OkHttpClient
@@ -14,11 +14,26 @@ object LoliApiClient {
     private const val TAG = "LoliApiClient"
     private const val USER_AGENT = "LoliDaily/1.0 (Android)"
 
-    val API_URL
-        get() = "${BuildConfig.API_BASE_URL}/api/v1/daily?badge=LC%20YJ-ES-NC-PG"
+    const val DEFAULT_API_BASE_URL = "https://loliconey.tsuki.ga"
+    const val KEY_DEBUG_API_BASE_URL = "debug_api_base_url"
 
-    val REACT_API_URL
-        get() = "${BuildConfig.API_BASE_URL}/api/v1/daily/react?badge=LC%20YJ-ES-NC-PG"
+    val KNOWN_SERVERS =
+        listOf(
+            "https://loliconey.tsuki.ga",
+            "https://lc-coney.deno.dev",
+            "https://next.bgm.tv",
+        )
+
+    fun getApiBaseUrl(context: Context): String {
+        val prefs =
+            context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(KEY_DEBUG_API_BASE_URL, null)?.takeIf { it.isNotBlank() }
+            ?: DEFAULT_API_BASE_URL
+    }
+
+    fun apiUrl(context: Context) = "${getApiBaseUrl(context)}/api/v1/daily?badge=LC%20YJ-ES-NC-PG"
+
+    fun reactApiUrl(context: Context) = "${getApiBaseUrl(context)}/api/v1/daily/react?badge=LC%20YJ-ES-NC-PG"
 
     val json = Json { ignoreUnknownKeys = true }
     val httpClient =
@@ -29,18 +44,7 @@ object LoliApiClient {
 
     /** Returns parsed cards + the response [DailyResponse.date] field, or null on failure. */
     fun fetchDailyResponse(context: Context): Pair<List<Card>, String>? {
-        val prefs =
-            context.getSharedPreferences(
-                me.eroi.lolidaily.muzei.LoliDailyArtWorker.PREFS_NAME,
-                Context.MODE_PRIVATE,
-            )
-        val useMock = prefs.getBoolean("debug_use_mock_api", false)
-        val url =
-            if (useMock) {
-                prefs.getString("debug_mock_api_url", null) ?: API_URL
-            } else {
-                API_URL
-            }
+        val url = apiUrl(context)
 
         val request = Request.Builder().url(url).header("User-Agent", USER_AGENT).get().build()
 

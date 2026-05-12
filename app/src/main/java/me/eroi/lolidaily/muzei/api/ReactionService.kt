@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
-import me.eroi.lolidaily.muzei.BuildConfig
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.model.DailyReactResponse
 import me.eroi.lolidaily.muzei.model.DailyResponse
@@ -34,7 +33,7 @@ object ReactionService {
 
             val request =
                 Request.Builder()
-                    .url(LoliApiClient.REACT_API_URL)
+                    .url(LoliApiClient.reactApiUrl(context))
                     .header("User-Agent", "LoliDaily/1.0 (Android)")
                     .get()
                     .build()
@@ -149,7 +148,7 @@ object ReactionService {
 
         val request =
             Request.Builder()
-                .url("${BuildConfig.API_BASE_URL}/api/v1/daily/react?cardTypeIdx=$cardIndex")
+                .url("${LoliApiClient.getApiBaseUrl(context)}/api/v1/daily/react?cardTypeIdx=$cardIndex")
                 .header("Authorization", "Bearer ${session.token}")
                 .header("User-Agent", "LoliDaily/1.0 (Android)")
                 .method("PATCH", body)

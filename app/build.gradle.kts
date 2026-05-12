@@ -19,36 +19,7 @@ android {
         versionCode = 1
         versionName = "1.0.0"
 
-        val apiBaseUrl =
-            System.getenv("LOLI_API_URL")
-                ?: rootProject
-                    .file("local.properties")
-                    .takeIf { it.exists() }
-                    ?.readLines()
-                    ?.mapNotNull { line ->
-                        val eq = line.indexOf('=')
-                        if (eq > 0 && line.substring(0, eq).trim() == "loliApiUrl") {
-                            line.substring(eq + 1).trim()
-                        } else {
-                            null
-                        }
-                    }
-                    ?.firstOrNull()
-                ?: rootProject
-                    .file("gradle.properties")
-                    .takeIf { it.exists() }
-                    ?.readLines()
-                    ?.mapNotNull { line ->
-                        val eq = line.indexOf('=')
-                        if (eq > 0 && line.substring(0, eq).trim() == "loliApiUrl") {
-                            line.substring(eq + 1).trim()
-                        } else {
-                            null
-                        }
-                    }
-                    ?.firstOrNull()
-                ?: "https://loliconey.tsuki.ga"
-        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+        buildConfigField("String", "API_BASE_URL", "\"https://loliconey.tsuki.ga\"")
     }
 
     buildTypes {

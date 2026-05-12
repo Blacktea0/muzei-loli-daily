@@ -1,5 +1,6 @@
 package me.eroi.lolidaily.muzei.ui.screen
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -22,6 +23,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -40,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
+import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.util.SectionTitle
 
 /**
@@ -72,12 +76,144 @@ fun DebugSettingsScreen(onBack: () -> Unit) {
             // ── API ───────────────────────────────
             item { SectionTitle("API") }
 
+            item { ApiServerCard() }
             item { CacheSwitchCard() }
 
             // ── Refresh Schedule ─────────────────
             item { SectionTitle("Refresh Schedule") }
 
             item { RefreshTimeCard() }
+        }
+    }
+}
+
+// ── API Server Card ──────────────────────────────────────────────
+
+private const val CUSTOM_OPTION = "Custom"
+
+@Composable
+private fun ApiServerCard() {
+    val context = LocalContext.current
+    val prefs =
+        remember {
+            context.getSharedPreferences(
+                LoliDailyArtWorker.PREFS_NAME,
+                android.content.Context.MODE_PRIVATE,
+            )
+        }
+
+    val savedUrl = remember { prefs.getString(LoliApiClient.KEY_DEBUG_API_BASE_URL, null) }
+
+    // Determine initial selection: if saved URL matches a known server, select it; otherwise custom
+    val initialSelection =
+        remember {
+            val matched = LoliApiClient.KNOWN_SERVERS.indexOfFirst { it == savedUrl }
+            if (matched >= 0) LoliApiClient.KNOWN_SERVERS[matched] else CUSTOM_OPTION
+        }
+
+    var selected by remember { mutableStateOf(initialSelection) }
+    var customUrl by remember {
+        mutableStateOf(
+            if (initialSelection == CUSTOM_OPTION) savedUrl ?: "" else "",
+        )
+    }
+
+    fun persist(url: String) {
+        prefs.edit().putString(LoliApiClient.KEY_DEBUG_API_BASE_URL, url).apply()
+    }
+
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Column(modifier = Modifier.padding(4.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 12.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "API Server", style = MaterialTheme.typography.bodyLarge)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Select the API server to use. Default: ${LoliApiClient.DEFAULT_API_BASE_URL}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            LoliApiClient.KNOWN_SERVERS.forEach { server ->
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(
+                        selected = selected == server,
+                        onClick = {
+                            selected = server
+                            persist(server)
+                        },
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = server, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+
+            // Custom option
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(
+                    selected = selected == CUSTOM_OPTION,
+                    onClick = {
+                        selected = CUSTOM_OPTION
+                        if (customUrl.isNotBlank()) persist(customUrl)
+                    },
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = "Custom", style = MaterialTheme.typography.bodyMedium)
+            }
+
+            AnimatedVisibility(visible = selected == CUSTOM_OPTION) {
+                OutlinedTextField(
+                    value = customUrl,
+                    onValueChange = { customUrl = it },
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                    placeholder = { Text("https://example.com") },
+                    singleLine = true,
+                    label = { Text("Server URL") },
+                )
+            }
+
+            if (selected == CUSTOM_OPTION && customUrl.isNotBlank()) {
+                FilledTonalButton(
+                    onClick = { persist(customUrl) },
+                    modifier =
+                        Modifier.align(Alignment.End).padding(horizontal = 16.dp, vertical = 4.dp),
+                ) {
+                    Text("Apply")
+                }
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+            )
+
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 12.dp)) {
+                Text(
+                    text = "Active: ${LoliApiClient.getApiBaseUrl(context)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }

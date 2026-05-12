@@ -32,7 +32,7 @@ A git pre-commit hook runs `ktlintFormat` automatically. There are no tests defi
 ./gradlew mockLogs              # prints server.log
 ```
 
-The app reads `BuildConfig.API_BASE_URL` at build time, resolved from: env `LOLI_API_URL` → `local.properties` key `loliApiUrl` → `gradle.properties` key `loliApiUrl` → fallback `https://loliconey.tsuki.ga`. Set `debug_use_mock_api` in SharedPreferences (via Debug Settings screen) to route requests to the mock server at runtime.
+The API server URL is configured at runtime via Debug Settings → API Server. Users can select from known servers (`loliconey.tsuki.ga`, `lc-coney.deno.dev`, `next.bgm.tv`) or enter a custom URL. The default is `https://loliconey.tsuki.ga`. The value is stored in SharedPreferences key `debug_api_base_url`.
 
 ## Architecture
 
