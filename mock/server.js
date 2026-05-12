@@ -66,6 +66,12 @@ function localShort(d) {
     ` ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
+/** Shifted date: day starts at 07:21 GMT+8 instead of midnight. */
+function shiftedDate(d) {
+  const shifted = new Date(d.getTime() - (7 * 60 + 21) * 60 * 1000);
+  return localDate(shifted);
+}
+
 // Helper: build full base URL from request
 function getBaseUrl(req) {
   const host = req.get("host") || `localhost:${PORT}`;
@@ -137,7 +143,7 @@ app.get("/api/v1/daily", (req, res) => {
       }
     });
 
-    fixture.date = localDate(new Date());
+    fixture.date = shiftedDate(new Date());
     console.log(`[mock] Returning daily with date=${fixture.date}, cards=${fixture.cards.length}`);
     res.json(fixture);
   } else {
@@ -158,6 +164,25 @@ app.get("/api/v1/daily/react", (_req, res) => {
 // PATCH /api/v1/daily/react?cardTypeIdx=...
 app.patch("/api/v1/daily/react", (req, res) => {
   res.json({ ok: true });
+});
+
+// GET /p1/groups/-/topics/:topicID — Bangumi group topic (returns same content for any topicID)
+app.get("/p1/groups/-/topics/:topicID", (_req, res) => {
+  const fixture = readFixture("topic");
+  if (fixture) {
+    const today = shiftedDate(new Date());
+    const datePattern = /^\d{4}-\d{2}-\d{2}/;
+    for (let i = fixture.replies.length - 1; i >= 0; i--) {
+      const reply = fixture.replies[i];
+      if (reply.state === 0 && datePattern.test(reply.content) && reply.content.includes("清晨")) {
+        reply.content = reply.content.replace(datePattern, today);
+        break;
+      }
+    }
+    res.json(fixture);
+  } else {
+    res.status(404).json({ error: "fixture not found: topic.json" });
+  }
 });
 
 // GET /api/v1/oauth/request — interactive mock OAuth flow

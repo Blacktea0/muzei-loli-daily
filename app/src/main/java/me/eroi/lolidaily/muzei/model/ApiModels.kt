@@ -40,3 +40,66 @@ data class DailyReactResponse(
 )
 
 @Serializable data class Discussion(val id: String, val count: Int)
+
+// ── Bangumi Topic / Reply ─────────────────────────────────
+
+@Serializable
+data class BangumiTopic(
+    val id: Int,
+    val title: String = "",
+    val creator: BangumiUser? = null,
+    val createdAt: Int = 0,
+    val replyCount: Int = 0,
+    val replies: List<BangumiReply> = emptyList(),
+)
+
+@Serializable
+data class BangumiReply(
+    val id: Int,
+    val creatorID: Int = 0,
+    val content: String = "",
+    val createdAt: Int = 0,
+    val state: Int = 0,
+    val creator: BangumiUser? = null,
+    val replies: List<BangumiSubReply> = emptyList(),
+    val reactions: List<BangumiReaction> = emptyList(),
+)
+
+@Serializable
+data class BangumiSubReply(
+    val id: Int,
+    val creatorID: Int = 0,
+    val content: String = "",
+    val createdAt: Int = 0,
+    val state: Int = 0,
+    val creator: BangumiUser? = null,
+    val reactions: List<BangumiReaction> = emptyList(),
+)
+
+@Serializable
+data class BangumiUser(
+    val id: Int = 0,
+    val username: String = "",
+    val nickname: String = "",
+    val avatar: BangumiAvatar? = null,
+)
+
+@Serializable
+data class BangumiAvatar(
+    val small: String = "",
+    val medium: String = "",
+    val large: String = "",
+)
+
+@Serializable
+data class BangumiReaction(
+    val value: Int = 0,
+    val users: List<BangumiReactionUser> = emptyList(),
+)
+
+@Serializable
+data class BangumiReactionUser(
+    val id: Int = 0,
+    val username: String = "",
+    val nickname: String = "",
+)

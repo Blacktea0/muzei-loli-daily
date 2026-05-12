@@ -18,6 +18,8 @@ data class ArtworkPreview(
     val userEmoji: Int? = null,
     val isBookmarked: Boolean = true,
     val suggestedByName: String? = null,
+    val discussionId: String? = null,
+    val discussionCount: Int = 0,
 )
 
 /**

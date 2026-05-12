@@ -433,6 +433,8 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
         fun loadUserReactions(context: Context) = ReactionService.loadUserReactions(context)
 
+        fun loadDiscussions(context: Context) = ReactionService.loadDiscussions(context)
+
         fun getCardIndex(
             context: Context,
             token: String,

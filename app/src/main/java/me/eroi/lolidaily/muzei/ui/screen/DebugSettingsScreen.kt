@@ -77,6 +77,7 @@ fun DebugSettingsScreen(onBack: () -> Unit) {
             item { SectionTitle("API") }
 
             item { ApiServerCard() }
+            item { BangumiApiServerCard() }
             item { CacheSwitchCard() }
 
             // ── Refresh Schedule ─────────────────
@@ -208,6 +209,134 @@ private fun ApiServerCard() {
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 12.dp)) {
                 Text(
                     text = "Active: ${LoliApiClient.getApiBaseUrl(context)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+}
+
+// ── Bangumi API Server Card ──────────────────────────────────────
+
+@Composable
+private fun BangumiApiServerCard() {
+    val context = LocalContext.current
+    val prefs =
+        remember {
+            context.getSharedPreferences(
+                LoliDailyArtWorker.PREFS_NAME,
+                android.content.Context.MODE_PRIVATE,
+            )
+        }
+
+    val savedUrl = remember { prefs.getString(LoliApiClient.KEY_DEBUG_BANGUMI_BASE_URL, null) }
+
+    val initialSelection =
+        remember {
+            val matched = LoliApiClient.KNOWN_BANGUMI_SERVERS.indexOfFirst { it == savedUrl }
+            if (matched >= 0) LoliApiClient.KNOWN_BANGUMI_SERVERS[matched] else CUSTOM_OPTION
+        }
+
+    var selected by remember { mutableStateOf(initialSelection) }
+    var customUrl by remember {
+        mutableStateOf(
+            if (initialSelection == CUSTOM_OPTION) savedUrl ?: "" else "",
+        )
+    }
+
+    fun persist(url: String) {
+        prefs.edit().putString(LoliApiClient.KEY_DEBUG_BANGUMI_BASE_URL, url).apply()
+    }
+
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Column(modifier = Modifier.padding(4.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 12.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "Bangumi API Server", style = MaterialTheme.typography.bodyLarge)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Server for fetching topic comments. Default: ${LoliApiClient.DEFAULT_BANGUMI_BASE_URL}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            LoliApiClient.KNOWN_BANGUMI_SERVERS.forEach { server ->
+                Row(
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(
+                        selected = selected == server,
+                        onClick = {
+                            selected = server
+                            persist(server)
+                        },
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = server, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+
+            // Custom option
+            Row(
+                modifier =
+                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(
+                    selected = selected == CUSTOM_OPTION,
+                    onClick = {
+                        selected = CUSTOM_OPTION
+                        if (customUrl.isNotBlank()) persist(customUrl)
+                    },
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = "Custom", style = MaterialTheme.typography.bodyMedium)
+            }
+
+            AnimatedVisibility(visible = selected == CUSTOM_OPTION) {
+                OutlinedTextField(
+                    value = customUrl,
+                    onValueChange = { customUrl = it },
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                    placeholder = { Text("https://bgm.tv") },
+                    singleLine = true,
+                    label = { Text("Bangumi Server URL") },
+                )
+            }
+
+            if (selected == CUSTOM_OPTION && customUrl.isNotBlank()) {
+                FilledTonalButton(
+                    onClick = { persist(customUrl) },
+                    modifier =
+                        Modifier.align(Alignment.End).padding(horizontal = 16.dp, vertical = 4.dp),
+                ) {
+                    Text("Apply")
+                }
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+            )
+
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 12.dp)) {
+                Text(
+                    text = "Active: ${LoliApiClient.getBangumiBaseUrl(context)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,

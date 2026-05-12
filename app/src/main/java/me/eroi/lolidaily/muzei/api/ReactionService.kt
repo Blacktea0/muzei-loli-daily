@@ -7,6 +7,7 @@ import kotlinx.serialization.serializer
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.model.DailyReactResponse
 import me.eroi.lolidaily.muzei.model.DailyResponse
+import me.eroi.lolidaily.muzei.model.Discussion
 import me.eroi.lolidaily.muzei.model.ReactionCount
 import me.eroi.lolidaily.muzei.util.Md5
 import okhttp3.MediaType.Companion.toMediaType
@@ -18,6 +19,7 @@ object ReactionService {
     private const val TAG = "ReactionService"
     private const val KEY_REACTIONS = "reactions"
     private const val KEY_USER_REACTIONS = "user_reactions"
+    private const val KEY_DISCUSSIONS = "discussions"
     private val json = Json { ignoreUnknownKeys = true }
 
     /**
@@ -92,6 +94,21 @@ object ReactionService {
                     .apply()
             }
 
+            // Cache discussions mapped to tokens
+            val tokenDiscussions = mutableMapOf<String, Discussion>()
+            reactData.discussions.forEachIndexed { idx, discussion ->
+                if (idx >= daily.cards.size) return@forEachIndexed
+                val token = Md5.hash(daily.cards[idx].imgUrl)
+                tokenDiscussions[token] = discussion
+            }
+            prefs
+                .edit()
+                .putString(
+                    KEY_DISCUSSIONS,
+                    json.encodeToString(serializer<Map<String, Discussion>>(), tokenDiscussions),
+                )
+                .apply()
+
             Log.d(TAG, "Cached reactions for ${tokenReactions.size} cards")
         } catch (e: Exception) {
             Log.w(TAG, "Failed to fetch reactions", e)
@@ -105,6 +122,18 @@ object ReactionService {
         val raw = prefs.getString(KEY_REACTIONS, null) ?: return emptyMap()
         return try {
             json.decodeFromString<Map<String, List<ReactionCount>>>(raw)
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
+    /** Loads cached per-image discussion map (token → Discussion). */
+    fun loadDiscussions(context: Context): Map<String, Discussion> {
+        val prefs =
+            context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+        val raw = prefs.getString(KEY_DISCUSSIONS, null) ?: return emptyMap()
+        return try {
+            json.decodeFromString<Map<String, Discussion>>(raw)
         } catch (_: Exception) {
             emptyMap()
         }

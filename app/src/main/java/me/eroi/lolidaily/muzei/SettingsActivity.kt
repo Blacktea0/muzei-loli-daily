@@ -291,6 +291,7 @@ class SettingsActivity : AppCompatActivity() {
         val dateMap = LoliDailyArtWorker.loadImageDates(this)
         val reactionsMap = LoliDailyArtWorker.loadReactions(this)
         val userReactionsMap = LoliDailyArtWorker.loadUserReactions(this)
+        val discussionsMap = LoliDailyArtWorker.loadDiscussions(this)
 
         // Persisted metadata from Room (covers all historical batches)
         val roomFieldsByToken = loadRoomArtworkFields()
@@ -323,6 +324,8 @@ class SettingsActivity : AppCompatActivity() {
                         userEmoji = userReactionsMap[token],
                         isBookmarked = roomFields?.bookmarked?.let { it != 0 } ?: false,
                         suggestedByName = card?.suggestedBy?.nickname ?: roomFields?.suggestedByNickname,
+                        discussionId = discussionsMap[token]?.id,
+                        discussionCount = discussionsMap[token]?.count ?: 0,
                     )
                 }
                 .sortedWith(

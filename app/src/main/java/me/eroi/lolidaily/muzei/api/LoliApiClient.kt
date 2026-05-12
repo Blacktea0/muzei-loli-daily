@@ -17,10 +17,17 @@ object LoliApiClient {
     const val DEFAULT_API_BASE_URL = "https://loliconey.tsuki.ga"
     const val KEY_DEBUG_API_BASE_URL = "debug_api_base_url"
 
+    const val DEFAULT_BANGUMI_BASE_URL = "https://next.bgm.tv"
+    const val KEY_DEBUG_BANGUMI_BASE_URL = "debug_bangumi_base_url"
+
     val KNOWN_SERVERS =
         listOf(
             "https://loliconey.tsuki.ga",
             "https://lc-coney.deno.dev",
+        )
+
+    val KNOWN_BANGUMI_SERVERS =
+        listOf(
             "https://next.bgm.tv",
         )
 
@@ -29,6 +36,13 @@ object LoliApiClient {
             context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getString(KEY_DEBUG_API_BASE_URL, null)?.takeIf { it.isNotBlank() }
             ?: DEFAULT_API_BASE_URL
+    }
+
+    fun getBangumiBaseUrl(context: Context): String {
+        val prefs =
+            context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(KEY_DEBUG_BANGUMI_BASE_URL, null)?.takeIf { it.isNotBlank() }
+            ?: DEFAULT_BANGUMI_BASE_URL
     }
 
     fun apiUrl(context: Context) = "${getApiBaseUrl(context)}/api/v1/daily?badge=LC%20YJ-ES-NC-PG"

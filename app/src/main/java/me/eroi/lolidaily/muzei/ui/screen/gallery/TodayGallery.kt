@@ -30,10 +30,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import me.eroi.lolidaily.muzei.api.BangumiApiClient
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
-import me.eroi.lolidaily.muzei.ui.screen.components.ReactionPickerDialog
-import me.eroi.lolidaily.muzei.ui.screen.components.ReactionRow
+import me.eroi.lolidaily.muzei.model.BangumiReply
+import me.eroi.lolidaily.muzei.ui.screen.components.*
 import me.eroi.lolidaily.muzei.util.exportArtwork
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -100,8 +103,44 @@ fun TodayGallery(
                 modifier = Modifier.fillMaxSize(),
             ) {
                 if (preview != null) {
+                    val context = LocalContext.current
+                    val discussionId = preview.discussionId
+                    var todayFloor by remember { mutableStateOf<BangumiReply?>(null) }
+                    var commentsLoading by remember { mutableStateOf(false) }
+                    var commentsError by remember { mutableStateOf<String?>(null) }
+
+                    LaunchedEffect(discussionId) {
+                        if (discussionId == null) return@LaunchedEffect
+                        commentsLoading = true
+                        commentsError = null
+                        try {
+                            val (topicId, _) = BangumiApiClient.parseDiscussionId(discussionId)
+                            val fetched =
+                                withContext(Dispatchers.IO) {
+                                    BangumiApiClient.fetchTopic(context, topicId)
+                                }
+                            if (fetched != null) {
+                                todayFloor =
+                                    BangumiApiClient.findTodayFloor(
+                                        fetched, preview.date, preview.tags,
+                                    )
+                            } else {
+                                commentsError = "Failed to load comments"
+                            }
+                        } catch (e: Exception) {
+                            commentsError = e.message ?: "Unknown error"
+                        } finally {
+                            commentsLoading = false
+                        }
+                    }
+
+                    val commentsToShow =
+                        remember(todayFloor) {
+                            todayFloor?.replies.orEmpty()
+                        }
+
                     LazyColumn(overscrollEffect = null) {
-                        item {
+                        item(key = "hero") {
                             HeroArtwork(
                                 preview = preview,
                                 isLoggedIn = isLoggedIn,
@@ -110,6 +149,36 @@ fun TodayGallery(
                                 onBookmarkToggle = onBookmarkToggle,
                                 modifier = Modifier.fillMaxWidth(),
                             )
+                        }
+
+                        // Inline comment section
+                        if (discussionId != null) {
+                            item(key = "comment_header") {
+                                CommentHeader(count = commentsToShow.count { it.state == 0 })
+                            }
+
+                            when {
+                                commentsLoading -> {
+                                    item(key = "comments_loading") { CommentsLoading() }
+                                }
+                                commentsError != null -> {
+                                    item(key = "comments_error") { CommentsError(commentsError!!) }
+                                }
+                                todayFloor == null && !commentsLoading && commentsError == null -> {
+                                    item(key = "comments_empty") { EmptyComments() }
+                                }
+                                else -> {
+                                    items(
+                                        count = commentsToShow.size,
+                                        key = { commentsToShow[it].id },
+                                    ) { index ->
+                                        FloorCommentEntry(reply = commentsToShow[index])
+                                    }
+                                    if (commentsToShow.isEmpty()) {
+                                        item(key = "comments_empty") { EmptyComments() }
+                                    }
+                                }
+                            }
                         }
                     }
                 } else {
