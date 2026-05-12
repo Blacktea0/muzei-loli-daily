@@ -264,9 +264,9 @@ private fun PreferenceTab(
                         color = MaterialTheme.colorScheme.outlineVariant,
                     )
                     FilterOption(
-                        label = "LC0",
-                        selected = selectedTags.contains("LC0"),
-                        onClick = { onTagsChanged(setOf("LC0")) },
+                        label = "LC0 / LC YJ",
+                        selected = selectedTags == setOf("LC0", "LC YJ"),
+                        onClick = { onTagsChanged(setOf("LC0", "LC YJ")) },
                     )
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 16.dp),

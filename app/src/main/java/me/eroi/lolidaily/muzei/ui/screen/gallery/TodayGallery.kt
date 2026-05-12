@@ -49,8 +49,9 @@ fun TodayGallery(
     initialPage: Int = 0,
     onPageChanged: (Int) -> Unit = {},
 ) {
-    val tags = listOf("LC0", "LC ES")
-    val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { tags.size })
+    val tags = remember(todayArtwork) { todayArtwork.map { it.tags }.distinct() }
+    val showTabs = tags.size > 1
+    val pagerState = rememberPagerState(initialPage = initialPage.coerceIn(0, (tags.size - 1).coerceAtLeast(0)), pageCount = { tags.size })
 
     LaunchedEffect(pagerState.currentPage) {
         onPageChanged(pagerState.currentPage)
@@ -67,16 +68,18 @@ fun TodayGallery(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        PrimaryTabRow(
-            selectedTabIndex = pagerState.currentPage,
-            modifier = Modifier.statusBarsPadding(),
-        ) {
-            tags.forEachIndexed { index, tag ->
-                Tab(
-                    selected = pagerState.currentPage == index,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                    text = { Text(tag) },
-                )
+        if (showTabs) {
+            PrimaryTabRow(
+                selectedTabIndex = pagerState.currentPage,
+                modifier = Modifier.statusBarsPadding(),
+            ) {
+                tags.forEachIndexed { index, tag ->
+                    Tab(
+                        selected = pagerState.currentPage == index,
+                        onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                        text = { Text(tag) },
+                    )
+                }
             }
         }
 
