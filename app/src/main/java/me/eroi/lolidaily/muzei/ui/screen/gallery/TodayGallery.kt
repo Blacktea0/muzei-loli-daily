@@ -1,6 +1,5 @@
 package me.eroi.lolidaily.muzei.ui.screen.gallery
 
-import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -31,11 +30,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import me.eroi.lolidaily.muzei.LoliDailyArtWorker
-import me.eroi.lolidaily.muzei.api.BangumiApiClient
+import me.eroi.lolidaily.muzei.api.ReactionService
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.BangumiReply
 import me.eroi.lolidaily.muzei.ui.screen.components.*
@@ -107,54 +103,12 @@ fun TodayGallery(
                 if (preview != null) {
                     val context = LocalContext.current
                     val discussionId = preview.discussionId
+
                     var todayFloor by remember { mutableStateOf<BangumiReply?>(null) }
-                    var commentsLoading by remember { mutableStateOf(false) }
-                    var commentsError by remember { mutableStateOf<String?>(null) }
 
                     LaunchedEffect(discussionId) {
                         if (discussionId == null) return@LaunchedEffect
-
-                        val prefs =
-                            context.getSharedPreferences(
-                                LoliDailyArtWorker.PREFS_NAME,
-                                Context.MODE_PRIVATE,
-                            )
-                        val lastFetch =
-                            prefs.getLong(LoliDailyArtWorker.KEY_LAST_COMMENT_FETCH, 0)
-                        val cooldownMs = 5 * 60 * 1000L
-                        if (System.currentTimeMillis() - lastFetch < cooldownMs) {
-                            return@LaunchedEffect
-                        }
-
-                        commentsLoading = true
-                        commentsError = null
-                        try {
-                            val (topicId, _) =
-                                BangumiApiClient.parseDiscussionId(discussionId)
-                            val fetched =
-                                withContext(Dispatchers.IO) {
-                                    BangumiApiClient.fetchTopic(context, topicId)
-                                }
-                            if (fetched != null) {
-                                todayFloor =
-                                    BangumiApiClient.findTodayFloor(
-                                        fetched, preview.date, preview.tags,
-                                    )
-                                prefs
-                                    .edit()
-                                    .putLong(
-                                        LoliDailyArtWorker.KEY_LAST_COMMENT_FETCH,
-                                        System.currentTimeMillis(),
-                                    )
-                                    .apply()
-                            } else {
-                                commentsError = "Failed to load comments"
-                            }
-                        } catch (e: Exception) {
-                            commentsError = e.message ?: "Unknown error"
-                        } finally {
-                            commentsLoading = false
-                        }
+                        todayFloor = ReactionService.loadTopicFloors(context)[discussionId]
                     }
 
                     val commentsToShow =
@@ -180,26 +134,14 @@ fun TodayGallery(
                                 CommentHeader(count = commentsToShow.count { it.state == 0 })
                             }
 
-                            when {
-                                commentsLoading -> {
-                                    item(key = "comments_loading") { CommentsLoading() }
-                                }
-                                commentsError != null -> {
-                                    item(key = "comments_error") { CommentsError(commentsError!!) }
-                                }
-                                todayFloor == null && !commentsLoading && commentsError == null -> {
-                                    item(key = "comments_empty") { EmptyComments() }
-                                }
-                                else -> {
-                                    items(
-                                        count = commentsToShow.size,
-                                        key = { commentsToShow[it].id },
-                                    ) { index ->
-                                        FloorCommentEntry(reply = commentsToShow[index])
-                                    }
-                                    if (commentsToShow.isEmpty()) {
-                                        item(key = "comments_empty") { EmptyComments() }
-                                    }
+                            if (commentsToShow.isEmpty()) {
+                                item(key = "comments_empty") { EmptyComments() }
+                            } else {
+                                items(
+                                    count = commentsToShow.size,
+                                    key = { commentsToShow[it].id },
+                                ) { index ->
+                                    FloorCommentEntry(reply = commentsToShow[index])
                                 }
                             }
                         }

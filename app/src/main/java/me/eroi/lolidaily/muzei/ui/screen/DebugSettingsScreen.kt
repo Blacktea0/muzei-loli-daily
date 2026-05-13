@@ -113,11 +113,11 @@ private fun ApiServerCard() {
         }
 
     var selected by remember { mutableStateOf(initialSelection) }
-    var customUrl by remember {
-        mutableStateOf(
-            if (initialSelection == CUSTOM_OPTION) savedUrl ?: "" else "",
-        )
-    }
+    val savedCustom =
+        remember {
+            prefs.getString(LoliApiClient.KEY_DEBUG_API_BASE_URL_CUSTOM, null) ?: ""
+        }
+    var customUrl by remember { mutableStateOf(if (initialSelection == CUSTOM_OPTION) savedUrl ?: "" else savedCustom) }
 
     fun persist(url: String) {
         prefs.edit().putString(LoliApiClient.KEY_DEBUG_API_BASE_URL, url).apply()
@@ -181,7 +181,11 @@ private fun ApiServerCard() {
             AnimatedVisibility(visible = selected == CUSTOM_OPTION) {
                 OutlinedTextField(
                     value = customUrl,
-                    onValueChange = { customUrl = it },
+                    onValueChange = {
+                        customUrl = it
+                        prefs.edit().putString(LoliApiClient.KEY_DEBUG_API_BASE_URL_CUSTOM, it).apply()
+                        if (selected == CUSTOM_OPTION) persist(it)
+                    },
                     modifier =
                         Modifier.fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 4.dp),
@@ -241,11 +245,11 @@ private fun BangumiApiServerCard() {
         }
 
     var selected by remember { mutableStateOf(initialSelection) }
-    var customUrl by remember {
-        mutableStateOf(
-            if (initialSelection == CUSTOM_OPTION) savedUrl ?: "" else "",
-        )
-    }
+    val savedCustom =
+        remember {
+            prefs.getString(LoliApiClient.KEY_DEBUG_BANGUMI_BASE_URL_CUSTOM, null) ?: ""
+        }
+    var customUrl by remember { mutableStateOf(if (initialSelection == CUSTOM_OPTION) savedUrl ?: "" else savedCustom) }
 
     fun persist(url: String) {
         prefs.edit().putString(LoliApiClient.KEY_DEBUG_BANGUMI_BASE_URL, url).apply()
@@ -309,7 +313,11 @@ private fun BangumiApiServerCard() {
             AnimatedVisibility(visible = selected == CUSTOM_OPTION) {
                 OutlinedTextField(
                     value = customUrl,
-                    onValueChange = { customUrl = it },
+                    onValueChange = {
+                        customUrl = it
+                        prefs.edit().putString(LoliApiClient.KEY_DEBUG_BANGUMI_BASE_URL_CUSTOM, it).apply()
+                        if (selected == CUSTOM_OPTION) persist(it)
+                    },
                     modifier =
                         Modifier.fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 4.dp),

@@ -16,9 +16,11 @@ object LoliApiClient {
 
     const val DEFAULT_API_BASE_URL = "https://loliconey.tsuki.ga"
     const val KEY_DEBUG_API_BASE_URL = "debug_api_base_url"
+    const val KEY_DEBUG_API_BASE_URL_CUSTOM = "debug_api_base_url_custom"
 
     const val DEFAULT_BANGUMI_BASE_URL = "https://next.bgm.tv"
     const val KEY_DEBUG_BANGUMI_BASE_URL = "debug_bangumi_base_url"
+    const val KEY_DEBUG_BANGUMI_BASE_URL_CUSTOM = "debug_bangumi_base_url_custom"
 
     val KNOWN_SERVERS =
         listOf(

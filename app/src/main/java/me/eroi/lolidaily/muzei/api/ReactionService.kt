@@ -5,6 +5,7 @@ import android.util.Log
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
+import me.eroi.lolidaily.muzei.model.BangumiReply
 import me.eroi.lolidaily.muzei.model.DailyReactResponse
 import me.eroi.lolidaily.muzei.model.DailyResponse
 import me.eroi.lolidaily.muzei.model.Discussion
@@ -20,6 +21,7 @@ object ReactionService {
     private const val KEY_REACTIONS = "reactions"
     private const val KEY_USER_REACTIONS = "user_reactions"
     private const val KEY_DISCUSSIONS = "discussions"
+    private const val KEY_TOPIC_FLOORS = "topic_floors"
     private val json = Json { ignoreUnknownKeys = true }
 
     /**
@@ -109,6 +111,48 @@ object ReactionService {
                 )
                 .apply()
 
+            // Fetch and cache topic floors per discussion ID
+            val topicFloors = mutableMapOf<String, BangumiReply?>()
+            val seenTopicIds = mutableSetOf<Int>()
+            reactData.discussions.forEachIndexed { idx, discussion ->
+                if (idx >= daily.cards.size) return@forEachIndexed
+                val rawId = discussion.id
+                if (rawId == "0") return@forEachIndexed
+
+                val (topicId, _) = BangumiApiClient.parseDiscussionId(rawId)
+                if (topicId == 0) return@forEachIndexed
+
+                if (seenTopicIds.add(topicId)) {
+                    try {
+                        val topic = BangumiApiClient.fetchTopic(context, topicId)
+                        if (topic != null) {
+                            topicFloors[rawId] =
+                                BangumiApiClient.findTodayFloor(
+                                    topic,
+                                    daily.date,
+                                    daily.cards[idx].tags,
+                                )
+                        } else {
+                            Log.w(TAG, "Topic $topicId returned null")
+                            topicFloors[rawId] = null
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to fetch topic $topicId", e)
+                        topicFloors[rawId] = null
+                    }
+                }
+            }
+            prefs
+                .edit()
+                .putString(
+                    KEY_TOPIC_FLOORS,
+                    json.encodeToString(
+                        serializer<Map<String, BangumiReply?>>(),
+                        topicFloors,
+                    ),
+                )
+                .apply()
+
             Log.d(TAG, "Cached reactions for ${tokenReactions.size} cards")
         } catch (e: Exception) {
             Log.w(TAG, "Failed to fetch reactions", e)
@@ -134,6 +178,18 @@ object ReactionService {
         val raw = prefs.getString(KEY_DISCUSSIONS, null) ?: return emptyMap()
         return try {
             json.decodeFromString<Map<String, Discussion>>(raw)
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
+    /** Loads cached per-discussionId topic floor replies. */
+    fun loadTopicFloors(context: Context): Map<String, BangumiReply?> {
+        val prefs =
+            context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+        val raw = prefs.getString(KEY_TOPIC_FLOORS, null) ?: return emptyMap()
+        return try {
+            json.decodeFromString<Map<String, BangumiReply?>>(raw)
         } catch (_: Exception) {
             emptyMap()
         }

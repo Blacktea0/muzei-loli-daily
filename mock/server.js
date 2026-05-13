@@ -166,9 +166,14 @@ app.patch("/api/v1/daily/react", (req, res) => {
   res.json({ ok: true });
 });
 
-// GET /p1/groups/-/topics/:topicID — Bangumi group topic (returns same content for any topicID)
-app.get("/p1/groups/-/topics/:topicID", (_req, res) => {
-  const fixture = readFixture("topic");
+// GET /p1/groups/-/topics/:topicID — Bangumi group topic
+app.get("/p1/groups/-/topics/:topicID", (req, res) => {
+  const topicID = parseInt(req.params.topicID, 10);
+  if (topicID === 0) {
+    return res.json({ id: 0, title: "", creatorID: 0, replyCount: 0, replies: [], createdAt: 0, updatedAt: 0, state: 0, display: 1 });
+  }
+  const fixtureName = topicID % 2 === 0 ? "topic_es" : "topic";
+  const fixture = readFixture(fixtureName);
   if (fixture) {
     const today = shiftedDate(new Date());
     const datePattern = /^\d{4}-\d{2}-\d{2}/;
@@ -181,7 +186,7 @@ app.get("/p1/groups/-/topics/:topicID", (_req, res) => {
     }
     res.json(fixture);
   } else {
-    res.status(404).json({ error: "fixture not found: topic.json" });
+    res.status(404).json({ error: `fixture not found: ${fixtureName}.json` });
   }
 });
 
