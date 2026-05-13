@@ -56,7 +56,7 @@ class LoginActivity : ComponentActivity() {
 
         val existing = LoliDailyArtWorker.loadSession(this)
         if (existing != null) {
-            Toast.makeText(this, "Already logged in", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.msg_already_logged_in), Toast.LENGTH_SHORT).show()
             finish()
             return
         }
@@ -66,7 +66,7 @@ class LoginActivity : ComponentActivity() {
                 LoginScreen(
                     onSessionReceived = { session ->
                         LoliDailyArtWorker.saveSession(this, session)
-                        Toast.makeText(this, "Logged in", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, getString(R.string.msg_logged_in), Toast.LENGTH_SHORT).show()
                         finish()
                     },
                     onClose = { finish() },
@@ -93,12 +93,11 @@ private fun LoginScreen(
     onSessionReceived: (Session) -> Unit,
     onClose: () -> Unit,
 ) {
-    var isLoading by remember { mutableStateOf(true) }
-    var pageTitle by remember { mutableStateOf("Login to Bangumi") }
-    var statusMessage by remember { mutableStateOf("Connecting to Bangumi\u2026") }
-    var authDone by remember { mutableStateOf(false) }
-
     val context = androidx.compose.ui.platform.LocalContext.current
+    var isLoading by remember { mutableStateOf(true) }
+    var pageTitle by remember { mutableStateOf(context.getString(R.string.title_login_bangumi)) }
+    var statusMessage by remember { mutableStateOf(context.getString(R.string.msg_connecting_bangumi)) }
+    var authDone by remember { mutableStateOf(false) }
 
     val webView =
         remember {
@@ -144,14 +143,14 @@ private fun LoginScreen(
                             }
                             statusMessage =
                                 when {
-                                    url == null -> "Loading\u2026"
+                                    url == null -> context.getString(R.string.msg_loading)
                                     url.contains("bgm.tv/") ||
                                         url.contains("bangumi.tv/") ||
-                                        url.contains("chii.in/") -> "Authenticating with Bangumi\u2026"
-                                    url.contains("oauth") -> "Waiting for authorization\u2026"
+                                        url.contains("chii.in/") -> context.getString(R.string.msg_authenticating)
+                                    url.contains("oauth") -> context.getString(R.string.msg_waiting_auth)
                                     url.contains("loliconey") || url.contains("lc-coney") ->
-                                        "Processing\u2026"
-                                    else -> "Redirecting\u2026"
+                                        context.getString(R.string.msg_processing)
+                                    else -> context.getString(R.string.msg_redirecting)
                                 }
                             Log.d("LoginActivity", "onPageStarted: $url")
                         }
@@ -193,7 +192,7 @@ private fun LoginScreen(
                                     username?.let { LoliDailyArtWorker.saveUsername(context, it) }
                                     onSessionReceived(Session(token, expiresAt))
                                 } else {
-                                    Toast.makeText(context, "Login failed", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, context.getString(R.string.msg_login_failed), Toast.LENGTH_LONG).show()
                                     onClose()
                                 }
                                 return true
@@ -246,12 +245,12 @@ private fun LoginScreen(
                     IconButton(
                         onClick = { if (webView.canGoBack()) webView.goBack() else onClose() },
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = context.getString(R.string.content_desc_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { webView.reload() }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Filled.Refresh, contentDescription = context.getString(R.string.content_desc_refresh))
                     }
                 },
                 colors =

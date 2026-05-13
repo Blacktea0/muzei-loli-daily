@@ -27,6 +27,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -34,6 +35,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.ui.screen.components.ReactionRow
 import me.eroi.lolidaily.muzei.util.exportArtwork
@@ -51,7 +53,7 @@ fun ArtworkGallery(
     onLogin: () -> Unit = {},
     onReactionClick: (token: String, emojiValue: Int) -> Unit = { _, _ -> },
     onRemoveBookmark: (ArtworkPreview) -> Unit = {},
-    emptyMessage: String = "No artwork yet.",
+    emptyMessage: String = "",
     isToday: Boolean = true,
     searchQuery: String = "",
     selectedTag: String? = null,
@@ -136,7 +138,7 @@ fun ArtworkGallery(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = emptyMessage,
+                        text = emptyMessage.ifBlank { stringResource(R.string.msg_no_artwork) },
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -184,7 +186,7 @@ fun ArtworkGallery(
                     } else if (filteredArtwork.size > GALLERY_PAGE_SIZE) {
                         item {
                             Text(
-                                text = "\u2014 End of gallery \u2014",
+                                text = stringResource(R.string.label_end_of_gallery),
                                 textAlign = TextAlign.Center,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -335,7 +337,7 @@ fun ArtworkCard(
                     tint = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = preview.artistName.ifBlank { "Unknown Artist" },
+                    text = preview.artistName.ifBlank { stringResource(R.string.label_unknown_artist) },
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -363,7 +365,7 @@ fun ArtworkCard(
                     )
                 } else {
                     Text(
-                        text = "No comment",
+                        text = stringResource(R.string.label_no_comment),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline,
                     )
@@ -378,11 +380,11 @@ fun ArtworkCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 FilledTonalIconButton(onClick = { exportArtwork(context, preview) }) {
-                    Icon(Icons.Default.Save, contentDescription = "Export artwork")
+                    Icon(Icons.Default.Save, contentDescription = stringResource(R.string.content_desc_export_artwork))
                 }
 
                 FilledTonalIconButton(onClick = { showBottomSheet = true }) {
-                    Icon(Icons.Default.Info, contentDescription = "Artwork details")
+                    Icon(Icons.Default.Info, contentDescription = stringResource(R.string.content_desc_artwork_details))
                 }
 
                 var showRemoveDialog by remember { mutableStateOf(false) }
@@ -396,16 +398,16 @@ fun ArtworkCard(
                 ) {
                     Icon(
                         Icons.Default.BookmarkRemove,
-                        contentDescription = "Remove from Bookmarks",
+                        contentDescription = stringResource(R.string.content_desc_remove_bookmark),
                     )
                 }
 
                 if (showRemoveDialog) {
                     AlertDialog(
                         onDismissRequest = { showRemoveDialog = false },
-                        title = { Text("Remove from Bookmarks") },
+                        title = { Text(stringResource(R.string.title_remove_bookmark)) },
                         text = {
-                            Text("Remove this artwork from your bookmarks? The cached image will also be deleted.")
+                            Text(stringResource(R.string.msg_remove_bookmark_confirm))
                         },
                         confirmButton = {
                             TextButton(
@@ -414,12 +416,12 @@ fun ArtworkCard(
                                     showRemoveDialog = false
                                 },
                             ) {
-                                Text("Remove", color = MaterialTheme.colorScheme.error)
+                                Text(stringResource(R.string.action_remove), color = MaterialTheme.colorScheme.error)
                             }
                         },
                         dismissButton = {
                             TextButton(onClick = { showRemoveDialog = false }) {
-                                Text("Cancel")
+                                Text(stringResource(R.string.action_cancel))
                             }
                         },
                     )
@@ -493,7 +495,7 @@ fun FullscreenImageOverlay(
                     IconButton(onClick = onDismiss) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Close",
+                            contentDescription = stringResource(R.string.content_desc_close),
                             tint = Color.White,
                         )
                     }
@@ -513,7 +515,7 @@ private fun BookmarkSearchField(
         onValueChange = onQueryChange,
         modifier = Modifier.fillMaxWidth().height(48.dp),
         placeholder = {
-            Text("Search bookmarks...", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.hint_search_bookmarks), style = MaterialTheme.typography.bodyMedium)
         },
         leadingIcon = {
             Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(20.dp))
@@ -521,7 +523,11 @@ private fun BookmarkSearchField(
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Default.Close, contentDescription = "Clear", modifier = Modifier.size(20.dp))
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = stringResource(R.string.content_desc_clear),
+                        modifier = Modifier.size(20.dp),
+                    )
                 }
             }
         },
@@ -543,7 +549,8 @@ private fun BookmarkFilterRow(
     selectedTag: String?,
     onTagSelected: (String?) -> Unit,
 ) {
-    val tags = listOf(null to "All", "LC0" to "LC0", "LC YJ" to "LC YJ", "LC ES" to "LC ES")
+    val allLabel = stringResource(R.string.label_all)
+    val tags = listOf(null to allLabel, "LC0" to "LC0", "LC YJ" to "LC YJ", "LC ES" to "LC ES")
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         tags.forEach { (tagValue, label) ->
             FilterChip(

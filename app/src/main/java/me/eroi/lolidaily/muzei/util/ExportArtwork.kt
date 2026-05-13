@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
+import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import java.io.File
 
@@ -45,7 +46,7 @@ fun exportArtwork(
             }
         val destFile = File(destDir, preview.filename)
         if (destFile.exists()) {
-            Toast.makeText(context, "Already exported", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.msg_already_exported), Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -62,7 +63,7 @@ fun exportArtwork(
         val outputUri =
             resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
                 ?: run {
-                    Toast.makeText(context, "Failed to create export file", Toast.LENGTH_SHORT)
+                    Toast.makeText(context, context.getString(R.string.msg_export_file_failed), Toast.LENGTH_SHORT)
                         .show()
                     return
                 }
@@ -77,8 +78,8 @@ fun exportArtwork(
             resolver.update(outputUri, contentValues, null, null)
         }
 
-        Toast.makeText(context, "Saved to Pictures/LoliDaily", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.msg_saved_to_pictures), Toast.LENGTH_SHORT).show()
     } catch (e: Exception) {
-        Toast.makeText(context, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.msg_export_failed, e.message ?: ""), Toast.LENGTH_SHORT).show()
     }
 }

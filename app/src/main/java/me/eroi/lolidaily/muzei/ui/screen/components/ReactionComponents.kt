@@ -15,9 +15,11 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.model.ReactionCount
 import me.eroi.lolidaily.muzei.worker.EmojiMap
 import kotlin.math.roundToInt
@@ -88,7 +90,7 @@ fun ReactionRow(
                             } else {
                                 Toast.makeText(
                                     context,
-                                    "Login to Bangumi to react",
+                                    context.getString(R.string.msg_login_to_react),
                                     Toast.LENGTH_SHORT,
                                 )
                                     .show()
@@ -133,7 +135,7 @@ fun ReactionPickerDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = "Reactions",
+                    text = stringResource(R.string.reaction_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(bottom = 16.dp),
@@ -162,7 +164,7 @@ fun ReactionPickerDialog(
                 Spacer(Modifier.height(12.dp))
 
                 Text(
-                    text = "Tap an emoji to react",
+                    text = stringResource(R.string.label_tap_emoji_react),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -10,8 +10,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
+import me.eroi.lolidaily.muzei.R
 
 private const val KEY_BANNER_DISMISSED = "banner_dismissed_status"
 
@@ -45,7 +47,14 @@ fun SetupBanner(
         dismissed = true
     }
 
-    val title = if (!isMuzeiInstalled) "Muzei is not installed" else "Source is not enabled"
+    val title =
+        if (!isMuzeiInstalled) {
+            stringResource(
+                R.string.banner_muzei_not_installed,
+            )
+        } else {
+            stringResource(R.string.banner_source_not_enabled)
+        }
 
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -71,7 +80,7 @@ fun SetupBanner(
                 IconButton(onClick = dismissBanner, modifier = Modifier.size(24.dp)) {
                     Icon(
                         Icons.Default.Close,
-                        contentDescription = "Dismiss",
+                        contentDescription = stringResource(R.string.content_desc_dismiss),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp),
                     )
@@ -81,9 +90,7 @@ fun SetupBanner(
             Spacer(Modifier.height(8.dp))
 
             Text(
-                text =
-                    "You can browse artwork and manage tags without Muzei. " +
-                        "To set images as your wallpaper, install Muzei and enable this source.",
+                text = stringResource(R.string.msg_browse_without_muzei),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -94,12 +101,12 @@ fun SetupBanner(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
             ) {
-                TextButton(onClick = dismissBanner) { Text("Dismiss") }
+                TextButton(onClick = dismissBanner) { Text(stringResource(R.string.action_dismiss)) }
                 FilledTonalButton(onClick = onOpenMuzei) {
                     if (!isMuzeiInstalled) {
-                        Text("Install Muzei")
+                        Text(stringResource(R.string.action_install_muzei))
                     } else {
-                        Text("Open Muzei")
+                        Text(stringResource(R.string.action_open_muzei))
                     }
                 }
             }

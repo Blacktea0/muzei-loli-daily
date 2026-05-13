@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import kotlinx.coroutines.launch
+import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.ReactionService
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.BangumiReply
@@ -152,7 +154,7 @@ fun TodayGallery(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = "No $tag artwork for today.\nPull down to refresh.",
+                            text = stringResource(R.string.msg_no_tag_artwork, tag),
                             textAlign = TextAlign.Center,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -247,7 +249,7 @@ fun HeroArtwork(
                         tint = Color.White,
                     )
                     Text(
-                        text = preview.artistName.ifBlank { "Unknown Artist" },
+                        text = preview.artistName.ifBlank { stringResource(R.string.label_unknown_artist) },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = Color.White,
@@ -308,8 +310,17 @@ fun HeroArtwork(
                         modifier = Modifier.size(14.dp),
                         tint = Color.White.copy(alpha = 0.7f),
                     )
+                    val suggestedName = preview.suggestedByName
                     Text(
-                        text = "Suggested by ${preview.suggestedByName ?: "Anonymous"}",
+                        text =
+                            if (suggestedName != null) {
+                                stringResource(
+                                    R.string.label_suggested_by,
+                                    suggestedName,
+                                )
+                            } else {
+                                stringResource(R.string.label_suggested_by_anonymous)
+                            },
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.White.copy(alpha = 0.7f),
                     )
@@ -336,7 +347,7 @@ fun HeroArtwork(
                     IconButton(onClick = { exportArtwork(context, preview) }) {
                         Icon(
                             Icons.Default.Save,
-                            contentDescription = "Export artwork",
+                            contentDescription = stringResource(R.string.content_desc_export_artwork),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -346,7 +357,7 @@ fun HeroArtwork(
                             if (!isLoggedIn) {
                                 Toast.makeText(
                                     context,
-                                    "Login to Bangumi to react",
+                                    context.getString(R.string.msg_login_to_react),
                                     Toast.LENGTH_SHORT,
                                 )
                                     .show()
@@ -372,7 +383,7 @@ fun HeroArtwork(
                             } else {
                                 Icons.Default.FavoriteBorder
                             },
-                            contentDescription = "React",
+                            contentDescription = stringResource(R.string.content_desc_react),
                         )
                     }
 
@@ -397,7 +408,7 @@ fun HeroArtwork(
                             } else {
                                 Icons.Default.BookmarkBorder
                             },
-                            contentDescription = "Bookmark",
+                            contentDescription = stringResource(R.string.content_desc_bookmark),
                         )
                     }
                 }
@@ -439,12 +450,13 @@ fun HeroArtwork(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Spacer(Modifier.width(8.dp))
+                            val commentAuthor = preview.suggestedByName
                             Text(
                                 text =
-                                    if (!preview.suggestedByName.isNullOrBlank()) {
-                                        "${preview.suggestedByName}'s comment"
+                                    if (!commentAuthor.isNullOrBlank()) {
+                                        stringResource(R.string.label_comment_by, commentAuthor)
                                     } else {
-                                        "Anonymous's comment"
+                                        stringResource(R.string.label_anonymous_comment)
                                     },
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -475,7 +487,7 @@ fun HeroArtwork(
             // Characters
             if (preview.characterNames.isNotEmpty()) {
                 Text(
-                    text = "Characters",
+                    text = stringResource(R.string.label_characters),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -509,7 +521,7 @@ fun HeroArtwork(
                                 modifier = Modifier.size(18.dp),
                             )
                             Spacer(Modifier.width(6.dp))
-                            Text("Source")
+                            Text(stringResource(R.string.label_source))
                             Spacer(Modifier.width(4.dp))
                             Icon(
                                 Icons.AutoMirrored.Filled.OpenInNew,
@@ -532,7 +544,7 @@ fun HeroArtwork(
                                 modifier = Modifier.size(18.dp),
                             )
                             Spacer(Modifier.width(6.dp))
-                            Text("Artist")
+                            Text(stringResource(R.string.label_artist))
                             Spacer(Modifier.width(4.dp))
                             Icon(
                                 Icons.AutoMirrored.Filled.OpenInNew,

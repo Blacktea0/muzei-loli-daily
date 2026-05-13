@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Loli Daily 壁纸</string>
+    <string name="source_title">Loli Daily</string>
+    <string name="source_description">每日 Loli Daily 精选画作</string>
+
+    <!-- Navigation -->
+    <string name="tab_today">今日</string>
+    <string name="tab_bookmark">收藏</string>
+    <string name="tab_settings">设置</string>
+
+    <!-- Settings -->
+    <string name="title_settings">Loli Daily 设置</string>
+    <string name="section_muzei_wallpaper">MUZEI 壁纸</string>
+    <string name="section_account">账户</string>
+    <string name="section_theme">主题</string>
+    <string name="section_debug">调试</string>
+
+    <!-- Tag filters -->
+    <string name="section_tag_filter">标签筛选</string>
+    <string name="label_show_all">显示全部标签（不过滤）</string>
+    <string name="label_tag_lc0_lc_yj">LC0 / LC YJ</string>
+    <string name="label_tag_lc0">LC0</string>
+    <string name="label_tag_lc_es">LC ES</string>
+    <string name="hint_tags_applied">更改将在下次壁纸刷新时生效。</string>
+
+    <!-- Theme -->
+    <string name="label_theme_system">跟随系统</string>
+    <string name="label_theme_light">浅色</string>
+    <string name="label_theme_dark">深色</string>
+
+    <!-- Debug entry -->
+    <string name="title_debug_settings">调试设置</string>
+    <string name="label_debug_subtitle">开发者选项和工具</string>
+
+    <!-- Bookmark gallery -->
+    <string name="msg_no_bookmarks">还没有收藏的画作。\n点击今日画作上的收藏图标即可保存。</string>
+    <string name="msg_no_artwork">暂无画作。</string>
+    <string name="label_end_of_gallery">— 画廊到底了 —</string>
+    <string name="label_unknown_artist">未知画师</string>
+    <string name="label_no_comment">无评论</string>
+    <string name="content_desc_export_artwork">导出画作</string>
+    <string name="content_desc_artwork_details">画作详情</string>
+    <string name="content_desc_remove_bookmark">从收藏中移除</string>
+    <string name="title_remove_bookmark">从收藏中移除</string>
+    <string name="msg_remove_bookmark_confirm">确定要从收藏中移除此画作吗？缓存的图片也将被删除。</string>
+    <string name="action_remove">移除</string>
+    <string name="action_cancel">取消</string>
+    <string name="hint_search_bookmarks">搜索收藏…</string>
+    <string name="label_all">全部</string>
+    <string name="content_desc_close">关闭</string>
+    <string name="content_desc_clear">清除</string>
+
+    <!-- Today gallery -->
+    <string name="msg_no_tag_artwork">今天没有 %1$s 的画作。\n下拉刷新试试。</string>
+    <string name="label_suggested_by">%1$s 推荐</string>
+    <string name="label_suggested_by_anonymous">匿名推荐</string>
+    <string name="label_characters">角色</string>
+    <string name="label_source">来源</string>
+    <string name="label_artist">画师</string>
+    <string name="content_desc_react">表态</string>
+    <string name="content_desc_bookmark">收藏</string>
+    <string name="label_comment_by">%1$s 的评论</string>
+    <string name="label_anonymous_comment">匿名评论</string>
+
+    <!-- Artwork detail bottom sheet -->
+    <string name="title_artwork_details">画作详情</string>
+    <string name="label_date">日期</string>
+    <string name="label_unknown">未知</string>
+    <string name="label_classification">分类</string>
+    <string name="label_comment">评论</string>
+    <string name="msg_no_comment_available">暂无评论</string>
+
+    <!-- Source status -->
+    <string name="status_muzei_not_installed">未安装 Muzei</string>
+    <string name="label_get_play_store">前往 Play Store 获取</string>
+    <string name="status_muzei_enabled">已在 Muzei 中启用</string>
+    <string name="label_tap_open_muzei">点击打开 Muzei</string>
+    <string name="status_not_enabled">未启用</string>
+    <string name="label_select_source_muzei">在 Muzei 中选择此来源</string>
+
+    <!-- Setup banner -->
+    <string name="banner_muzei_not_installed">未安装 Muzei</string>
+    <string name="banner_source_not_enabled">来源未启用</string>
+    <string name="content_desc_dismiss">关闭</string>
+    <string name="msg_browse_without_muzei">你可以不安装 Muzei 就浏览画作和管理标签。要将图片设为壁纸，请安装 Muzei 并启用此来源。</string>
+    <string name="action_install_muzei">安装 Muzei</string>
+    <string name="action_open_muzei">打开 Muzei</string>
+    <string name="action_dismiss">关闭</string>
+
+    <!-- Account -->
+    <string name="status_logged_in">已登录 Bangumi</string>
+    <string name="status_not_logged_in">未登录</string>
+    <string name="label_via_domain">通过 %1$s</string>
+    <string name="label_login_to_react">登录后可对图片表态</string>
+    <string name="action_logout">退出登录</string>
+    <string name="action_login">登录</string>
+    <string name="title_choose_login_site">选择登录站点</string>
+    <string name="action_confirm">确认</string>
+
+    <!-- Reactions -->
+    <string name="reaction_title">表态</string>
+    <string name="msg_login_to_react">请先登录 Bangumi 再表态</string>
+    <string name="label_tap_emoji_react">点击表情表态</string>
+
+    <!-- Comments -->
+    <string name="label_comments">评论</string>
+    <string name="msg_no_comments_today">今天还没有评论</string>
+    <string name="label_anonymous">匿名</string>
+    <string name="time_just_now">刚刚</string>
+    <string name="time_minutes_ago">%1$d分钟前</string>
+    <string name="time_hours_ago">%1$d小时前</string>
+    <string name="time_days_ago">%1$d天前</string>
+
+    <!-- Cached artwork -->
+    <string name="section_cached_artwork">缓存画作</string>
+    <string name="hint_no_cache">暂无缓存图片。\n在 Muzei 中激活此来源以获取画作。</string>
+    <string name="btn_refresh_now">立即刷新</string>
+    <string name="toast_refresh_enqueued">已加入刷新队列 — 遵循当前标签筛选</string>
+
+    <!-- Login -->
+    <string name="msg_already_logged_in">已登录</string>
+    <string name="msg_logged_in">登录成功</string>
+    <string name="title_login_bangumi">登录 Bangumi</string>
+    <string name="msg_connecting_bangumi">正在连接 Bangumi…</string>
+    <string name="msg_loading">加载中…</string>
+    <string name="msg_authenticating">正在认证 Bangumi…</string>
+    <string name="msg_waiting_auth">等待授权…</string>
+    <string name="msg_processing">处理中…</string>
+    <string name="msg_redirecting">跳转中…</string>
+    <string name="msg_login_failed">登录失败</string>
+    <string name="content_desc_back">返回</string>
+    <string name="content_desc_refresh">刷新</string>
+
+    <!-- Toast messages -->
+    <string name="msg_logged_out">已退出登录</string>
+    <string name="msg_refresh_enqueued">已加入刷新队列</string>
+    <string name="msg_reaction_failed">表态失败 — 会话可能已过期</string>
+    <string name="msg_muzei_not_installed_opening">未安装 Muzei — 正在打开 Play Store</string>
+    <string name="msg_no_app_store">没有可用的应用商店</string>
+
+    <!-- Export -->
+    <string name="msg_already_exported">已导出过</string>
+    <string name="msg_export_file_failed">创建导出文件失败</string>
+    <string name="msg_saved_to_pictures">已保存到 Pictures/LoliDaily</string>
+    <string name="msg_export_failed">导出失败：%1$s</string>
+
+    <!-- Debug: API -->
+    <string name="section_debug_api">API</string>
+    <string name="title_api_server">API 服务器</string>
+    <string name="desc_api_server">选择要使用的 API 服务器。默认：%1$s</string>
+    <string name="label_custom">自定义</string>
+    <string name="label_server_url">服务器 URL</string>
+    <string name="action_apply">应用</string>
+    <string name="label_active_url">当前：%1$s</string>
+
+    <string name="title_bangumi_api_server">Bangumi API 服务器</string>
+    <string name="desc_bangumi_api_server">用于获取话题评论的服务器。默认：%1$s</string>
+    <string name="label_bangumi_server_url">Bangumi 服务器 URL</string>
+
+    <string name="title_skip_cache">跳过 API 缓存</string>
+    <string name="desc_skip_cache">始终从 API 获取，不使用缓存响应</string>
+    <string name="status_cache_skipped">缓存已跳过</string>
+    <string name="status_cache_used">使用缓存</string>
+
+    <!-- Debug: Refresh -->
+    <string name="section_debug_refresh">刷新计划</string>
+    <string name="title_refresh_time">每日刷新时间</string>
+    <string name="desc_refresh_time">每日定时 API 获取（GMT+8）。默认 07:30。</string>
+    <string name="action_edit">编辑</string>
+    <string name="title_refresh_time_gmt">刷新时间（GMT+8）</string>
+    <string name="action_ok">确定</string>
+
+    <!-- Debug: Language -->
+    <string name="section_language">语言</string>
+    <string name="title_language">语言</string>
+    <string name="desc_language">更改应用显示语言</string>
+    <string name="label_language_system">跟随系统</string>
+    <string name="label_language_en">English</string>
+    <string name="label_language_zh">中文</string>
+    <string name="label_language_ja">日本語</string>
+
+    <!-- Muzei commands -->
+    <string name="cmd_view_source">查看来源</string>
+    <string name="cmd_view_artist">查看画师</string>
+    <string name="cmd_force_refresh">强制刷新</string>
+    <string name="cmd_force_refresh_desc">从 API 获取最新画作（跳过缓存）</string>
+</resources>

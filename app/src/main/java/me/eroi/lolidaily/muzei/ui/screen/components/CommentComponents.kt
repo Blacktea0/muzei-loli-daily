@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -44,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.model.BangumiReaction
 import me.eroi.lolidaily.muzei.model.BangumiReply
 import me.eroi.lolidaily.muzei.model.BangumiSubReply
@@ -61,7 +63,7 @@ fun CommentHeader(count: Int) {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "Comments",
+                    text = stringResource(R.string.label_comments),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -97,7 +99,7 @@ fun EmptyComments() {
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = "No comments yet today",
+            text = stringResource(R.string.msg_no_comments_today),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -173,6 +175,8 @@ fun ReactionChips(reactions: List<BangumiReaction>) {
 fun CommentEntry(reply: BangumiReply) {
     if (reply.state != 0) return
 
+    val context = LocalContext.current
+
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -192,7 +196,7 @@ fun CommentEntry(reply: BangumiReply) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = reply.creator?.nickname ?: reply.creator?.username ?: "Anonymous",
+                    text = reply.creator?.nickname ?: reply.creator?.username ?: stringResource(R.string.label_anonymous),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
@@ -201,7 +205,7 @@ fun CommentEntry(reply: BangumiReply) {
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = formatTimestamp(reply.createdAt),
+                    text = formatTimestamp(reply.createdAt, context),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -235,6 +239,8 @@ fun CommentEntry(reply: BangumiReply) {
 fun FloorCommentEntry(reply: BangumiSubReply) {
     if (reply.state != 0) return
 
+    val context = LocalContext.current
+
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -253,7 +259,7 @@ fun FloorCommentEntry(reply: BangumiSubReply) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = reply.creator?.nickname ?: reply.creator?.username ?: "Anonymous",
+                    text = reply.creator?.nickname ?: reply.creator?.username ?: stringResource(R.string.label_anonymous),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
@@ -262,7 +268,7 @@ fun FloorCommentEntry(reply: BangumiSubReply) {
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = formatTimestamp(reply.createdAt),
+                    text = formatTimestamp(reply.createdAt, context),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -317,6 +323,8 @@ private fun ReplyThread(replies: List<BangumiSubReply>) {
 
 @Composable
 private fun SubReplyItem(reply: BangumiSubReply) {
+    val context = LocalContext.current
+
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         UserAvatar(
             avatarUrl = reply.creator?.avatar?.small,
@@ -327,7 +335,7 @@ private fun SubReplyItem(reply: BangumiSubReply) {
 
         Column {
             Text(
-                text = reply.creator?.nickname ?: reply.creator?.username ?: "Anonymous",
+                text = reply.creator?.nickname ?: reply.creator?.username ?: stringResource(R.string.label_anonymous),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -346,7 +354,7 @@ private fun SubReplyItem(reply: BangumiSubReply) {
             Spacer(Modifier.height(4.dp))
 
             Text(
-                text = formatTimestamp(reply.createdAt),
+                text = formatTimestamp(reply.createdAt, context),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -426,16 +434,19 @@ private fun highlightContent(text: String): AnnotatedString {
     }
 }
 
-private fun formatTimestamp(unixSeconds: Int): String {
+private fun formatTimestamp(
+    unixSeconds: Int,
+    context: android.content.Context,
+): String {
     if (unixSeconds <= 0) return ""
     val now = System.currentTimeMillis() / 1000
     val diff = now - unixSeconds
 
     return when {
-        diff < 60 -> "just now"
-        diff < 3600 -> "${diff / 60}m ago"
-        diff < 86400 -> "${diff / 3600}h ago"
-        diff < 86400 * 30 -> "${diff / 86400}d ago"
+        diff < 60 -> context.getString(R.string.time_just_now)
+        diff < 3600 -> context.getString(R.string.time_minutes_ago, (diff / 60).toInt())
+        diff < 86400 -> context.getString(R.string.time_hours_ago, (diff / 3600).toInt())
+        diff < 86400 * 30 -> context.getString(R.string.time_days_ago, (diff / 86400).toInt())
         else -> {
             val cal = java.util.Calendar.getInstance().apply { timeInMillis = unixSeconds * 1000L }
             val month = cal.get(java.util.Calendar.MONTH) + 1

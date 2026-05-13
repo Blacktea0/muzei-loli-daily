@@ -1,6 +1,11 @@
 package me.eroi.lolidaily.muzei.ui.screen
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,11 +15,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,9 +47,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.os.LocaleListCompat
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
+import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.util.SectionTitle
 
@@ -56,12 +66,12 @@ fun DebugSettingsScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Debug Settings") },
+                title = { Text(stringResource(R.string.title_debug_settings)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.content_desc_back),
                         )
                     }
                 },
@@ -73,15 +83,19 @@ fun DebugSettingsScreen(onBack: () -> Unit) {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // ── Language ──────────────────────────
+            item { SectionTitle(stringResource(R.string.section_language)) }
+            item { LanguageCard() }
+
             // ── API ───────────────────────────────
-            item { SectionTitle("API") }
+            item { SectionTitle(stringResource(R.string.section_debug_api)) }
 
             item { ApiServerCard() }
             item { BangumiApiServerCard() }
             item { CacheSwitchCard() }
 
             // ── Refresh Schedule ─────────────────
-            item { SectionTitle("Refresh Schedule") }
+            item { SectionTitle(stringResource(R.string.section_debug_refresh)) }
 
             item { RefreshTimeCard() }
         }
@@ -132,10 +146,10 @@ private fun ApiServerCard() {
                 modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 12.dp),
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "API Server", style = MaterialTheme.typography.bodyLarge)
+                    Text(text = stringResource(R.string.title_api_server), style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Select the API server to use. Default: ${LoliApiClient.DEFAULT_API_BASE_URL}",
+                        text = stringResource(R.string.desc_api_server, LoliApiClient.DEFAULT_API_BASE_URL),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -175,7 +189,7 @@ private fun ApiServerCard() {
                     },
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Custom", style = MaterialTheme.typography.bodyMedium)
+                Text(text = stringResource(R.string.label_custom), style = MaterialTheme.typography.bodyMedium)
             }
 
             AnimatedVisibility(visible = selected == CUSTOM_OPTION) {
@@ -191,7 +205,7 @@ private fun ApiServerCard() {
                             .padding(horizontal = 16.dp, vertical = 4.dp),
                     placeholder = { Text("https://example.com") },
                     singleLine = true,
-                    label = { Text("Server URL") },
+                    label = { Text(stringResource(R.string.label_server_url)) },
                 )
             }
 
@@ -201,7 +215,7 @@ private fun ApiServerCard() {
                     modifier =
                         Modifier.align(Alignment.End).padding(horizontal = 16.dp, vertical = 4.dp),
                 ) {
-                    Text("Apply")
+                    Text(stringResource(R.string.action_apply))
                 }
             }
 
@@ -212,7 +226,7 @@ private fun ApiServerCard() {
 
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 12.dp)) {
                 Text(
-                    text = "Active: ${LoliApiClient.getApiBaseUrl(context)}",
+                    text = stringResource(R.string.label_active_url, LoliApiClient.getApiBaseUrl(context)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
@@ -264,10 +278,10 @@ private fun BangumiApiServerCard() {
                 modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 12.dp),
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Bangumi API Server", style = MaterialTheme.typography.bodyLarge)
+                    Text(text = stringResource(R.string.title_bangumi_api_server), style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Server for fetching topic comments. Default: ${LoliApiClient.DEFAULT_BANGUMI_BASE_URL}",
+                        text = stringResource(R.string.desc_bangumi_api_server, LoliApiClient.DEFAULT_BANGUMI_BASE_URL),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -307,7 +321,7 @@ private fun BangumiApiServerCard() {
                     },
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Custom", style = MaterialTheme.typography.bodyMedium)
+                Text(text = stringResource(R.string.label_custom), style = MaterialTheme.typography.bodyMedium)
             }
 
             AnimatedVisibility(visible = selected == CUSTOM_OPTION) {
@@ -323,7 +337,7 @@ private fun BangumiApiServerCard() {
                             .padding(horizontal = 16.dp, vertical = 4.dp),
                     placeholder = { Text("https://bgm.tv") },
                     singleLine = true,
-                    label = { Text("Bangumi Server URL") },
+                    label = { Text(stringResource(R.string.label_bangumi_server_url)) },
                 )
             }
 
@@ -333,7 +347,7 @@ private fun BangumiApiServerCard() {
                     modifier =
                         Modifier.align(Alignment.End).padding(horizontal = 16.dp, vertical = 4.dp),
                 ) {
-                    Text("Apply")
+                    Text(stringResource(R.string.action_apply))
                 }
             }
 
@@ -344,7 +358,7 @@ private fun BangumiApiServerCard() {
 
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 12.dp)) {
                 Text(
-                    text = "Active: ${LoliApiClient.getBangumiBaseUrl(context)}",
+                    text = stringResource(R.string.label_active_url, LoliApiClient.getBangumiBaseUrl(context)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
@@ -381,10 +395,10 @@ private fun CacheSwitchCard() {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Skip API Cache", style = MaterialTheme.typography.bodyLarge)
+                    Text(text = stringResource(R.string.title_skip_cache), style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Always fetch from API instead of using cached response",
+                        text = stringResource(R.string.desc_skip_cache),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -406,7 +420,7 @@ private fun CacheSwitchCard() {
 
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 12.dp)) {
                 Text(
-                    text = "Status: ${if (skipCache) "Cache SKIPPED" else "Cache USED"}",
+                    text = if (skipCache) stringResource(R.string.status_cache_skipped) else stringResource(R.string.status_cache_used),
                     style = MaterialTheme.typography.bodyMedium,
                     color =
                         if (skipCache) {
@@ -454,16 +468,16 @@ private fun RefreshTimeCard() {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Daily Refresh Time", style = MaterialTheme.typography.bodyLarge)
+                    Text(text = stringResource(R.string.title_refresh_time), style = MaterialTheme.typography.bodyLarge)
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Scheduled daily API fetch (GMT+8). Default is 07:30.",
+                        text = stringResource(R.string.desc_refresh_time),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
-                FilledTonalButton(onClick = { showDialog = true }) { Text("Edit") }
+                FilledTonalButton(onClick = { showDialog = true }) { Text(stringResource(R.string.action_edit)) }
             }
 
             HorizontalDivider(
@@ -521,11 +535,137 @@ private fun RefreshTimeDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Refresh Time (GMT+8)") },
+        title = { Text(stringResource(R.string.title_refresh_time_gmt)) },
         text = { TimePicker(state = state) },
         confirmButton = {
-            TextButton(onClick = { onConfirm(state.hour, state.minute) }) { Text("OK") }
+            TextButton(onClick = { onConfirm(state.hour, state.minute) }) { Text(stringResource(R.string.action_ok)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
+}
+
+// ── Language Card ────────────────────────────────────────────────
+
+@Composable
+private fun LanguageCard() {
+    val context = LocalContext.current
+    var showDialog by remember { mutableStateOf(false) }
+
+    val currentLocales = AppCompatDelegate.getApplicationLocales()
+    val currentTag = if (currentLocales.isEmpty) "" else currentLocales[0]?.language ?: ""
+    val currentLabel =
+        when (currentTag) {
+            "zh" -> stringResource(R.string.label_language_zh)
+            "ja" -> stringResource(R.string.label_language_ja)
+            "en" -> stringResource(R.string.label_language_en)
+            else -> stringResource(R.string.label_language_system)
+        }
+
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Language,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = stringResource(R.string.title_language), style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    text = stringResource(R.string.desc_language),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            FilledTonalButton(onClick = { showDialog = true }) {
+                Text(currentLabel)
+            }
+        }
+    }
+
+    if (showDialog) {
+        LanguagePickerDialog(
+            currentTag = currentTag,
+            onDismiss = { showDialog = false },
+            onLanguageSelected = { tag ->
+                val locales =
+                    if (tag.isEmpty()) {
+                        LocaleListCompat.getEmptyLocaleList()
+                    } else {
+                        LocaleListCompat.forLanguageTags(tag)
+                    }
+                AppCompatDelegate.setApplicationLocales(locales)
+                showDialog = false
+            },
+            onOpenSystemSettings = {
+                showDialog = false
+                val intent =
+                    Intent(Settings.ACTION_APP_LOCALE_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                    }
+                try {
+                    context.startActivity(intent)
+                } catch (_: Exception) {
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun LanguagePickerDialog(
+    currentTag: String,
+    onDismiss: () -> Unit,
+    onLanguageSelected: (String) -> Unit,
+    onOpenSystemSettings: () -> Unit,
+) {
+    val languages =
+        listOf(
+            "" to stringResource(R.string.label_language_system),
+            "en" to stringResource(R.string.label_language_en),
+            "zh" to stringResource(R.string.label_language_zh),
+            "ja" to stringResource(R.string.label_language_ja),
+        )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.title_language)) },
+        text = {
+            Column {
+                languages.forEach { (tag, label) ->
+                    Row(
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .clickable { onLanguageSelected(tag) }
+                                .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = currentTag == tag,
+                            onClick = { onLanguageSelected(tag) },
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = label, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(onClick = onOpenSystemSettings) {
+                    Text("System language settings")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
     )
 }

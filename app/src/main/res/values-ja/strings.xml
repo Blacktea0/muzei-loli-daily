@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Loli Daily 壁紙</string>
+    <string name="source_title">Loli Daily</string>
+    <string name="source_description">毎日の Loli Daily アートワーク</string>
+
+    <!-- Navigation -->
+    <string name="tab_today">今日</string>
+    <string name="tab_bookmark">ブックマーク</string>
+    <string name="tab_settings">設定</string>
+
+    <!-- Settings -->
+    <string name="title_settings">Loli Daily 設定</string>
+    <string name="section_muzei_wallpaper">MUZEI 壁紙</string>
+    <string name="section_account">アカウント</string>
+    <string name="section_theme">テーマ</string>
+    <string name="section_debug">デバッグ</string>
+
+    <!-- Tag filters -->
+    <string name="section_tag_filter">タグフィルター</string>
+    <string name="label_show_all">すべてのタグを表示（フィルターなし）</string>
+    <string name="label_tag_lc0_lc_yj">LC0 / LC YJ</string>
+    <string name="label_tag_lc0">LC0</string>
+    <string name="label_tag_lc_es">LC ES</string>
+    <string name="hint_tags_applied">変更は次回の壁紙更新時に反映されます。</string>
+
+    <!-- Theme -->
+    <string name="label_theme_system">システムに従う</string>
+    <string name="label_theme_light">ライト</string>
+    <string name="label_theme_dark">ダーク</string>
+
+    <!-- Debug entry -->
+    <string name="title_debug_settings">デバッグ設定</string>
+    <string name="label_debug_subtitle">開発者オプションとツール</string>
+
+    <!-- Bookmark gallery -->
+    <string name="msg_no_bookmarks">ブックマークされた作品はまだありません。\n今日の作品のブックマークアイコンをタップして保存しましょう。</string>
+    <string name="msg_no_artwork">作品はまだありません。</string>
+    <string name="label_end_of_gallery">— ギャラリーの終わり —</string>
+    <string name="label_unknown_artist">不明なアーティスト</string>
+    <string name="label_no_comment">コメントなし</string>
+    <string name="content_desc_export_artwork">作品をエクスポート</string>
+    <string name="content_desc_artwork_details">作品の詳細</string>
+    <string name="content_desc_remove_bookmark">ブックマークから削除</string>
+    <string name="title_remove_bookmark">ブックマークから削除</string>
+    <string name="msg_remove_bookmark_confirm">この作品をブックマークから削除しますか？キャッシュされた画像も削除されます。</string>
+    <string name="action_remove">削除</string>
+    <string name="action_cancel">キャンセル</string>
+    <string name="hint_search_bookmarks">ブックマークを検索…</string>
+    <string name="label_all">すべて</string>
+    <string name="content_desc_close">閉じる</string>
+    <string name="content_desc_clear">クリア</string>
+
+    <!-- Today gallery -->
+    <string name="msg_no_tag_artwork">今日の %1$s の作品はありません。\nプルダウンして更新してください。</string>
+    <string name="label_suggested_by">%1$s がおすすめ</string>
+    <string name="label_suggested_by_anonymous">匿名のおすすめ</string>
+    <string name="label_characters">キャラクター</string>
+    <string name="label_source">ソース</string>
+    <string name="label_artist">アーティスト</string>
+    <string name="content_desc_react">リアクション</string>
+    <string name="content_desc_bookmark">ブックマーク</string>
+    <string name="label_comment_by">%1$s のコメント</string>
+    <string name="label_anonymous_comment">匿名のコメント</string>
+
+    <!-- Artwork detail bottom sheet -->
+    <string name="title_artwork_details">作品の詳細</string>
+    <string name="label_date">日付</string>
+    <string name="label_unknown">不明</string>
+    <string name="label_classification">分類</string>
+    <string name="label_comment">コメント</string>
+    <string name="msg_no_comment_available">コメントはありません</string>
+
+    <!-- Source status -->
+    <string name="status_muzei_not_installed">Muzei がインストールされていません</string>
+    <string name="label_get_play_store">Play Store で入手</string>
+    <string name="status_muzei_enabled">Muzei で有効化済み</string>
+    <string name="label_tap_open_muzei">タップして Muzei を開く</string>
+    <string name="status_not_enabled">有効化されていません</string>
+    <string name="label_select_source_muzei">Muzei でこのソースを選択してください</string>
+
+    <!-- Setup banner -->
+    <string name="banner_muzei_not_installed">Muzei がインストールされていません</string>
+    <string name="banner_source_not_enabled">ソースが有効化されていません</string>
+    <string name="content_desc_dismiss">閉じる</string>
+    <string name="msg_browse_without_muzei">Muzei をインストールせずに作品を閲覧しタグを管理できます。壁紙に設定するには、Muzei をインストールしてこのソースを有効化してください。</string>
+    <string name="action_install_muzei">Muzei をインストール</string>
+    <string name="action_open_muzei">Muzei を開く</string>
+    <string name="action_dismiss">閉じる</string>
+
+    <!-- Account -->
+    <string name="status_logged_in">Bangumi にログイン済み</string>
+    <string name="status_not_logged_in">未ログイン</string>
+    <string name="label_via_domain">%1$s 経由</string>
+    <string name="label_login_to_react">ログインしてリアクションできます</string>
+    <string name="action_logout">ログアウト</string>
+    <string name="action_login">ログイン</string>
+    <string name="title_choose_login_site">ログインサイトを選択</string>
+    <string name="action_confirm">確認</string>
+
+    <!-- Reactions -->
+    <string name="reaction_title">リアクション</string>
+    <string name="msg_login_to_react">リアクションするには Bangumi にログインしてください</string>
+    <string name="label_tap_emoji_react">絵文字をタップしてリアクション</string>
+
+    <!-- Comments -->
+    <string name="label_comments">コメント</string>
+    <string name="msg_no_comments_today">今日のコメントはまだありません</string>
+    <string name="label_anonymous">匿名</string>
+    <string name="time_just_now">たった今</string>
+    <string name="time_minutes_ago">%1$d分前</string>
+    <string name="time_hours_ago">%1$d時間前</string>
+    <string name="time_days_ago">%1$d日前</string>
+
+    <!-- Cached artwork -->
+    <string name="section_cached_artwork">キャッシュされた作品</string>
+    <string name="hint_no_cache">キャッシュされた画像はまだありません。\nMuzei でこのソースを有効化して作品を取得してください。</string>
+    <string name="btn_refresh_now">今すぐ更新</string>
+    <string name="toast_refresh_enqueued">更新キューに追加 — 現在のタグフィルターに従います</string>
+
+    <!-- Login -->
+    <string name="msg_already_logged_in">ログイン済みです</string>
+    <string name="msg_logged_in">ログインしました</string>
+    <string name="title_login_bangumi">Bangumi にログイン</string>
+    <string name="msg_connecting_bangumi">Bangumi に接続中…</string>
+    <string name="msg_loading">読み込み中…</string>
+    <string name="msg_authenticating">Bangumi を認証中…</string>
+    <string name="msg_waiting_auth">認証を待機中…</string>
+    <string name="msg_processing">処理中…</string>
+    <string name="msg_redirecting">リダイレクト中…</string>
+    <string name="msg_login_failed">ログインに失敗しました</string>
+    <string name="content_desc_back">戻る</string>
+    <string name="content_desc_refresh">更新</string>
+
+    <!-- Toast messages -->
+    <string name="msg_logged_out">ログアウトしました</string>
+    <string name="msg_refresh_enqueued">更新キューに追加しました</string>
+    <string name="msg_reaction_failed">リアクションに失敗 — セッションが期限切れの可能性があります</string>
+    <string name="msg_muzei_not_installed_opening">Muzei が未インストール — Play Store を開きます</string>
+    <string name="msg_no_app_store">利用可能なアプリストアがありません</string>
+
+    <!-- Export -->
+    <string name="msg_already_exported">エクスポート済み</string>
+    <string name="msg_export_file_failed">エクスポートファイルの作成に失敗しました</string>
+    <string name="msg_saved_to_pictures">Pictures/LoliDaily に保存しました</string>
+    <string name="msg_export_failed">エクスポート失敗：%1$s</string>
+
+    <!-- Debug: API -->
+    <string name="section_debug_api">API</string>
+    <string name="title_api_server">API サーバー</string>
+    <string name="desc_api_server">使用する API サーバーを選択。デフォルト：%1$s</string>
+    <string name="label_custom">カスタム</string>
+    <string name="label_server_url">サーバー URL</string>
+    <string name="action_apply">適用</string>
+    <string name="label_active_url">有効：%1$s</string>
+
+    <string name="title_bangumi_api_server">Bangumi API サーバー</string>
+    <string name="desc_bangumi_api_server">トピックコメントの取得用サーバー。デフォルト：%1$s</string>
+    <string name="label_bangumi_server_url">Bangumi サーバー URL</string>
+
+    <string name="title_skip_cache">API キャッシュをスキップ</string>
+    <string name="desc_skip_cache">キャッシュレスポンスを使用せずに常に API から取得</string>
+    <string name="status_cache_skipped">キャッシュ スキップ済み</string>
+    <string name="status_cache_used">キャッシュ 使用中</string>
+
+    <!-- Debug: Refresh -->
+    <string name="section_debug_refresh">更新スケジュール</string>
+    <string name="title_refresh_time">毎日の更新時間</string>
+    <string name="desc_refresh_time">毎日の API 取得スケジュール（GMT+8）。デフォルトは 07:30。</string>
+    <string name="action_edit">編集</string>
+    <string name="title_refresh_time_gmt">更新時間（GMT+8）</string>
+    <string name="action_ok">OK</string>
+
+    <!-- Debug: Language -->
+    <string name="section_language">言語</string>
+    <string name="title_language">言語</string>
+    <string name="desc_language">アプリの表示言語を変更</string>
+    <string name="label_language_system">システムに従う</string>
+    <string name="label_language_en">English</string>
+    <string name="label_language_zh">中文</string>
+    <string name="label_language_ja">日本語</string>
+
+    <!-- Muzei commands -->
+    <string name="cmd_view_source">ソースを見る</string>
+    <string name="cmd_view_artist">アーティストを見る</string>
+    <string name="cmd_force_refresh">強制更新</string>
+    <string name="cmd_force_refresh_desc">API から最新の作品を取得（キャッシュをスキップ）</string>
+</resources>

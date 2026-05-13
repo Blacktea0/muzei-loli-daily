@@ -15,8 +15,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
+import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.ui.screen.components.*
 import me.eroi.lolidaily.muzei.ui.screen.gallery.*
@@ -77,7 +79,7 @@ fun SettingsScreen(
         topBar = {
             if (selectedTab == 2) {
                 CenterAlignedTopAppBar(
-                    title = { Text("Loli Daily Settings") },
+                    title = { Text(stringResource(R.string.title_settings)) },
                     colors =
                         TopAppBarDefaults.centerAlignedTopAppBarColors(
                             containerColor = MaterialTheme.colorScheme.surface,
@@ -95,11 +97,11 @@ fun SettingsScreen(
                         Crossfade(targetState = selected, label = "today_icon") {
                             Icon(
                                 imageVector = if (it) Icons.Filled.Image else Icons.Outlined.Image,
-                                contentDescription = "Today",
+                                contentDescription = stringResource(R.string.tab_today),
                             )
                         }
                     },
-                    label = { Text("Today") },
+                    label = { Text(stringResource(R.string.tab_today)) },
                 )
                 NavigationBarItem(
                     selected = selectedTab == 1,
@@ -110,11 +112,11 @@ fun SettingsScreen(
                             Icon(
                                 imageVector =
                                     if (it) Icons.Filled.Bookmarks else Icons.Outlined.Bookmarks,
-                                contentDescription = "Bookmark",
+                                contentDescription = stringResource(R.string.tab_bookmark),
                             )
                         }
                     },
-                    label = { Text("Bookmarks") },
+                    label = { Text(stringResource(R.string.tab_bookmark)) },
                 )
                 NavigationBarItem(
                     selected = selectedTab == 2,
@@ -125,11 +127,11 @@ fun SettingsScreen(
                             Icon(
                                 imageVector =
                                     if (it) Icons.Filled.Settings else Icons.Outlined.Settings,
-                                contentDescription = "Settings",
+                                contentDescription = stringResource(R.string.tab_settings),
                             )
                         }
                     },
-                    label = { Text("Settings") },
+                    label = { Text(stringResource(R.string.tab_settings)) },
                 )
             }
         },
@@ -161,7 +163,7 @@ fun SettingsScreen(
                         onReactionClick = onReactionClick,
                         onRemoveBookmark = onRemoveBookmark,
                         emptyMessage =
-                            "No bookmarked artwork yet.\nTap the bookmark icon on Today's artwork to save it here.",
+                            stringResource(R.string.msg_no_bookmarks),
                         isToday = false,
                         searchQuery = bookmarkSearchQuery,
                         selectedTag = bookmarkSelectedTag,
@@ -246,7 +248,7 @@ private fun PreferenceTab(
             }
         }
 
-        item { SectionTitle("MUZEI WALLPAPER") }
+        item { SectionTitle(stringResource(R.string.section_muzei_wallpaper)) }
 
         item {
             Surface(
@@ -255,7 +257,7 @@ private fun PreferenceTab(
             ) {
                 Column(modifier = Modifier.padding(4.dp)) {
                     FilterOption(
-                        label = "Show all tags (no filter)",
+                        label = stringResource(R.string.label_show_all),
                         selected = selectedTags.isEmpty(),
                         onClick = { onTagsChanged(emptySet()) },
                     )
@@ -264,7 +266,7 @@ private fun PreferenceTab(
                         color = MaterialTheme.colorScheme.outlineVariant,
                     )
                     FilterOption(
-                        label = "LC0 / LC YJ",
+                        label = stringResource(R.string.label_tag_lc0_lc_yj),
                         selected = selectedTags == setOf("LC0", "LC YJ"),
                         onClick = { onTagsChanged(setOf("LC0", "LC YJ")) },
                     )
@@ -273,7 +275,7 @@ private fun PreferenceTab(
                         color = MaterialTheme.colorScheme.outlineVariant,
                     )
                     FilterOption(
-                        label = "LC ES",
+                        label = stringResource(R.string.label_tag_lc_es),
                         selected = selectedTags.contains("LC ES"),
                         onClick = { onTagsChanged(setOf("LC ES")) },
                     )
@@ -289,7 +291,7 @@ private fun PreferenceTab(
             )
         }
 
-        item { SectionTitle("ACCOUNT") }
+        item { SectionTitle(stringResource(R.string.section_account)) }
 
         item {
             AccountCard(
@@ -301,7 +303,7 @@ private fun PreferenceTab(
             )
         }
 
-        item { SectionTitle("THEME") }
+        item { SectionTitle(stringResource(R.string.section_theme)) }
 
         item {
             Surface(
@@ -310,7 +312,7 @@ private fun PreferenceTab(
             ) {
                 Column(modifier = Modifier.padding(4.dp)) {
                     ThemeOption(
-                        label = "Follow system",
+                        label = stringResource(R.string.label_theme_system),
                         selected = themeMode == ThemeMode.SYSTEM,
                         onClick = { onThemeModeChanged(ThemeMode.SYSTEM) },
                     )
@@ -319,7 +321,7 @@ private fun PreferenceTab(
                         color = MaterialTheme.colorScheme.outlineVariant,
                     )
                     ThemeOption(
-                        label = "Light",
+                        label = stringResource(R.string.label_theme_light),
                         selected = themeMode == ThemeMode.LIGHT,
                         onClick = { onThemeModeChanged(ThemeMode.LIGHT) },
                     )
@@ -328,7 +330,7 @@ private fun PreferenceTab(
                         color = MaterialTheme.colorScheme.outlineVariant,
                     )
                     ThemeOption(
-                        label = "Dark",
+                        label = stringResource(R.string.label_theme_dark),
                         selected = themeMode == ThemeMode.DARK,
                         onClick = { onThemeModeChanged(ThemeMode.DARK) },
                     )
@@ -336,7 +338,7 @@ private fun PreferenceTab(
             }
         }
 
-        item { SectionTitle("DEBUG") }
+        item { SectionTitle(stringResource(R.string.section_debug)) }
 
         item {
             Surface(
@@ -356,9 +358,9 @@ private fun PreferenceTab(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(text = "Debug Settings", style = MaterialTheme.typography.bodyLarge)
+                        Text(text = stringResource(R.string.title_debug_settings), style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            text = "Developer options and tools",
+                            text = stringResource(R.string.label_debug_subtitle),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

@@ -4,19 +4,185 @@
     <string name="source_title">Loli Daily</string>
     <string name="source_description">Daily artwork from the Loli Daily collection</string>
 
-    <!-- Settings: Tag Filter -->
+    <!-- Navigation -->
+    <string name="tab_today">Today</string>
+    <string name="tab_bookmark">Bookmarks</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Settings -->
+    <string name="title_settings">Loli Daily Settings</string>
+    <string name="section_muzei_wallpaper">MUZEI WALLPAPER</string>
+    <string name="section_account">ACCOUNT</string>
+    <string name="section_theme">THEME</string>
+    <string name="section_debug">DEBUG</string>
+
+    <!-- Tag filters -->
     <string name="section_tag_filter">Tag Filters</string>
     <string name="label_show_all">Show all tags (no filter)</string>
+    <string name="label_tag_lc0_lc_yj">LC0 / LC YJ</string>
     <string name="label_tag_lc0">LC0</string>
     <string name="label_tag_lc_es">LC ES</string>
     <string name="hint_tags_applied">Changes take effect on next wallpaper refresh.</string>
 
-    <!-- Settings: Preview -->
+    <!-- Theme -->
+    <string name="label_theme_system">Follow system</string>
+    <string name="label_theme_light">Light</string>
+    <string name="label_theme_dark">Dark</string>
+
+    <!-- Debug entry -->
+    <string name="title_debug_settings">Debug Settings</string>
+    <string name="label_debug_subtitle">Developer options and tools</string>
+
+    <!-- Bookmark gallery -->
+    <string name="msg_no_bookmarks">No bookmarked artwork yet.\nTap the bookmark icon on Today\'s artwork to save it here.</string>
+    <string name="msg_no_artwork">No artwork yet.</string>
+    <string name="label_end_of_gallery">— End of gallery —</string>
+    <string name="label_unknown_artist">Unknown Artist</string>
+    <string name="label_no_comment">No comment</string>
+    <string name="content_desc_export_artwork">Export artwork</string>
+    <string name="content_desc_artwork_details">Artwork details</string>
+    <string name="content_desc_remove_bookmark">Remove from Bookmarks</string>
+    <string name="title_remove_bookmark">Remove from Bookmarks</string>
+    <string name="msg_remove_bookmark_confirm">Remove this artwork from your bookmarks? The cached image will also be deleted.</string>
+    <string name="action_remove">Remove</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="hint_search_bookmarks">Search bookmarks…</string>
+    <string name="label_all">All</string>
+    <string name="content_desc_close">Close</string>
+    <string name="content_desc_clear">Clear</string>
+
+    <!-- Today gallery -->
+    <string name="msg_no_tag_artwork">No %1$s artwork for today.\nPull down to refresh.</string>
+    <string name="label_suggested_by">Suggested by %1$s</string>
+    <string name="label_suggested_by_anonymous">Suggested by Anonymous</string>
+    <string name="label_characters">Characters</string>
+    <string name="label_source">Source</string>
+    <string name="label_artist">Artist</string>
+    <string name="content_desc_react">React</string>
+    <string name="content_desc_bookmark">Bookmark</string>
+    <string name="label_comment_by">%1$s\'s comment</string>
+    <string name="label_anonymous_comment">Anonymous\'s comment</string>
+
+    <!-- Artwork detail bottom sheet -->
+    <string name="title_artwork_details">Artwork Details</string>
+    <string name="label_date">Date</string>
+    <string name="label_unknown">Unknown</string>
+    <string name="label_classification">Classification</string>
+    <string name="label_comment">Comment</string>
+    <string name="msg_no_comment_available">No comment available</string>
+
+    <!-- Source status -->
+    <string name="status_muzei_not_installed">Muzei not installed</string>
+    <string name="label_get_play_store">Get it on Play Store</string>
+    <string name="status_muzei_enabled">Enabled in Muzei</string>
+    <string name="label_tap_open_muzei">Tap to open Muzei</string>
+    <string name="status_not_enabled">Not enabled</string>
+    <string name="label_select_source_muzei">Select this source in Muzei</string>
+
+    <!-- Setup banner -->
+    <string name="banner_muzei_not_installed">Muzei is not installed</string>
+    <string name="banner_source_not_enabled">Source is not enabled</string>
+    <string name="content_desc_dismiss">Dismiss</string>
+    <string name="msg_browse_without_muzei">You can browse artwork and manage tags without Muzei. To set images as your wallpaper, install Muzei and enable this source.</string>
+    <string name="action_install_muzei">Install Muzei</string>
+    <string name="action_open_muzei">Open Muzei</string>
+    <string name="action_dismiss">Dismiss</string>
+
+    <!-- Account -->
+    <string name="status_logged_in">Logged in to Bangumi</string>
+    <string name="status_not_logged_in">Not logged in</string>
+    <string name="label_via_domain">via %1$s</string>
+    <string name="label_login_to_react">Login to react to images</string>
+    <string name="action_logout">Logout</string>
+    <string name="action_login">Login</string>
+    <string name="title_choose_login_site">Choose login site</string>
+    <string name="action_confirm">Confirm</string>
+
+    <!-- Reactions -->
+    <string name="reaction_title">Reactions</string>
+    <string name="msg_login_to_react">Login to Bangumi to react</string>
+    <string name="label_tap_emoji_react">Tap an emoji to react</string>
+
+    <!-- Comments -->
+    <string name="label_comments">Comments</string>
+    <string name="msg_no_comments_today">No comments yet today</string>
+    <string name="label_anonymous">Anonymous</string>
+    <string name="time_just_now">just now</string>
+    <string name="time_minutes_ago">%1$dm ago</string>
+    <string name="time_hours_ago">%1$dh ago</string>
+    <string name="time_days_ago">%1$dd ago</string>
+
+    <!-- Cached artwork -->
     <string name="section_cached_artwork">Cached Artwork</string>
     <string name="hint_no_cache">No cached images yet.\nActivate this source in Muzei to fetch artwork.</string>
     <string name="btn_refresh_now">Refresh Now</string>
     <string name="toast_refresh_enqueued">Refresh enqueued — respecting current tag filter</string>
 
-    <!-- Reactions -->
-    <string name="reaction_title">Reactions</string>
+    <!-- Login -->
+    <string name="msg_already_logged_in">Already logged in</string>
+    <string name="msg_logged_in">Logged in</string>
+    <string name="title_login_bangumi">Login to Bangumi</string>
+    <string name="msg_connecting_bangumi">Connecting to Bangumi…</string>
+    <string name="msg_loading">Loading…</string>
+    <string name="msg_authenticating">Authenticating with Bangumi…</string>
+    <string name="msg_waiting_auth">Waiting for authorization…</string>
+    <string name="msg_processing">Processing…</string>
+    <string name="msg_redirecting">Redirecting…</string>
+    <string name="msg_login_failed">Login failed</string>
+    <string name="content_desc_back">Back</string>
+    <string name="content_desc_refresh">Refresh</string>
+
+    <!-- Toast messages -->
+    <string name="msg_logged_out">Logged out</string>
+    <string name="msg_refresh_enqueued">Refresh enqueued</string>
+    <string name="msg_reaction_failed">Reaction failed — session may have expired</string>
+    <string name="msg_muzei_not_installed_opening">Muzei not installed — opening Play Store</string>
+    <string name="msg_no_app_store">No app store available</string>
+
+    <!-- Export -->
+    <string name="msg_already_exported">Already exported</string>
+    <string name="msg_export_file_failed">Failed to create export file</string>
+    <string name="msg_saved_to_pictures">Saved to Pictures/LoliDaily</string>
+    <string name="msg_export_failed">Export failed: %1$s</string>
+
+    <!-- Debug: API -->
+    <string name="section_debug_api">API</string>
+    <string name="title_api_server">API Server</string>
+    <string name="desc_api_server">Select the API server to use. Default: %1$s</string>
+    <string name="label_custom">Custom</string>
+    <string name="label_server_url">Server URL</string>
+    <string name="action_apply">Apply</string>
+    <string name="label_active_url">Active: %1$s</string>
+
+    <string name="title_bangumi_api_server">Bangumi API Server</string>
+    <string name="desc_bangumi_api_server">Server for fetching topic comments. Default: %1$s</string>
+    <string name="label_bangumi_server_url">Bangumi Server URL</string>
+
+    <string name="title_skip_cache">Skip API Cache</string>
+    <string name="desc_skip_cache">Always fetch from API instead of using cached response</string>
+    <string name="status_cache_skipped">Cache SKIPPED</string>
+    <string name="status_cache_used">Cache USED</string>
+
+    <!-- Debug: Refresh -->
+    <string name="section_debug_refresh">Refresh Schedule</string>
+    <string name="title_refresh_time">Daily Refresh Time</string>
+    <string name="desc_refresh_time">Scheduled daily API fetch (GMT+8). Default is 07:30.</string>
+    <string name="action_edit">Edit</string>
+    <string name="title_refresh_time_gmt">Refresh Time (GMT+8)</string>
+    <string name="action_ok">OK</string>
+
+    <!-- Debug: Language -->
+    <string name="section_language">LANGUAGE</string>
+    <string name="title_language">Language</string>
+    <string name="desc_language">Change the app display language</string>
+    <string name="label_language_system">Follow system</string>
+    <string name="label_language_en">English</string>
+    <string name="label_language_zh">中文</string>
+    <string name="label_language_ja">日本語</string>
+
+    <!-- Muzei commands -->
+    <string name="cmd_view_source">View Source</string>
+    <string name="cmd_view_artist">View Artist</string>
+    <string name="cmd_force_refresh">Force Refresh</string>
+    <string name="cmd_force_refresh_desc">Fetch latest artwork from API (bypasses cache)</string>
 </resources>

@@ -77,7 +77,7 @@ class SettingsActivity : AppCompatActivity() {
                         LoginActivity.clearBgmCookies()
                         isLoggedIn = false
                         buildPreviews()
-                        Toast.makeText(this, "Logged out", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, getString(R.string.msg_logged_out), Toast.LENGTH_SHORT).show()
                     },
                     bgmDomain = bgmDomain,
                     onDomainChanged = { domain ->
@@ -89,7 +89,7 @@ class SettingsActivity : AppCompatActivity() {
                     },
                     onRefresh = {
                         LoliDailyArtWorker.enqueueLoad(this, forceRefresh = true)
-                        Toast.makeText(this, "Refresh enqueued", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, getString(R.string.msg_refresh_enqueued), Toast.LENGTH_SHORT).show()
                         Thread {
                             val cacheFile = File(filesDir, "api_cache.json")
                             val initialModTime =
@@ -163,7 +163,7 @@ class SettingsActivity : AppCompatActivity() {
                 runOnUiThread {
                     Toast.makeText(
                         this,
-                        "Reaction failed — session may have expired",
+                        getString(R.string.msg_reaction_failed),
                         Toast.LENGTH_SHORT,
                     )
                         .show()
@@ -218,7 +218,7 @@ class SettingsActivity : AppCompatActivity() {
             if (launchIntent != null) {
                 startActivity(launchIntent)
             } else {
-                Toast.makeText(this, "Muzei not installed — opening Play Store", Toast.LENGTH_SHORT)
+                Toast.makeText(this, getString(R.string.msg_muzei_not_installed_opening), Toast.LENGTH_SHORT)
                     .show()
                 try {
                     startActivity(
@@ -238,7 +238,7 @@ class SettingsActivity : AppCompatActivity() {
                             ),
                         )
                     } catch (_: Exception) {
-                        Toast.makeText(this, "No app store available", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, getString(R.string.msg_no_app_store), Toast.LENGTH_SHORT).show()
                     }
                 }
             }

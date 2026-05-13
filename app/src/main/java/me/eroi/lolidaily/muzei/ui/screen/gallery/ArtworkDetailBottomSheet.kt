@@ -12,8 +12,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
+import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -35,7 +37,7 @@ fun ArtworkDetailBottomSheet(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 32.dp),
         ) {
             Text(
-                text = "Artwork Details",
+                text = stringResource(R.string.title_artwork_details),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
@@ -43,14 +45,14 @@ fun ArtworkDetailBottomSheet(
             Spacer(Modifier.height(20.dp))
 
             if (preview.date.isNotBlank()) {
-                DetailRow(icon = Icons.Default.CalendarToday, label = "Date", value = preview.date)
+                DetailRow(icon = Icons.Default.CalendarToday, label = stringResource(R.string.label_date), value = preview.date)
                 Spacer(Modifier.height(12.dp))
             }
 
             DetailRow(
                 icon = Icons.Default.Palette,
-                label = "Artist",
-                value = preview.artistName.ifBlank { "Unknown" },
+                label = stringResource(R.string.label_artist),
+                value = preview.artistName.ifBlank { stringResource(R.string.label_unknown) },
             )
 
             Spacer(Modifier.height(12.dp))
@@ -58,7 +60,7 @@ fun ArtworkDetailBottomSheet(
             if (preview.tags.isNotBlank()) {
                 DetailRow(
                     icon = null,
-                    label = "Classification",
+                    label = stringResource(R.string.label_classification),
                     content = {
                         AssistChip(
                             onClick = {},
@@ -73,7 +75,7 @@ fun ArtworkDetailBottomSheet(
 
             if (preview.characterNames.isNotEmpty()) {
                 Text(
-                    text = "Characters",
+                    text = stringResource(R.string.label_characters),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -93,7 +95,7 @@ fun ArtworkDetailBottomSheet(
             }
 
             Text(
-                text = "Comment",
+                text = stringResource(R.string.label_comment),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -106,7 +108,7 @@ fun ArtworkDetailBottomSheet(
                 )
             } else {
                 Text(
-                    text = "No comment available",
+                    text = stringResource(R.string.msg_no_comment_available),
                     style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
                     color = MaterialTheme.colorScheme.outline,
                 )
@@ -142,7 +144,7 @@ fun ArtworkDetailBottomSheet(
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(Modifier.width(6.dp))
-                        Text("Source")
+                        Text(stringResource(R.string.label_source))
                     }
                 }
                 if (preview.artistUrl.isNotBlank()) {
@@ -159,7 +161,7 @@ fun ArtworkDetailBottomSheet(
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(Modifier.width(6.dp))
-                        Text("Artist")
+                        Text(stringResource(R.string.label_artist))
                     }
                 }
             }

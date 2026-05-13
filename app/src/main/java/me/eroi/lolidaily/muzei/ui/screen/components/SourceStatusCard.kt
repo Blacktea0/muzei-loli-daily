@@ -12,7 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import me.eroi.lolidaily.muzei.R
 
 @Composable
 fun SourceStatusCard(
@@ -29,18 +31,18 @@ fun SourceStatusCard(
 
     if (!isMuzeiInstalled) {
         icon = Icons.Default.Info
-        label = "Muzei not installed"
-        subLabel = "Get it on Play Store"
+        label = stringResource(R.string.status_muzei_not_installed)
+        subLabel = stringResource(R.string.label_get_play_store)
         tint = colors.onSurfaceVariant
     } else if (isSourceActivated) {
         icon = Icons.Default.Favorite
-        label = "Enabled in Muzei"
-        subLabel = "Tap to open Muzei"
+        label = stringResource(R.string.status_muzei_enabled)
+        subLabel = stringResource(R.string.label_tap_open_muzei)
         tint = colors.primary
     } else {
         icon = Icons.Default.FavoriteBorder
-        label = "Not enabled"
-        subLabel = "Select this source in Muzei"
+        label = stringResource(R.string.status_not_enabled)
+        subLabel = stringResource(R.string.label_select_source_muzei)
         tint = colors.error
     }
 

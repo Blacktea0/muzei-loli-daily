@@ -70,7 +70,7 @@ class LoliDailyArtProvider : MuzeiArtProvider() {
             actions.add(
                 RemoteActionCompat(
                     IconCompat.createWithResource(ctx, R.drawable.ic_view_source),
-                    "View Source",
+                    ctx.getString(R.string.cmd_view_source),
                     card.sourceUrl,
                     sourcePending,
                 ),
@@ -96,7 +96,7 @@ class LoliDailyArtProvider : MuzeiArtProvider() {
             actions.add(
                 RemoteActionCompat(
                     IconCompat.createWithResource(ctx, R.drawable.ic_person),
-                    "View Artist",
+                    ctx.getString(R.string.cmd_view_artist),
                     card.artistUrl,
                     artistPending,
                 ),
@@ -118,8 +118,8 @@ class LoliDailyArtProvider : MuzeiArtProvider() {
         actions.add(
             RemoteActionCompat(
                 IconCompat.createWithResource(ctx, R.drawable.ic_refresh),
-                "Force Refresh",
-                "Fetch latest artwork from API (bypasses cache)",
+                ctx.getString(R.string.cmd_force_refresh),
+                ctx.getString(R.string.cmd_force_refresh_desc),
                 refreshPending,
             ),
         )

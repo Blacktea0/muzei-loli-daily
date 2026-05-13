@@ -10,8 +10,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import me.eroi.lolidaily.muzei.R
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -50,11 +52,19 @@ fun AccountCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (isLoggedIn) "Logged in to Bangumi" else "Not logged in",
+                        text = if (isLoggedIn) stringResource(R.string.status_logged_in) else stringResource(R.string.status_not_logged_in),
                         style = MaterialTheme.typography.titleSmall,
                     )
                     Text(
-                        text = if (isLoggedIn) "via $bgmDomain" else "Login to react to images",
+                        text =
+                            if (isLoggedIn) {
+                                stringResource(
+                                    R.string.label_via_domain,
+                                    bgmDomain,
+                                )
+                            } else {
+                                stringResource(R.string.label_login_to_react)
+                            },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -65,7 +75,7 @@ fun AccountCard(
 
             if (isLoggedIn) {
                 OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
-                    Text("Logout")
+                    Text(stringResource(R.string.action_logout))
                 }
             } else {
                 var showDomainPicker by remember { mutableStateOf(false) }
@@ -78,7 +88,7 @@ fun AccountCard(
                         onClick = { showDomainPicker = true },
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Login")
+                        Text(stringResource(R.string.action_login))
                     }
                 }
 
@@ -115,7 +125,7 @@ fun DomainPickerDialog(
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 Text(
-                    text = "Choose login site",
+                    text = stringResource(R.string.title_choose_login_site),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 16.dp),
                 )
@@ -140,9 +150,9 @@ fun DomainPickerDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 ) {
-                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
                     FilledTonalButton(onClick = { onDomainSelected(selectedDomain) }) {
-                        Text("Confirm")
+                        Text(stringResource(R.string.action_confirm))
                     }
                 }
             }
