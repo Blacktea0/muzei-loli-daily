@@ -14,6 +14,7 @@ object EmojiMap {
             90 -> R.drawable.reaction_51
             88 -> R.drawable.reaction_49
             80 -> R.drawable.reaction_41
+            85 -> R.drawable.reaction_46
             else -> null
         }
 
@@ -28,5 +29,6 @@ object EmojiMap {
             90 to "https://bgm.tv/img/smiles/tv/51.gif",
             88 to "https://bgm.tv/img/smiles/tv/49.gif",
             80 to "https://bgm.tv/img/smiles/tv/41.gif",
+            85 to "https://bgm.tv/img/smiles/tv/46.gif",
         )
 }

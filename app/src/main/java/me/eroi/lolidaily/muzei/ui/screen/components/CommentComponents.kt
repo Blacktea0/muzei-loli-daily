@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -15,15 +17,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Reply
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -45,8 +44,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import me.eroi.lolidaily.muzei.model.BangumiReaction
 import me.eroi.lolidaily.muzei.model.BangumiReply
 import me.eroi.lolidaily.muzei.model.BangumiSubReply
+import me.eroi.lolidaily.muzei.worker.EmojiMap
 
 // ── Comment Header ───────────────────────────────────────────────
 
@@ -131,16 +132,46 @@ fun CommentsError(message: String) {
     }
 }
 
+// ── Reaction Chips (read-only) ──────────────────────────────────
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ReactionChips(reactions: List<BangumiReaction>) {
+    val valid = remember(reactions) { reactions.mapNotNull { r -> EmojiMap.emojiResId(r.value)?.let { r to it } } }
+    if (valid.isEmpty()) return
+
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        for ((reaction, resId) in valid) {
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                modifier = Modifier.height(22.dp),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    PixelEmoji(resId = resId, modifier = Modifier.size(16.dp))
+                    Text(
+                        text = "${reaction.users.size}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
 // ── Comment Entry ────────────────────────────────────────────────
 
 @Composable
 fun CommentEntry(reply: BangumiReply) {
     if (reply.state != 0) return
-
-    val totalReactions =
-        remember(reply) {
-            reply.reactions.sumOf { it.users.size }
-        }
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
@@ -187,37 +218,8 @@ fun CommentEntry(reply: BangumiReply) {
 
             Spacer(Modifier.height(8.dp))
 
-            // Actions row
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(
-                        Icons.Default.FavoriteBorder,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (totalReactions > 0) {
-                        Text(
-                            text = totalReactions.toString(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Reply,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = "Reply",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            // Reactions
+            ReactionChips(reactions = reply.reactions)
 
             // Sub-reply thread
             if (reply.replies.isNotEmpty()) {
@@ -232,11 +234,6 @@ fun CommentEntry(reply: BangumiReply) {
 @Composable
 fun FloorCommentEntry(reply: BangumiSubReply) {
     if (reply.state != 0) return
-
-    val totalReactions =
-        remember(reply) {
-            reply.reactions.sumOf { it.users.size }
-        }
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
@@ -281,36 +278,7 @@ fun FloorCommentEntry(reply: BangumiSubReply) {
 
             Spacer(Modifier.height(8.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(
-                        Icons.Default.FavoriteBorder,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (totalReactions > 0) {
-                        Text(
-                            text = totalReactions.toString(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Reply,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = "Reply",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            ReactionChips(reactions = reply.reactions)
         }
     }
 }
@@ -349,11 +317,6 @@ private fun ReplyThread(replies: List<BangumiSubReply>) {
 
 @Composable
 private fun SubReplyItem(reply: BangumiSubReply) {
-    val totalReactions =
-        remember(reply) {
-            reply.reactions.sumOf { it.users.size }
-        }
-
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         UserAvatar(
             avatarUrl = reply.creator?.avatar?.small,
@@ -382,28 +345,13 @@ private fun SubReplyItem(reply: BangumiSubReply) {
 
             Spacer(Modifier.height(4.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = formatTimestamp(reply.createdAt),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (totalReactions > 0) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Icon(
-                            Icons.Default.FavoriteBorder,
-                            contentDescription = null,
-                            modifier = Modifier.size(12.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = totalReactions.toString(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
+            Text(
+                text = formatTimestamp(reply.createdAt),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            ReactionChips(reactions = reply.reactions)
         }
     }
 }
