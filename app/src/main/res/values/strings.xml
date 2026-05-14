@@ -18,7 +18,6 @@
 
     <!-- Tag filters -->
     <string name="section_tag_filter">Tag Filters</string>
-    <string name="label_show_all">Show all tags (no filter)</string>
     <string name="label_tag_lc0_lc_yj">LC0 / LC YJ</string>
     <string name="label_tag_lc0">LC0</string>
     <string name="label_tag_lc_es">LC ES</string>

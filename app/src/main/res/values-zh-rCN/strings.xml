@@ -18,7 +18,6 @@
 
     <!-- Tag filters -->
     <string name="section_tag_filter">标签筛选</string>
-    <string name="label_show_all">显示全部标签（不过滤）</string>
     <string name="label_tag_lc0_lc_yj">LC0 / LC YJ</string>
     <string name="label_tag_lc0">LC0</string>
     <string name="label_tag_lc_es">LC ES</string>

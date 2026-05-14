@@ -279,15 +279,6 @@ private fun PreferenceTab(
             ) {
                 Column(modifier = Modifier.padding(4.dp)) {
                     FilterOption(
-                        label = stringResource(R.string.label_show_all),
-                        selected = selectedTags.isEmpty(),
-                        onClick = { onTagsChanged(emptySet()) },
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                    )
-                    FilterOption(
                         label = stringResource(R.string.label_tag_lc0_lc_yj),
                         selected = selectedTags == setOf("LC0", "LC YJ"),
                         onClick = { onTagsChanged(setOf("LC0", "LC YJ")) },
