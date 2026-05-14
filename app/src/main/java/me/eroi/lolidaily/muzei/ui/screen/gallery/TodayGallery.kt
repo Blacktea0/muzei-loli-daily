@@ -279,7 +279,7 @@ fun HeroArtwork(
                             modifier =
                                 Modifier
                                     .background(
-                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
                                         RoundedCornerShape(50),
                                     )
                                     .padding(horizontal = 10.dp, vertical = 4.dp),
@@ -290,12 +290,12 @@ fun HeroArtwork(
                                 Icons.Default.CalendarToday,
                                 contentDescription = null,
                                 modifier = Modifier.size(14.dp),
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Text(
                                 text = preview.date,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }

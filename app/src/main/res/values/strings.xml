@@ -29,6 +29,25 @@
     <string name="label_theme_light">Light</string>
     <string name="label_theme_dark">Dark</string>
 
+    <!-- Color source -->
+    <string name="section_color_source">COLOR SOURCE</string>
+    <string name="section_color_style">COLOR STYLE</string>
+    <string name="label_color_source_default">Default (Pink)</string>
+    <string name="label_color_source_image">From artwork</string>
+    <string name="label_color_source_manual">Manual color</string>
+    <string name="label_hex_color">Hex color</string>
+    <string name="msg_invalid_hex_color">Enter a valid #RRGGBB color</string>
+    <string name="hint_no_artwork_for_color">No artwork available for color extraction</string>
+    <string name="label_style_tonal_spot">Tonal Spot</string>
+    <string name="label_style_vibrant">Vibrant</string>
+    <string name="label_style_content">Content</string>
+    <string name="label_style_fidelity">Fidelity</string>
+    <string name="label_style_expressive">Expressive</string>
+    <string name="label_style_monochrome">Monochrome</string>
+    <string name="label_style_neutral">Neutral</string>
+    <string name="label_style_rainbow">Rainbow</string>
+    <string name="label_style_fruit_salad">Fruit Salad</string>
+
     <!-- Debug entry -->
     <string name="title_debug_settings">Debug Settings</string>
     <string name="label_debug_subtitle">Developer options and tools</string>

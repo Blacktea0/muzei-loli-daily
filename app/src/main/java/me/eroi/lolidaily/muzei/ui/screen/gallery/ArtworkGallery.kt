@@ -37,7 +37,6 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
-import me.eroi.lolidaily.muzei.ui.screen.components.ReactionRow
 import me.eroi.lolidaily.muzei.util.exportArtwork
 import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.zoomable
@@ -311,17 +310,6 @@ fun ArtworkCard(
                     }
                 }
             }
-
-            if (preview.reactions.isNotEmpty()) {
-                ReactionRow(
-                    reactions = preview.reactions,
-                    userEmoji = preview.userEmoji,
-                    token = token,
-                    isLoggedIn = isLoggedIn,
-                    onReactionClick = onReactionClick,
-                    modifier = Modifier.align(Alignment.BottomStart).padding(12.dp),
-                )
-            }
         }
 
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -344,30 +332,51 @@ fun ArtworkCard(
                 )
             }
 
+            // Suggested by (matching Today page hero overlay style)
             Spacer(Modifier.height(4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Icon(
-                    Icons.AutoMirrored.Filled.Comment,
+                    Icons.Default.Person,
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp).padding(top = 2.dp),
+                    modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (preview.comment.isNotBlank()) {
+                val suggestedName = preview.suggestedByName
+                Text(
+                    text =
+                        if (!suggestedName.isNullOrBlank()) {
+                            stringResource(R.string.label_suggested_by, suggestedName)
+                        } else {
+                            stringResource(R.string.label_suggested_by_anonymous)
+                        },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            // Comment
+            if (preview.comment.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Comment,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     Text(
                         text = preview.comment,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                    )
-                } else {
-                    Text(
-                        text = stringResource(R.string.label_no_comment),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
                     )
                 }
             }

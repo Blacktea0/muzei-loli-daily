@@ -170,6 +170,12 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
+    // Material Color Utilities — M3 color scheme generation from source color
+    implementation("me.tatarka.google.material:material-color-utilities:0.1.2")
+
+    // Palette — extract dominant color from bitmap
+    implementation("androidx.palette:palette-ktx:1.0.0")
+
     // Room — local database for artwork metadata persistence
     val roomVersion = "2.7.1"
     implementation("androidx.room:room-runtime:$roomVersion")

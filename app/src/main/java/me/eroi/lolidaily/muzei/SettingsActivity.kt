@@ -23,8 +23,11 @@ import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyResponse
 import me.eroi.lolidaily.muzei.ui.screen.SettingsScreen
+import me.eroi.lolidaily.muzei.ui.theme.ColorSource
+import me.eroi.lolidaily.muzei.ui.theme.ColorStyle
 import me.eroi.lolidaily.muzei.ui.theme.LoliDailyTheme
 import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
+import me.eroi.lolidaily.muzei.util.ArtworkColorExtractor
 import me.eroi.lolidaily.muzei.util.Md5
 import java.io.File
 
@@ -47,6 +50,10 @@ class SettingsActivity : AppCompatActivity() {
     private var isSourceActivated by mutableStateOf(false)
     private var isMuzeiInstalled by mutableStateOf(false)
     private var themeMode by mutableStateOf(ThemeMode.SYSTEM)
+    private var colorSource by mutableStateOf(ColorSource.DEFAULT)
+    private var colorStyle by mutableStateOf(ColorStyle.TONAL_SPOT)
+    private var manualColorArgb by mutableStateOf(0xFFF09199.toInt())
+    private var extractedArgb by mutableStateOf<Int?>(null)
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -61,7 +68,12 @@ class SettingsActivity : AppCompatActivity() {
         val fromMuzei = intent?.action != Intent.ACTION_MAIN
 
         setContent {
-            LoliDailyTheme(themeMode = themeMode) {
+            LoliDailyTheme(
+                themeMode = themeMode,
+                colorSource = colorSource,
+                sourceArgb = extractedArgb,
+                colorStyle = colorStyle,
+            ) {
                 SettingsScreen(
                     selectedTags = selectedTags,
                     onTagsChanged = { newTags ->
@@ -115,6 +127,25 @@ class SettingsActivity : AppCompatActivity() {
                     onThemeModeChanged = { mode ->
                         themeMode = mode
                         saveThemeMode(mode)
+                    },
+                    colorSource = colorSource,
+                    onColorSourceChanged = { source ->
+                        colorSource = source
+                        saveColorSource(source)
+                        resolveSourceColor()
+                    },
+                    colorStyle = colorStyle,
+                    onColorStyleChanged = { style ->
+                        colorStyle = style
+                        saveColorStyle(style)
+                    },
+                    manualColorArgb = manualColorArgb,
+                    onManualColorChanged = { argb ->
+                        manualColorArgb = argb
+                        saveManualColor(argb)
+                        if (colorSource == ColorSource.MANUAL) {
+                            extractedArgb = argb
+                        }
                     },
                     onOpenDebug = {
                         startActivity(
@@ -178,6 +209,9 @@ class SettingsActivity : AppCompatActivity() {
         selectedTags = enabledTags ?: emptySet()
         bgmDomain = LoliDailyArtWorker.loadDomain(this)
         themeMode = loadThemeMode()
+        colorSource = loadColorSource()
+        colorStyle = loadColorStyle()
+        manualColorArgb = loadManualColor()
     }
 
     private fun saveState() {
@@ -196,6 +230,69 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun saveThemeMode(mode: ThemeMode) {
         prefs.edit().putString(KEY_THEME_MODE, mode.name).apply()
+    }
+
+    private fun loadColorSource(): ColorSource {
+        val stored = prefs.getString(KEY_COLOR_SOURCE, null) ?: return ColorSource.DEFAULT
+        return try {
+            ColorSource.valueOf(stored)
+        } catch (_: IllegalArgumentException) {
+            ColorSource.DEFAULT
+        }
+    }
+
+    private fun saveColorSource(source: ColorSource) {
+        prefs.edit().putString(KEY_COLOR_SOURCE, source.name).apply()
+    }
+
+    private fun loadColorStyle(): ColorStyle {
+        val stored = prefs.getString(KEY_COLOR_STYLE, null) ?: return ColorStyle.TONAL_SPOT
+        return try {
+            ColorStyle.valueOf(stored)
+        } catch (_: IllegalArgumentException) {
+            ColorStyle.TONAL_SPOT
+        }
+    }
+
+    private fun saveColorStyle(style: ColorStyle) {
+        prefs.edit().putString(KEY_COLOR_STYLE, style.name).apply()
+    }
+
+    private fun loadManualColor(): Int {
+        return prefs.getInt(KEY_MANUAL_COLOR, 0xFFF09199.toInt())
+    }
+
+    private fun saveManualColor(argb: Int) {
+        prefs.edit().putInt(KEY_MANUAL_COLOR, argb).apply()
+    }
+
+    private fun resolveSourceColor() {
+        when (colorSource) {
+            ColorSource.IMAGE -> {
+                val candidates =
+                    if (selectedTags.isEmpty()) {
+                        todayPreviews
+                    } else {
+                        todayPreviews.filter { selectedTags.contains(it.tags) }
+                    }
+                val filename = candidates.firstOrNull()?.filename ?: todayPreviews.firstOrNull()?.filename
+                if (filename != null) {
+                    Thread {
+                        val argb = ArtworkColorExtractor.extract(this, filename, manualColorArgb)
+                        runOnUiThread {
+                            extractedArgb = argb
+                            prefs.edit().putInt(KEY_EXTRACTED_COLOR, argb).apply()
+                        }
+                    }.start()
+                }
+            }
+            ColorSource.MANUAL -> {
+                extractedArgb = manualColorArgb
+            }
+            ColorSource.DEFAULT -> {
+                extractedArgb = null
+            }
+        }
     }
 
     // ── Source activation ───────────────────────────────────────────
@@ -248,6 +345,10 @@ class SettingsActivity : AppCompatActivity() {
     companion object {
         private const val MUZEI_PACKAGE = "net.nurik.roman.muzei"
         private const val KEY_THEME_MODE = "theme_mode"
+        private const val KEY_COLOR_SOURCE = "color_source"
+        private const val KEY_COLOR_STYLE = "color_style"
+        private const val KEY_MANUAL_COLOR = "manual_color"
+        private const val KEY_EXTRACTED_COLOR = "extracted_color"
     }
 
     // ── Image preview with metadata ────────────────────────────────
@@ -342,6 +443,10 @@ class SettingsActivity : AppCompatActivity() {
 
         todayPreviews = previews.filter { it.date == apiDate }
         bookmarkPreviews = previews.filter { it.isBookmarked }
+
+        if (colorSource == ColorSource.IMAGE) {
+            resolveSourceColor()
+        }
     }
 
     /** Loads all Room-persisted artwork fields, keyed by token. */

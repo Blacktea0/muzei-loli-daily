@@ -29,6 +29,25 @@
     <string name="label_theme_light">浅色</string>
     <string name="label_theme_dark">深色</string>
 
+    <!-- Color source -->
+    <string name="section_color_source">颜色来源</string>
+    <string name="section_color_style">配色风格</string>
+    <string name="label_color_source_default">默认（粉色）</string>
+    <string name="label_color_source_image">从画作提取</string>
+    <string name="label_color_source_manual">手动选色</string>
+    <string name="label_hex_color">十六进制颜色</string>
+    <string name="msg_invalid_hex_color">请输入有效的 #RRGGBB 颜色</string>
+    <string name="hint_no_artwork_for_color">没有可用于提取颜色的画作</string>
+    <string name="label_style_tonal_spot">色调斑点</string>
+    <string name="label_style_vibrant">鲜艳</string>
+    <string name="label_style_content">内容提取</string>
+    <string name="label_style_fidelity">忠实还原</string>
+    <string name="label_style_expressive">表现力</string>
+    <string name="label_style_monochrome">单色</string>
+    <string name="label_style_neutral">中性</string>
+    <string name="label_style_rainbow">彩虹</string>
+    <string name="label_style_fruit_salad">水果沙拉</string>
+
     <!-- Debug entry -->
     <string name="title_debug_settings">调试设置</string>
     <string name="label_debug_subtitle">开发者选项和工具</string>

@@ -29,6 +29,25 @@
     <string name="label_theme_light">ライト</string>
     <string name="label_theme_dark">ダーク</string>
 
+    <!-- Color source -->
+    <string name="section_color_source">カラーソース</string>
+    <string name="section_color_style">カラースタイル</string>
+    <string name="label_color_source_default">デフォルト（ピンク）</string>
+    <string name="label_color_source_image">作品から抽出</string>
+    <string name="label_color_source_manual">手動選択</string>
+    <string name="label_hex_color">16進数カラー</string>
+    <string name="msg_invalid_hex_color">有効な #RRGGBB カラーを入力</string>
+    <string name="hint_no_artwork_for_color">色抽出に利用できる作品がありません</string>
+    <string name="label_style_tonal_spot">トナルスポット</string>
+    <string name="label_style_vibrant">ビブラント</string>
+    <string name="label_style_content">コンテンツ</string>
+    <string name="label_style_fidelity">フィデリティ</string>
+    <string name="label_style_expressive">エクスプレッシブ</string>
+    <string name="label_style_monochrome">モノクロ</string>
+    <string name="label_style_neutral">ニュートラル</string>
+    <string name="label_style_rainbow">レインボー</string>
+    <string name="label_style_fruit_salad">フルーツサラダ</string>
+
     <!-- Debug entry -->
     <string name="title_debug_settings">デバッグ設定</string>
     <string name="label_debug_subtitle">開発者オプションとツール</string>

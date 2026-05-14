@@ -5,7 +5,6 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -31,7 +30,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -54,12 +52,9 @@ import androidx.core.os.LocaleListCompat
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.LoliApiClient
+import me.eroi.lolidaily.muzei.ui.screen.components.ThemeOption
 import me.eroi.lolidaily.muzei.util.SectionTitle
 
-/**
- * Debug settings screen for development testing. Each option lives in its own M3-style section
- * card.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DebugSettingsScreen(onBack: () -> Unit) {
@@ -89,14 +84,12 @@ fun DebugSettingsScreen(onBack: () -> Unit) {
 
             // ── API ───────────────────────────────
             item { SectionTitle(stringResource(R.string.section_debug_api)) }
-
             item { ApiServerCard() }
             item { BangumiApiServerCard() }
             item { CacheSwitchCard() }
 
             // ── Refresh Schedule ─────────────────
             item { SectionTitle(stringResource(R.string.section_debug_refresh)) }
-
             item { RefreshTimeCard() }
         }
     }
@@ -119,7 +112,6 @@ private fun ApiServerCard() {
 
     val savedUrl = remember { prefs.getString(LoliApiClient.KEY_DEBUG_API_BASE_URL, null) }
 
-    // Determine initial selection: if saved URL matches a known server, select it; otherwise custom
     val initialSelection =
         remember {
             val matched = LoliApiClient.KNOWN_SERVERS.indexOfFirst { it == savedUrl }
@@ -142,80 +134,56 @@ private fun ApiServerCard() {
         shape = RoundedCornerShape(16.dp),
     ) {
         Column(modifier = Modifier.padding(4.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 12.dp),
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = stringResource(R.string.title_api_server), style = MaterialTheme.typography.bodyLarge)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = stringResource(R.string.desc_api_server, LoliApiClient.DEFAULT_API_BASE_URL),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
             LoliApiClient.KNOWN_SERVERS.forEach { server ->
-                Row(
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    RadioButton(
-                        selected = selected == server,
-                        onClick = {
-                            selected = server
-                            persist(server)
-                        },
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = server, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-
-            // Custom option
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RadioButton(
-                    selected = selected == CUSTOM_OPTION,
+                ThemeOption(
+                    label = server,
+                    selected = selected == server,
                     onClick = {
-                        selected = CUSTOM_OPTION
-                        if (customUrl.isNotBlank()) persist(customUrl)
+                        selected = server
+                        persist(server)
                     },
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = stringResource(R.string.label_custom), style = MaterialTheme.typography.bodyMedium)
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
             }
+
+            ThemeOption(
+                label = stringResource(R.string.label_custom),
+                selected = selected == CUSTOM_OPTION,
+                onClick = {
+                    selected = CUSTOM_OPTION
+                    if (customUrl.isNotBlank()) persist(customUrl)
+                },
+            )
 
             AnimatedVisibility(visible = selected == CUSTOM_OPTION) {
-                OutlinedTextField(
-                    value = customUrl,
-                    onValueChange = {
-                        customUrl = it
-                        prefs.edit().putString(LoliApiClient.KEY_DEBUG_API_BASE_URL_CUSTOM, it).apply()
-                        if (selected == CUSTOM_OPTION) persist(it)
-                    },
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
-                    placeholder = { Text("https://example.com") },
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.label_server_url)) },
-                )
-            }
+                Column {
+                    OutlinedTextField(
+                        value = customUrl,
+                        onValueChange = {
+                            customUrl = it
+                            prefs.edit().putString(LoliApiClient.KEY_DEBUG_API_BASE_URL_CUSTOM, it).apply()
+                            if (selected == CUSTOM_OPTION) persist(it)
+                        },
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                        placeholder = { Text("https://example.com") },
+                        singleLine = true,
+                        label = { Text(stringResource(R.string.label_server_url)) },
+                    )
 
-            if (selected == CUSTOM_OPTION && customUrl.isNotBlank()) {
-                FilledTonalButton(
-                    onClick = { persist(customUrl) },
-                    modifier =
-                        Modifier.align(Alignment.End).padding(horizontal = 16.dp, vertical = 4.dp),
-                ) {
-                    Text(stringResource(R.string.action_apply))
+                    if (customUrl.isNotBlank()) {
+                        FilledTonalButton(
+                            onClick = { persist(customUrl) },
+                            modifier =
+                                Modifier.align(Alignment.End).padding(horizontal = 16.dp, vertical = 4.dp),
+                        ) {
+                            Text(stringResource(R.string.action_apply))
+                        }
+                    }
                 }
             }
 
@@ -274,80 +242,56 @@ private fun BangumiApiServerCard() {
         shape = RoundedCornerShape(16.dp),
     ) {
         Column(modifier = Modifier.padding(4.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 12.dp),
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = stringResource(R.string.title_bangumi_api_server), style = MaterialTheme.typography.bodyLarge)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = stringResource(R.string.desc_bangumi_api_server, LoliApiClient.DEFAULT_BANGUMI_BASE_URL),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
             LoliApiClient.KNOWN_BANGUMI_SERVERS.forEach { server ->
-                Row(
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    RadioButton(
-                        selected = selected == server,
-                        onClick = {
-                            selected = server
-                            persist(server)
-                        },
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = server, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-
-            // Custom option
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RadioButton(
-                    selected = selected == CUSTOM_OPTION,
+                ThemeOption(
+                    label = server,
+                    selected = selected == server,
                     onClick = {
-                        selected = CUSTOM_OPTION
-                        if (customUrl.isNotBlank()) persist(customUrl)
+                        selected = server
+                        persist(server)
                     },
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = stringResource(R.string.label_custom), style = MaterialTheme.typography.bodyMedium)
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
             }
+
+            ThemeOption(
+                label = stringResource(R.string.label_custom),
+                selected = selected == CUSTOM_OPTION,
+                onClick = {
+                    selected = CUSTOM_OPTION
+                    if (customUrl.isNotBlank()) persist(customUrl)
+                },
+            )
 
             AnimatedVisibility(visible = selected == CUSTOM_OPTION) {
-                OutlinedTextField(
-                    value = customUrl,
-                    onValueChange = {
-                        customUrl = it
-                        prefs.edit().putString(LoliApiClient.KEY_DEBUG_BANGUMI_BASE_URL_CUSTOM, it).apply()
-                        if (selected == CUSTOM_OPTION) persist(it)
-                    },
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
-                    placeholder = { Text("https://bgm.tv") },
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.label_bangumi_server_url)) },
-                )
-            }
+                Column {
+                    OutlinedTextField(
+                        value = customUrl,
+                        onValueChange = {
+                            customUrl = it
+                            prefs.edit().putString(LoliApiClient.KEY_DEBUG_BANGUMI_BASE_URL_CUSTOM, it).apply()
+                            if (selected == CUSTOM_OPTION) persist(it)
+                        },
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                        placeholder = { Text("https://bgm.tv") },
+                        singleLine = true,
+                        label = { Text(stringResource(R.string.label_bangumi_server_url)) },
+                    )
 
-            if (selected == CUSTOM_OPTION && customUrl.isNotBlank()) {
-                FilledTonalButton(
-                    onClick = { persist(customUrl) },
-                    modifier =
-                        Modifier.align(Alignment.End).padding(horizontal = 16.dp, vertical = 4.dp),
-                ) {
-                    Text(stringResource(R.string.action_apply))
+                    if (customUrl.isNotBlank()) {
+                        FilledTonalButton(
+                            onClick = { persist(customUrl) },
+                            modifier =
+                                Modifier.align(Alignment.End).padding(horizontal = 16.dp, vertical = 4.dp),
+                        ) {
+                            Text(stringResource(R.string.action_apply))
+                        }
+                    }
                 }
             }
 
@@ -641,20 +585,11 @@ private fun LanguagePickerDialog(
         text = {
             Column {
                 languages.forEach { (tag, label) ->
-                    Row(
-                        modifier =
-                            Modifier.fillMaxWidth()
-                                .clickable { onLanguageSelected(tag) }
-                                .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = currentTag == tag,
-                            onClick = { onLanguageSelected(tag) },
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = label, style = MaterialTheme.typography.bodyLarge)
-                    }
+                    ThemeOption(
+                        label = label,
+                        selected = currentTag == tag,
+                        onClick = { onLanguageSelected(tag) },
+                    )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
