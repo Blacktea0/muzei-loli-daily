@@ -79,6 +79,9 @@ class SettingsActivity : AppCompatActivity() {
                     onTagsChanged = { newTags ->
                         selectedTags = newTags
                         saveState()
+                        if (colorSource == ColorSource.IMAGE) {
+                            resolveSourceColor()
+                        }
                     },
                     todayArtwork = todayPreviews,
                     bookmarkArtwork = bookmarkPreviews,
