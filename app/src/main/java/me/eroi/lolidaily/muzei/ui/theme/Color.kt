@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.Color
 
 val LightColorScheme =
     lightColorScheme(
-        primary = Color(0xFF6B4DA3),
+        primary = Color(0xFFF09199),
         onPrimary = Color(0xFFFFFFFF),
         primaryContainer = Color(0xFFEBDCFF),
         onPrimaryContainer = Color(0xFF250058),
@@ -44,7 +44,7 @@ val LightColorScheme =
         inverseOnSurface = Color(0xFFF5EFF7),
         inversePrimary = Color(0xFFCFBDFF),
         scrim = Color(0xFF000000),
-        surfaceTint = Color(0xFF6B4DA3),
+        surfaceTint = Color(0xFFF09199),
     )
 
 // ──────────────────────────────────────────────
@@ -54,7 +54,7 @@ val LightColorScheme =
 
 val DarkColorScheme =
     darkColorScheme(
-        primary = Color(0xFF9B72CB),
+        primary = Color(0xFFF09199),
         onPrimary = Color(0xFF3E1570),
         primaryContainer = Color(0xFF54348B),
         onPrimaryContainer = Color(0xFFEBDCFF),
@@ -87,5 +87,5 @@ val DarkColorScheme =
         inverseOnSurface = Color(0xFF322F35),
         inversePrimary = Color(0xFF6B4DA3),
         scrim = Color(0xFF000000),
-        surfaceTint = Color(0xFF9B72CB),
+        surfaceTint = Color(0xFFF09199),
     )
