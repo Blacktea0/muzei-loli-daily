@@ -7,6 +7,7 @@ import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.util.UUID
 
 object WorkScheduler {
     private const val TAG = "LoliDailyWorker"
@@ -22,7 +23,7 @@ object WorkScheduler {
         context: Context,
         forceRefresh: Boolean = false,
         initial: Boolean = true,
-    ) {
+    ): UUID? {
         val prefs =
             context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -32,7 +33,7 @@ object WorkScheduler {
                 lastCompleted > 0L && System.currentTimeMillis() - lastCompleted < WORK_COOLDOWN_MS
             ) {
                 Log.d(TAG, "enqueueLoad skipped — within ${WORK_COOLDOWN_MS / 1000}s cooldown")
-                return
+                return null
             }
         }
 
@@ -64,6 +65,7 @@ object WorkScheduler {
 
         WorkManager.getInstance(context)
             .enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.REPLACE, work)
+        return work.id
     }
 
     fun enqueueRefilter(context: Context) {

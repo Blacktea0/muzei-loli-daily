@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import androidx.work.*
 import com.google.android.apps.muzei.api.provider.ProviderContract
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.serializer
@@ -49,6 +50,8 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         val refilterOnly = inputData.getBoolean(KEY_REFILTER_ONLY, false)
         val initial = inputData.getBoolean(KEY_INITIAL, true)
 
+        refreshProgress.value = 0f
+
         return try {
             var isNewDay = false
             var cards = emptyList<Card>()
@@ -71,7 +74,9 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                     isNewDay = forceRefresh || cachedDate == null || cachedDate != fetchedDate
 
                     if (cards.isNotEmpty()) {
-                        downloadNewImages(cards, forceDownload = forceRefresh)
+                        downloadNewImages(cards, forceDownload = forceRefresh) { fraction ->
+                            refreshProgress.value = fraction
+                        }
                         saveCardsMetadata(cards, fetchedDate)
                         recordImageDates(cards, fetchedDate)
                         prefs.edit().putString(KEY_LAST_API_DATE, fetchedDate).apply()
@@ -144,7 +149,9 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                         markFetchTime()
 
                         if (cards.isNotEmpty()) {
-                            downloadNewImages(cards, forceDownload = false)
+                            downloadNewImages(cards, forceDownload = false) { fraction ->
+                                refreshProgress.value = fraction
+                            }
                             saveCardsMetadata(cards, fbDate)
                             recordImageDates(cards, fbDate)
                             val newTokens =
@@ -199,10 +206,12 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                 Log.d(TAG, "Skipping Muzei push — non-initial load with cached data only")
             }
             markWorkCompleted()
+            refreshProgress.value = null
 
             Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load artwork", e)
+            refreshProgress.value = null
             Result.retry()
         }
     }
@@ -316,10 +325,15 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
     private fun downloadNewImages(
         cards: List<Card>,
         forceDownload: Boolean,
+        onProgress: ((Float) -> Unit)? = null,
     ) {
         val dir = ImageDownloader.ensureArtworksDir(applicationContext)
-        for (card in cards) {
-            if (card.imgUrl.isBlank()) continue
+        val downloadableCards = cards.filter { it.imgUrl.isNotBlank() }
+        val totalFiles = downloadableCards.size
+        if (totalFiles == 0) return
+
+        var completedFiles = 0
+        for (card in downloadableCards) {
             val token = Md5.hash(card.imgUrl)
             ImageDownloader.downloadImage(
                 applicationContext,
@@ -327,7 +341,16 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                 token,
                 dir,
                 forceDownload,
+                onProgress = { bytesWritten, totalBytes ->
+                    if (totalBytes > 0) {
+                        val fileFraction = bytesWritten.toFloat() / totalBytes
+                        val overall = (completedFiles + fileFraction) / totalFiles
+                        onProgress?.invoke(overall.coerceIn(0f, 1f))
+                    }
+                },
             )
+            completedFiles++
+            onProgress?.invoke(completedFiles.toFloat() / totalFiles)
         }
     }
 
@@ -338,10 +361,10 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         apiDate: String,
         isNewDay: Boolean,
     ) {
-        val enabledTags = prefs.getStringSet(KEY_ENABLED_TAGS, null)
+        val enabledTags = prefs.getStringSet(KEY_ENABLED_TAGS, null) ?: setOf("LC0", "LC YJ")
 
         val filteredCards =
-            if (enabledTags.isNullOrEmpty()) {
+            if (enabledTags.isEmpty()) {
                 cards
             } else {
                 cards.filter { card -> enabledTags.contains(card.tags) }
@@ -394,6 +417,8 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         const val DEFAULT_BGM_DOMAIN = "chii.in"
 
         const val PROVIDER_AUTHORITY = "me.eroi.lolidaily.muzei.provider"
+
+        val refreshProgress = MutableStateFlow<Float?>(null)
 
         // ── Delegation wrappers (implementation moved to api/ + worker/) ──
 

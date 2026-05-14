@@ -61,6 +61,7 @@ fun SettingsScreen(
     onOpenDebug: () -> Unit = {},
     onBookmarkToggle: (token: String, fileName: String, bookmarked: Boolean) -> Unit = { _, _, _ -> },
     onRemoveBookmark: (ArtworkPreview) -> Unit = {},
+    refreshProgress: Float? = null,
     initialTab: Int? = null,
     colorSource: ColorSource = ColorSource.DEFAULT,
     onColorSourceChanged: (ColorSource) -> Unit = {},
@@ -156,6 +157,7 @@ fun SettingsScreen(
                         onReactionClick = onReactionClick,
                         onRefresh = onRefresh,
                         onBookmarkToggle = onBookmarkToggle,
+                        refreshProgress = refreshProgress,
                         initialPage = todayPagerPage,
                         onPageChanged = { todayPagerPage = it },
                     )

@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -49,6 +51,7 @@ fun TodayGallery(
     onReactionClick: (String, Int) -> Unit,
     onRefresh: () -> Unit,
     onBookmarkToggle: (token: String, fileName: String, bookmarked: Boolean) -> Unit = { _, _, _ -> },
+    refreshProgress: Float? = null,
     initialPage: Int = 0,
     onPageChanged: (Int) -> Unit = {},
 ) {
@@ -61,109 +64,142 @@ fun TodayGallery(
     }
     val scope = rememberCoroutineScope()
 
-    var isRefreshing by remember { mutableStateOf(false) }
-    var refreshGeneration by remember { mutableStateOf(0) }
-
-    LaunchedEffect(refreshGeneration, todayArtwork) {
-        if (isRefreshing) {
-            isRefreshing = false
-        }
-    }
+    val isRefreshing = refreshProgress != null
 
     Column(modifier = Modifier.fillMaxSize()) {
-        if (showTabs) {
-            PrimaryTabRow(
-                selectedTabIndex = pagerState.currentPage,
-                modifier = Modifier.statusBarsPadding(),
-            ) {
-                tags.forEachIndexed { index, tag ->
-                    Tab(
-                        selected = pagerState.currentPage == index,
-                        onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                        text = { Text(tag) },
-                    )
-                }
-            }
-        }
-
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.weight(1f),
-        ) { page ->
-            val tag = tags[page]
-            val preview = todayArtwork.firstOrNull { it.tags == tag }
-
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = {
-                    isRefreshing = true
-                    refreshGeneration++
-                    onRefresh()
-                },
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                if (preview != null) {
-                    val context = LocalContext.current
-                    val discussionId = preview.discussionId
-
-                    var todayFloor by remember { mutableStateOf<BangumiReply?>(null) }
-
-                    LaunchedEffect(discussionId) {
-                        if (discussionId == null) return@LaunchedEffect
-                        todayFloor = ReactionService.loadTopicFloors(context)[discussionId]
-                    }
-
-                    val commentsToShow =
-                        remember(todayFloor) {
-                            todayFloor?.replies.orEmpty()
-                        }
-
-                    LazyColumn(overscrollEffect = null) {
-                        item(key = "hero") {
-                            HeroArtwork(
-                                preview = preview,
-                                isLoggedIn = isLoggedIn,
-                                onFullscreenImage = onFullscreenImage,
-                                onReactionClick = onReactionClick,
-                                onBookmarkToggle = onBookmarkToggle,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-
-                        // Inline comment section
-                        if (discussionId != null) {
-                            item(key = "comment_header") {
-                                CommentHeader(count = commentsToShow.count { it.state == 0 })
-                            }
-
-                            if (commentsToShow.isEmpty()) {
-                                item(key = "comments_empty") { EmptyComments() }
-                            } else {
-                                items(
-                                    count = commentsToShow.size,
-                                    key = { commentsToShow[it].id },
-                                ) { index ->
-                                    FloorCommentEntry(reply = commentsToShow[index])
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.msg_no_tag_artwork, tag),
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(32.dp),
+        Box(modifier = Modifier.statusBarsPadding()) {
+            if (showTabs) {
+                PrimaryTabRow(selectedTabIndex = pagerState.currentPage) {
+                    tags.forEachIndexed { index, tag ->
+                        Tab(
+                            selected = pagerState.currentPage == index,
+                            onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                            text = { Text(tag) },
                         )
                     }
                 }
             }
+            RefreshProgressBar(refreshProgress, Modifier.align(Alignment.TopCenter))
         }
+
+        if (tags.isEmpty()) {
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = onRefresh,
+                modifier = Modifier.weight(1f).fillMaxSize(),
+            ) {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.msg_no_tag_artwork, ""),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(32.dp),
+                    )
+                }
+            }
+        } else {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.weight(1f),
+            ) { page ->
+                val tag = tags[page]
+                val preview = todayArtwork.firstOrNull { it.tags == tag }
+
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = onRefresh,
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    if (preview != null) {
+                        val context = LocalContext.current
+                        val discussionId = preview.discussionId
+
+                        var todayFloor by remember { mutableStateOf<BangumiReply?>(null) }
+
+                        LaunchedEffect(discussionId) {
+                            if (discussionId == null) return@LaunchedEffect
+                            todayFloor = ReactionService.loadTopicFloors(context)[discussionId]
+                        }
+
+                        val commentsToShow =
+                            remember(todayFloor) {
+                                todayFloor?.replies.orEmpty()
+                            }
+
+                        LazyColumn(overscrollEffect = null) {
+                            item(key = "hero") {
+                                HeroArtwork(
+                                    preview = preview,
+                                    isLoggedIn = isLoggedIn,
+                                    onFullscreenImage = onFullscreenImage,
+                                    onReactionClick = onReactionClick,
+                                    onBookmarkToggle = onBookmarkToggle,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+
+                            if (discussionId != null) {
+                                item(key = "comment_header") {
+                                    CommentHeader(count = commentsToShow.count { it.state == 0 })
+                                }
+
+                                if (commentsToShow.isEmpty()) {
+                                    item(key = "comments_empty") { EmptyComments() }
+                                } else {
+                                    items(
+                                        count = commentsToShow.size,
+                                        key = { commentsToShow[it].id },
+                                    ) { index ->
+                                        FloorCommentEntry(reply = commentsToShow[index])
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState()),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.msg_no_tag_artwork, tag),
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(32.dp),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RefreshProgressBar(
+    progress: Float?,
+    modifier: Modifier = Modifier,
+) {
+    if (progress == null) return
+    if (progress <= 0f) {
+        LinearProgressIndicator(modifier = modifier.fillMaxWidth())
+    } else {
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = modifier.fillMaxWidth(),
+        )
     }
 }
 

@@ -114,8 +114,12 @@ private fun ApiServerCard() {
 
     val initialSelection =
         remember {
-            val matched = LoliApiClient.KNOWN_SERVERS.indexOfFirst { it == savedUrl }
-            if (matched >= 0) LoliApiClient.KNOWN_SERVERS[matched] else CUSTOM_OPTION
+            if (savedUrl == null) {
+                LoliApiClient.KNOWN_SERVERS.first()
+            } else {
+                val matched = LoliApiClient.KNOWN_SERVERS.indexOfFirst { it == savedUrl }
+                if (matched >= 0) LoliApiClient.KNOWN_SERVERS[matched] else CUSTOM_OPTION
+            }
         }
 
     var selected by remember { mutableStateOf(initialSelection) }
@@ -222,8 +226,12 @@ private fun BangumiApiServerCard() {
 
     val initialSelection =
         remember {
-            val matched = LoliApiClient.KNOWN_BANGUMI_SERVERS.indexOfFirst { it == savedUrl }
-            if (matched >= 0) LoliApiClient.KNOWN_BANGUMI_SERVERS[matched] else CUSTOM_OPTION
+            if (savedUrl == null) {
+                LoliApiClient.KNOWN_BANGUMI_SERVERS.first()
+            } else {
+                val matched = LoliApiClient.KNOWN_BANGUMI_SERVERS.indexOfFirst { it == savedUrl }
+                if (matched >= 0) LoliApiClient.KNOWN_BANGUMI_SERVERS[matched] else CUSTOM_OPTION
+            }
         }
 
     var selected by remember { mutableStateOf(initialSelection) }

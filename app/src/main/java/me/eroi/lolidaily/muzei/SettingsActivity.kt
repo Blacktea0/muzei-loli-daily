@@ -14,7 +14,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.FileProvider
+import androidx.lifecycle.lifecycleScope
 import com.google.android.apps.muzei.api.MuzeiContract
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import me.eroi.lolidaily.muzei.db.DatabaseProvider
@@ -54,6 +56,7 @@ class SettingsActivity : AppCompatActivity() {
     private var colorStyle by mutableStateOf(ColorStyle.TONAL_SPOT)
     private var manualColorArgb by mutableStateOf(0xFFF09199.toInt())
     private var extractedArgb by mutableStateOf<Int?>(null)
+    private var refreshProgress by mutableStateOf<Float?>(null)
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -102,27 +105,7 @@ class SettingsActivity : AppCompatActivity() {
                     onReactionClick = { token, emojiValue ->
                         handleReactionClick(token, emojiValue)
                     },
-                    onRefresh = {
-                        LoliDailyArtWorker.enqueueLoad(this, forceRefresh = true)
-                        Toast.makeText(this, getString(R.string.msg_refresh_enqueued), Toast.LENGTH_SHORT).show()
-                        Thread {
-                            val cacheFile = File(filesDir, "api_cache.json")
-                            val initialModTime =
-                                if (cacheFile.exists()) cacheFile.lastModified() else 0L
-                            var attempts = 0
-                            while (attempts < 20) {
-                                Thread.sleep(500)
-                                attempts++
-                                if (cacheFile.exists() &&
-                                    cacheFile.lastModified() != initialModTime
-                                ) {
-                                    break
-                                }
-                            }
-                            runOnUiThread { loadPreview(forceRefresh = true) }
-                        }
-                            .start()
-                    },
+                    onRefresh = { startRefresh() },
                     isSourceActivated = isSourceActivated,
                     isMuzeiInstalled = isMuzeiInstalled,
                     onOpenMuzei = { openMuzei() },
@@ -161,12 +144,34 @@ class SettingsActivity : AppCompatActivity() {
                     onRemoveBookmark = { preview ->
                         removeBookmark(preview)
                     },
+                    refreshProgress = refreshProgress,
                     initialTab = if (fromMuzei) 2 else null,
                 )
             }
         }
 
         loadPreview()
+        if (todayPreviews.isEmpty()) {
+            startRefresh()
+        }
+    }
+
+    private fun startRefresh() {
+        val workId = LoliDailyArtWorker.enqueueLoad(this, forceRefresh = true)
+        if (workId != null) {
+            lifecycleScope.launch {
+                var wasInProgress = false
+                LoliDailyArtWorker.refreshProgress.collect { fraction ->
+                    refreshProgress = fraction
+                    if (fraction != null) {
+                        wasInProgress = true
+                    } else if (wasInProgress) {
+                        loadPreview(forceRefresh = true)
+                        return@collect
+                    }
+                }
+            }
+        }
     }
 
     override fun onResume() {
@@ -209,7 +214,7 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun loadState() {
         val enabledTags = prefs.getStringSet(LoliDailyArtWorker.KEY_ENABLED_TAGS, null)
-        selectedTags = enabledTags ?: emptySet()
+        selectedTags = enabledTags ?: setOf("LC0", "LC YJ")
         bgmDomain = LoliDailyArtWorker.loadDomain(this)
         themeMode = loadThemeMode()
         colorSource = loadColorSource()
@@ -386,7 +391,10 @@ class SettingsActivity : AppCompatActivity() {
     /** Builds previews from on-disk cache without triggering network. */
     private fun buildPreviews() {
         val artworksDir = File(filesDir, "artworks")
-        val files = artworksDir.listFiles()?.filter { it.isFile && it.length() > 0 } ?: emptyList()
+        val files =
+            artworksDir.listFiles()?.filter {
+                it.isFile && it.length() > 0 && !it.name.endsWith(".tmp")
+            } ?: emptyList()
 
         // Load cached API response for current-day metadata
         val (cards, apiDate) = loadCachedDaily()

@@ -7,6 +7,9 @@ import androidx.core.content.FileProvider
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import okhttp3.Request
+import okio.Buffer
+import okio.ForwardingSink
+import okio.Sink
 import okio.buffer
 import okio.sink
 import java.io.File
@@ -17,6 +20,23 @@ object ImageDownloader {
     private const val FILE_PROVIDER_AUTHORITY = "me.eroi.lolidaily.muzei.fileprovider"
     private const val USER_AGENT = "LoliDaily/1.0 (Android)"
     private const val MAX_DOWNLOAD_RETRIES = 3
+    private const val TEMP_SUFFIX = ".tmp"
+
+    private class CountingSink(
+        delegate: Sink,
+        private val onBytesWritten: (Long) -> Unit,
+    ) : ForwardingSink(delegate) {
+        private var totalBytesWritten = 0L
+
+        override fun write(
+            source: Buffer,
+            byteCount: Long,
+        ) {
+            super.write(source, byteCount)
+            totalBytesWritten += byteCount
+            onBytesWritten(totalBytesWritten)
+        }
+    }
 
     fun ensureArtworksDir(context: Context): File {
         val dir = File(context.filesDir, "artworks")
@@ -30,6 +50,7 @@ object ImageDownloader {
         token: String,
         dir: File,
         forceDownload: Boolean = false,
+        onProgress: ((bytesWritten: Long, totalBytes: Long) -> Unit)? = null,
     ): Uri? {
         if (forceDownload) {
             val existing = findExistingFile(token, dir)
@@ -42,6 +63,8 @@ object ImageDownloader {
             if (existingFile != null) {
                 if (isFileValid(existingFile)) {
                     Log.d(TAG, "Using cached image for $token")
+                    val size = existingFile.length()
+                    onProgress?.invoke(size, size)
                     return fileToUri(context, existingFile)
                 } else {
                     Log.w(TAG, "Cached image corrupted for $token — re-downloading")
@@ -53,7 +76,7 @@ object ImageDownloader {
         var lastError: Exception? = null
         for (attempt in 1..MAX_DOWNLOAD_RETRIES) {
             try {
-                val file = downloadImageOnce(url, token, dir)
+                val file = downloadImageOnce(url, token, dir, onProgress)
                 if (file != null) {
                     if (attempt > 1) Log.d(TAG, "Download succeeded on attempt $attempt for $token")
                     return fileToUri(context, file)
@@ -81,6 +104,7 @@ object ImageDownloader {
         url: String,
         token: String,
         dir: File,
+        onProgress: ((bytesWritten: Long, totalBytes: Long) -> Unit)? = null,
     ): File? {
         val request = Request.Builder().url(url).header("User-Agent", USER_AGENT).get().build()
 
@@ -93,29 +117,48 @@ object ImageDownloader {
 
             val body = resp.body ?: return null
             val ext = detectExtension(body.contentType()?.subtype, url)
-            val file = File(dir, "$token.$ext")
+            val tempFile = File(dir, "$token.$ext$TEMP_SUFFIX")
+            val finalFile = File(dir, "$token.$ext")
+            val contentLength = body.contentLength()
 
             body.source().use { source ->
-                file.sink().buffer().use { sink -> sink.writeAll(source) }
+                val fileSink = tempFile.sink()
+                val countingSink =
+                    CountingSink(fileSink) { written ->
+                        if (contentLength > 0) {
+                            onProgress?.invoke(written, contentLength)
+                        }
+                    }
+                countingSink.buffer().use { sink -> sink.writeAll(source) }
             }
 
-            if (file.length() == 0L) {
+            if (tempFile.length() == 0L) {
                 Log.w(TAG, "Empty download for $token")
-                file.delete()
+                tempFile.delete()
                 return null
             }
 
-            if (!isFileValid(file)) {
+            if (!isFileValid(tempFile)) {
                 Log.w(
                     TAG,
-                    "File integrity check failed for $token (${file.length()} bytes, ext=$ext)",
+                    "File integrity check failed for $token (${tempFile.length()} bytes, ext=$ext)",
                 )
-                file.delete()
+                tempFile.delete()
                 return null
             }
 
-            Log.d(TAG, "Downloaded ${file.length()} bytes → ${file.name}")
-            return file
+            if (!tempFile.renameTo(finalFile)) {
+                Log.e(TAG, "Failed to rename temp file for $token")
+                tempFile.delete()
+                return null
+            }
+
+            if (contentLength > 0) {
+                onProgress?.invoke(contentLength, contentLength)
+            }
+
+            Log.d(TAG, "Downloaded ${finalFile.length()} bytes → ${finalFile.name}")
+            return finalFile
         }
     }
 
@@ -187,7 +230,10 @@ object ImageDownloader {
         dir: File,
     ): File? {
         val prefix = "$token."
-        val files = dir.listFiles { f -> f.name.startsWith(prefix) && f.length() > 0 }
+        val files =
+            dir.listFiles { f ->
+                f.name.startsWith(prefix) && !f.name.endsWith(TEMP_SUFFIX) && f.length() > 0
+            }
         return files?.firstOrNull()
     }
 
