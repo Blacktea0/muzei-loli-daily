@@ -31,6 +31,8 @@ fun LoliDailyTheme(
             ThemeMode.DARK -> true
         }
 
+    val defaultSourceArgb = 0xFFF09199.toInt()
+
     val colorScheme =
         when (colorSource) {
             ColorSource.IMAGE, ColorSource.MANUAL -> {
@@ -38,11 +40,11 @@ fun LoliDailyTheme(
                 if (argb != null) {
                     M3SchemeGenerator.fromSourceColor(argb, darkTheme, colorStyle)
                 } else {
-                    if (darkTheme) DarkColorScheme else LightColorScheme
+                    M3SchemeGenerator.fromSourceColor(defaultSourceArgb, darkTheme, ColorStyle.TONAL_SPOT)
                 }
             }
             ColorSource.DEFAULT -> {
-                if (darkTheme) DarkColorScheme else LightColorScheme
+                M3SchemeGenerator.fromSourceColor(defaultSourceArgb, darkTheme, ColorStyle.TONAL_SPOT)
             }
         }
 
