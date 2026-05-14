@@ -78,6 +78,7 @@
     <string name="label_artist">画师</string>
     <string name="content_desc_react">表态</string>
     <string name="content_desc_bookmark">收藏</string>
+    <string name="content_desc_add_reaction">添加互动</string>
     <string name="label_comment_by">%1$s 的评论</string>
     <string name="label_anonymous_comment">匿名评论</string>
 

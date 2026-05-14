@@ -25,4 +25,8 @@ data class ArtworkPreview(
 /**
  * A single reaction emoji and its count for a card. Emojis are Bangumi smileys keyed by numeric ID.
  */
-@Serializable data class ReactionCount(val emojiValue: Int, val count: Int)
+@Serializable data class ReactionCount(
+    val emojiValue: Int,
+    val count: Int,
+    val users: List<String> = emptyList(),
+)

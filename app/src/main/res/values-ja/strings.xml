@@ -78,6 +78,7 @@
     <string name="label_artist">アーティスト</string>
     <string name="content_desc_react">リアクション</string>
     <string name="content_desc_bookmark">ブックマーク</string>
+    <string name="content_desc_add_reaction">リアクションを追加</string>
     <string name="label_comment_by">%1$s のコメント</string>
     <string name="label_anonymous_comment">匿名のコメント</string>
 

@@ -78,6 +78,7 @@
     <string name="label_artist">Artist</string>
     <string name="content_desc_react">React</string>
     <string name="content_desc_bookmark">Bookmark</string>
+    <string name="content_desc_add_reaction">Add reaction</string>
     <string name="label_comment_by">%1$s\'s comment</string>
     <string name="label_anonymous_comment">Anonymous\'s comment</string>
 

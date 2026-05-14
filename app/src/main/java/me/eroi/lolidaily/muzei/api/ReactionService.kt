@@ -56,9 +56,11 @@ object ReactionService {
                 val counts =
                     reactionMap
                         .mapKeys { it.key.toInt() }
-                        .mapValues { it.value.size }
-                        .filter { it.value > 0 }
-                        .map { ReactionCount(it.key, it.value) }
+                        .map { (emojiValue, userList) ->
+                            val nicknames = userList.map { user -> user.getOrElse(1) { user[0] } }
+                            ReactionCount(emojiValue, userList.size, nicknames)
+                        }
+                        .filter { it.count > 0 }
                         .sortedByDescending { it.count }
                 if (counts.isNotEmpty()) {
                     tokenReactions[token] = counts

@@ -232,6 +232,8 @@ fun HeroArtwork(
             }
         }
 
+    var showReactionPicker by remember { mutableStateOf(false) }
+
     Column(modifier = modifier) {
         // ── Zone 1: Full-bleed image with overlaid info ──
         Box(
@@ -364,7 +366,6 @@ fun HeroArtwork(
             }
 
             // Action buttons overlay (bottom-end)
-            var showReactionPicker by remember { mutableStateOf(false) }
             val hasReacted = preview.userEmoji != null
 
             Surface(
@@ -517,6 +518,7 @@ fun HeroArtwork(
                     token = token,
                     isLoggedIn = isLoggedIn,
                     onReactionClick = onReactionClick,
+                    onAddReaction = { showReactionPicker = true },
                 )
             }
 
