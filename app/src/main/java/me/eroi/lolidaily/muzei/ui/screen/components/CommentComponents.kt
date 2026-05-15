@@ -25,6 +25,8 @@ import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,24 +34,36 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import coil3.imageLoader
 import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowHardware
+import coil3.toBitmap
 import me.eroi.lolidaily.muzei.R
+import me.eroi.lolidaily.muzei.api.SessionManager
 import me.eroi.lolidaily.muzei.model.BangumiReaction
 import me.eroi.lolidaily.muzei.model.BangumiReply
 import me.eroi.lolidaily.muzei.model.BangumiSubReply
 import me.eroi.lolidaily.muzei.worker.EmojiMap
+import kotlin.math.roundToInt
 
 // ── Comment Header ───────────────────────────────────────────────
 
@@ -213,10 +227,10 @@ fun CommentEntry(reply: BangumiReply) {
 
             Spacer(Modifier.height(4.dp))
 
-            // Comment text with @mention highlighting
-            Text(
-                text = highlightContent(stripBbCode(reply.content)),
-                style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
+            // Comment text with @mention highlighting and inline smileys
+            CommentText(
+                rawContent = reply.content,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
 
@@ -276,9 +290,9 @@ fun FloorCommentEntry(reply: BangumiSubReply) {
 
             Spacer(Modifier.height(4.dp))
 
-            Text(
-                text = highlightContent(stripBbCode(reply.content)),
-                style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
+            CommentText(
+                rawContent = reply.content,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
 
@@ -345,10 +359,11 @@ private fun SubReplyItem(reply: BangumiSubReply) {
 
             Spacer(Modifier.height(2.dp))
 
-            Text(
-                text = highlightContent(stripBbCode(reply.content)),
-                style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
+            CommentText(
+                rawContent = reply.content,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface,
+                lineHeight = 18.sp,
             )
 
             Spacer(Modifier.height(4.dp))
@@ -406,13 +421,13 @@ private val BBCodeRegex =
         RegexOption.IGNORE_CASE,
     )
 
-private val ImgTagRegex = Regex("""\[img\].*?\[/img\]""", RegexOption.IGNORE_CASE)
+private val ImgTagRegex = Regex("""\[img\](.*?)\[/img\]""", RegexOption.IGNORE_CASE)
 private val QuoteRegex = Regex("""\[quote\](.*?)\[/quote\]""", RegexOption.DOT_MATCHES_ALL)
 private val MentionRegex = Regex("""@[\w一-鿿]+""")
 
 private fun stripBbCode(input: String): String {
     return input
-        .replace(ImgTagRegex, "[image]")
+        .replace(ImgTagRegex) { match -> "\u00abimg:${match.groupValues[1]}\u00bb" }
         .replace(QuoteRegex, "「$1」")
         .replace(BBCodeRegex, "")
         .trim()
@@ -432,6 +447,178 @@ private fun highlightContent(text: String): AnnotatedString {
         }
         append(text.substring(lastIndex))
     }
+}
+
+// ── Inline Smileys & Images ─────────────────────────────────────
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun CommentText(
+    rawContent: String,
+    style: TextStyle,
+    color: Color,
+    lineHeight: TextUnit = 20.sp,
+) {
+    val context = LocalContext.current
+    val bgmDomain = remember { SessionManager.loadDomain(context) }
+
+    val parsed =
+        remember(rawContent, bgmDomain) {
+            val stripped = stripBbCode(rawContent)
+            SmileyMapper.parseInlineImages(stripped, bgmDomain)
+        }
+
+    if (parsed.images.isEmpty()) {
+        // No inline images — use simple Text with @mention highlighting
+        val tertiaryColor = MaterialTheme.colorScheme.tertiary
+        val annotatedText =
+            remember(parsed, tertiaryColor) {
+                buildAnnotatedString {
+                    append(parsed.text)
+                    for (range in parsed.mentionRanges) {
+                        addStyle(
+                            SpanStyle(color = tertiaryColor, fontWeight = FontWeight.Medium),
+                            range.first,
+                            range.last + 1,
+                        )
+                    }
+                }
+            }
+        Text(
+            text = annotatedText,
+            style = style.copy(lineHeight = lineHeight),
+            color = color,
+        )
+        return
+    }
+
+    // Has inline images — render using FlowRow with text/image segments
+    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+    val segments =
+        remember(parsed) {
+            buildSegments(parsed)
+        }
+
+    FlowRow(
+        horizontalArrangement = Arrangement.Start,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        for (segment in segments) {
+            when (segment) {
+                is TextSegment -> {
+                    val annotatedText =
+                        buildAnnotatedString {
+                            append(segment.text)
+                            for (range in segment.mentionRanges) {
+                                addStyle(
+                                    SpanStyle(color = tertiaryColor, fontWeight = FontWeight.Medium),
+                                    range.first,
+                                    range.last + 1,
+                                )
+                            }
+                        }
+                    Text(
+                        text = annotatedText,
+                        style = style.copy(lineHeight = lineHeight),
+                        color = color,
+                    )
+                }
+                is ImageSegment -> {
+                    if (segment.isPixelArt) {
+                        PixelInlineImage(url = segment.url)
+                    } else {
+                        NormalInlineImage(url = segment.url)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private sealed interface CommentSegment
+
+private data class TextSegment(val text: String, val mentionRanges: List<IntRange>) : CommentSegment
+
+private data class ImageSegment(val url: String, val isPixelArt: Boolean) : CommentSegment
+
+private fun buildSegments(parsed: SmileyMapper.ParseResult): List<CommentSegment> {
+    val segments = mutableListOf<CommentSegment>()
+    val text = parsed.text
+    var lastEnd = 0
+
+    for (img in parsed.images) {
+        if (img.placeholderIndex > lastEnd) {
+            val segmentText = text.substring(lastEnd, img.placeholderIndex)
+            val adjustedMentions =
+                parsed.mentionRanges
+                    .filter { it.first >= lastEnd && it.last < img.placeholderIndex }
+                    .map { (it.first - lastEnd)..(it.last - lastEnd) }
+            segments += TextSegment(segmentText, adjustedMentions)
+        }
+        segments += ImageSegment(img.url, img.isPixelArt)
+        lastEnd = img.placeholderIndex + 1
+    }
+    if (lastEnd < text.length) {
+        val segmentText = text.substring(lastEnd)
+        val adjustedMentions =
+            parsed.mentionRanges
+                .filter { it.first >= lastEnd }
+                .map { (it.first - lastEnd)..(it.last - lastEnd) }
+        segments += TextSegment(segmentText, adjustedMentions)
+    }
+
+    return segments
+}
+
+@Composable
+private fun PixelInlineImage(url: String) {
+    val context = LocalContext.current
+    val imageBitmap = remember(url) { mutableStateOf<ImageBitmap?>(null) }
+
+    LaunchedEffect(url) {
+        try {
+            val request =
+                ImageRequest.Builder(context)
+                    .data(url)
+                    .allowHardware(false)
+                    .build()
+            val result = context.imageLoader.execute(request)
+            if (result is SuccessResult) {
+                val src = result.image.toBitmap()
+                // Strip density to get raw pixel dimensions (same as PixelEmoji's inScaled = false)
+                val raw =
+                    src.copy(android.graphics.Bitmap.Config.ARGB_8888, false).apply {
+                        density = android.graphics.Bitmap.DENSITY_NONE
+                    }
+                imageBitmap.value = raw.asImageBitmap()
+            }
+        } catch (_: Exception) {
+            // Silently ignore failed loads
+        }
+    }
+
+    Canvas(modifier = Modifier.size(20.dp)) {
+        imageBitmap.value?.let { bmp ->
+            drawImage(
+                image = bmp,
+                dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
+                filterQuality = FilterQuality.None,
+            )
+        }
+    }
+}
+
+@Composable
+private fun NormalInlineImage(url: String) {
+    AsyncImage(
+        model =
+            ImageRequest.Builder(LocalContext.current)
+                .data(url)
+                .build(),
+        contentDescription = null,
+        modifier = Modifier.size(60.dp),
+        contentScale = ContentScale.Fit,
+    )
 }
 
 private fun formatTimestamp(
