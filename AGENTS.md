@@ -24,6 +24,8 @@ Android app (Kotlin + Jetpack Compose + Material 3) that acts as a [Muzei Live W
 
 A git pre-commit hook runs `ktlintFormat` automatically. There are no tests defined yet.
 
+**Important**: Always use `./gradlew installDebug` to install the APK to a connected device. Do NOT use `adb install` directly, as it may cause signature mismatch issues.
+
 ## Mock server
 
 ```bash
