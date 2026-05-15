@@ -143,6 +143,7 @@
     <string name="title_login_bangumi">登录 Bangumi</string>
     <string name="msg_connecting_bangumi">正在连接 Bangumi…</string>
     <string name="msg_loading">加载中…</string>
+    <string name="msg_loading_artwork">正在加载图片…</string>
     <string name="msg_authenticating">正在认证 Bangumi…</string>
     <string name="msg_waiting_auth">等待授权…</string>
     <string name="msg_processing">处理中…</string>

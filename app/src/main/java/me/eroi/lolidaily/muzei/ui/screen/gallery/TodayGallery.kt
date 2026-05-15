@@ -79,12 +79,14 @@ fun TodayGallery(
                     }
                 }
             }
-            RefreshProgressBar(refreshProgress, Modifier.align(Alignment.TopCenter))
+            if (!(tags.isEmpty() && isRefreshing)) {
+                RefreshProgressBar(refreshProgress, Modifier.align(Alignment.TopCenter))
+            }
         }
 
         if (tags.isEmpty()) {
             PullToRefreshBox(
-                isRefreshing = isRefreshing,
+                isRefreshing = false,
                 onRefresh = onRefresh,
                 modifier = Modifier.weight(1f).fillMaxSize(),
             ) {
@@ -96,13 +98,35 @@ fun TodayGallery(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    Text(
-                        text = stringResource(R.string.msg_no_tag_artwork, ""),
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(32.dp),
-                    )
+                    if (isRefreshing) {
+                        if (refreshProgress > 0f) {
+                            CircularProgressIndicator(
+                                progress = { refreshProgress },
+                                modifier = Modifier.size(48.dp),
+                                strokeWidth = 4.dp,
+                            )
+                        } else {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(48.dp),
+                                strokeWidth = 4.dp,
+                            )
+                        }
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            text = stringResource(R.string.msg_loading_artwork),
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        Text(
+                            text = stringResource(R.string.msg_no_tag_artwork, ""),
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(32.dp),
+                        )
+                    }
                 }
             }
         } else {
@@ -113,8 +137,9 @@ fun TodayGallery(
                 val tag = tags[page]
                 val preview = todayArtwork.firstOrNull { it.tags == tag }
 
+                val showLoading = preview == null && isRefreshing
                 PullToRefreshBox(
-                    isRefreshing = isRefreshing,
+                    isRefreshing = if (showLoading) false else isRefreshing,
                     onRefresh = onRefresh,
                     modifier = Modifier.fillMaxSize(),
                 ) {
@@ -172,13 +197,35 @@ fun TodayGallery(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center,
                         ) {
-                            Text(
-                                text = stringResource(R.string.msg_no_tag_artwork, tag),
-                                textAlign = TextAlign.Center,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(32.dp),
-                            )
+                            if (isRefreshing) {
+                                if (refreshProgress > 0f) {
+                                    CircularProgressIndicator(
+                                        progress = { refreshProgress },
+                                        modifier = Modifier.size(48.dp),
+                                        strokeWidth = 4.dp,
+                                    )
+                                } else {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(48.dp),
+                                        strokeWidth = 4.dp,
+                                    )
+                                }
+                                Spacer(Modifier.height(16.dp))
+                                Text(
+                                    text = stringResource(R.string.msg_loading_artwork),
+                                    textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            } else {
+                                Text(
+                                    text = stringResource(R.string.msg_no_tag_artwork, tag),
+                                    textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(32.dp),
+                                )
+                            }
                         }
                     }
                 }

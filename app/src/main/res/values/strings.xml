@@ -143,6 +143,7 @@
     <string name="title_login_bangumi">Login to Bangumi</string>
     <string name="msg_connecting_bangumi">Connecting to Bangumi…</string>
     <string name="msg_loading">Loading…</string>
+    <string name="msg_loading_artwork">Loading artwork…</string>
     <string name="msg_authenticating">Authenticating with Bangumi…</string>
     <string name="msg_waiting_auth">Waiting for authorization…</string>
     <string name="msg_processing">Processing…</string>

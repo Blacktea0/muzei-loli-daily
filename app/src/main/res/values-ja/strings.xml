@@ -143,6 +143,7 @@
     <string name="title_login_bangumi">Bangumi にログイン</string>
     <string name="msg_connecting_bangumi">Bangumi に接続中…</string>
     <string name="msg_loading">読み込み中…</string>
+    <string name="msg_loading_artwork">作品を読み込み中…</string>
     <string name="msg_authenticating">Bangumi を認証中…</string>
     <string name="msg_waiting_auth">認証を待機中…</string>
     <string name="msg_processing">処理中…</string>

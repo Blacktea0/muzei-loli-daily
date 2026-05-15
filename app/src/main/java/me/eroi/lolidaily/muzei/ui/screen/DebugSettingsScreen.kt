@@ -128,9 +128,11 @@ private fun ApiServerCard() {
             prefs.getString(LoliApiClient.KEY_DEBUG_API_BASE_URL_CUSTOM, null) ?: ""
         }
     var customUrl by remember { mutableStateOf(if (initialSelection == CUSTOM_OPTION) savedUrl ?: "" else savedCustom) }
+    var activeUrl by remember { mutableStateOf(LoliApiClient.getApiBaseUrl(context)) }
 
     fun persist(url: String) {
         prefs.edit().putString(LoliApiClient.KEY_DEBUG_API_BASE_URL, url).apply()
+        activeUrl = url
     }
 
     Surface(
@@ -198,7 +200,7 @@ private fun ApiServerCard() {
 
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 12.dp)) {
                 Text(
-                    text = stringResource(R.string.label_active_url, LoliApiClient.getApiBaseUrl(context)),
+                    text = stringResource(R.string.label_active_url, activeUrl),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
@@ -240,9 +242,11 @@ private fun BangumiApiServerCard() {
             prefs.getString(LoliApiClient.KEY_DEBUG_BANGUMI_BASE_URL_CUSTOM, null) ?: ""
         }
     var customUrl by remember { mutableStateOf(if (initialSelection == CUSTOM_OPTION) savedUrl ?: "" else savedCustom) }
+    var activeUrl by remember { mutableStateOf(LoliApiClient.getBangumiBaseUrl(context)) }
 
     fun persist(url: String) {
         prefs.edit().putString(LoliApiClient.KEY_DEBUG_BANGUMI_BASE_URL, url).apply()
+        activeUrl = url
     }
 
     Surface(
@@ -310,7 +314,7 @@ private fun BangumiApiServerCard() {
 
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 12.dp)) {
                 Text(
-                    text = stringResource(R.string.label_active_url, LoliApiClient.getBangumiBaseUrl(context)),
+                    text = stringResource(R.string.label_active_url, activeUrl),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     textAlign = TextAlign.Center,
