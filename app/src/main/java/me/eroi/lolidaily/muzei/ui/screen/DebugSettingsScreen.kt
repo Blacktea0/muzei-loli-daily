@@ -409,7 +409,7 @@ private fun RefreshTimeCard() {
         mutableStateOf(prefs.getInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_HOUR, 7))
     }
     var minute by remember {
-        mutableStateOf(prefs.getInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_MINUTE, 30))
+        mutableStateOf(prefs.getInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_MINUTE, 21))
     }
     var showDialog by remember { mutableStateOf(false) }
 

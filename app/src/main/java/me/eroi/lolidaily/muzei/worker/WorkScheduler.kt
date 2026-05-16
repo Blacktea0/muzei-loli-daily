@@ -106,7 +106,7 @@ object WorkScheduler {
         val prefs =
             context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
         val hour = prefs.getInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_HOUR, 7)
-        val minute = prefs.getInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_MINUTE, 30)
+        val minute = prefs.getInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_MINUTE, 21)
         return Pair(hour, minute)
     }
 }
