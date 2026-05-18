@@ -15,6 +15,11 @@
     <string name="section_account">アカウント</string>
     <string name="section_theme">テーマ</string>
     <string name="section_debug">デバッグ</string>
+    <string name="title_muzei_wallpaper">Muzei 壁紙</string>
+    <string name="title_bangumi_account">Bangumi</string>
+    <string name="title_theme_colors">テーマとカラー</string>
+    <string name="status_enabled_short">有効</string>
+    <string name="status_not_enabled_short">無効</string>
 
     <!-- Tag filters -->
     <string name="section_tag_filter">タグフィルター</string>
@@ -24,16 +29,18 @@
     <string name="hint_tags_applied">変更は次回の壁紙更新時に反映されます。</string>
 
     <!-- Theme -->
-    <string name="label_theme_system">システムに従う</string>
+    <string name="label_appearance_mode">外観モード</string>
+    <string name="label_theme_system">システム</string>
     <string name="label_theme_light">ライト</string>
     <string name="label_theme_dark">ダーク</string>
 
     <!-- Color source -->
     <string name="section_color_source">カラーソース</string>
     <string name="section_color_style">カラースタイル</string>
-    <string name="label_color_source_default">デフォルト（ピンク）</string>
-    <string name="label_color_source_image">作品から抽出</string>
-    <string name="label_color_source_manual">手動選択</string>
+    <string name="title_color_style_preview">カラースタイルプレビュー</string>
+    <string name="label_color_source_default">デフォルト</string>
+    <string name="label_color_source_image">絵から</string>
+    <string name="label_color_source_manual">手動</string>
     <string name="label_hex_color">16進数カラー</string>
     <string name="msg_invalid_hex_color">有効な #RRGGBB カラーを入力</string>
     <string name="hint_no_artwork_for_color">色抽出に利用できる作品がありません</string>

@@ -16,6 +16,8 @@ data class Session(val token: String, val expiresAt: Long) {
 object SessionManager {
     private const val KEY_LC_SESSION = "lc_session"
     private const val KEY_BGM_USERNAME = "bgm_username"
+    private const val KEY_BGM_NICKNAME = "bgm_nickname"
+    private const val KEY_BGM_AVATAR_URL = "bgm_avatar_url"
     private const val KEY_BGM_DOMAIN = "bgm_domain"
     private const val DEFAULT_BGM_DOMAIN = "chii.in"
 
@@ -49,6 +51,8 @@ object SessionManager {
             .edit()
             .remove(KEY_LC_SESSION)
             .remove(KEY_BGM_USERNAME)
+            .remove(KEY_BGM_NICKNAME)
+            .remove(KEY_BGM_AVATAR_URL)
             .remove("user_reactions")
             .apply()
     }
@@ -68,6 +72,35 @@ object SessionManager {
         return context
             .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
             .getString(KEY_BGM_USERNAME, null)
+    }
+
+    fun saveUserProfile(
+        context: Context,
+        username: String,
+        nickname: String?,
+        avatarUrl: String?,
+    ) {
+        context
+            .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_BGM_USERNAME, username)
+            .putString(KEY_BGM_NICKNAME, nickname.orEmpty())
+            .putString(KEY_BGM_AVATAR_URL, avatarUrl.orEmpty())
+            .apply()
+    }
+
+    fun loadNickname(context: Context): String? {
+        return context
+            .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_BGM_NICKNAME, null)
+            ?.ifBlank { null }
+    }
+
+    fun loadAvatarUrl(context: Context): String? {
+        return context
+            .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_BGM_AVATAR_URL, null)
+            ?.ifBlank { null }
     }
 
     fun saveDomain(

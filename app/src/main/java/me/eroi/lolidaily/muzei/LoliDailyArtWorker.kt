@@ -518,6 +518,17 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
         fun loadUsername(context: Context): String? = SessionManager.loadUsername(context)
 
+        fun saveUserProfile(
+            context: Context,
+            username: String,
+            nickname: String?,
+            avatarUrl: String?,
+        ) = SessionManager.saveUserProfile(context, username, nickname, avatarUrl)
+
+        fun loadNickname(context: Context): String? = SessionManager.loadNickname(context)
+
+        fun loadAvatarUrl(context: Context): String? = SessionManager.loadAvatarUrl(context)
+
         fun saveDomain(
             context: Context,
             domain: String,

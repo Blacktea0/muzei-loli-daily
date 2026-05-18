@@ -15,6 +15,11 @@
     <string name="section_account">ACCOUNT</string>
     <string name="section_theme">THEME</string>
     <string name="section_debug">DEBUG</string>
+    <string name="title_muzei_wallpaper">Muzei Wallpaper</string>
+    <string name="title_bangumi_account">Bangumi</string>
+    <string name="title_theme_colors">Theme &amp; Colors</string>
+    <string name="status_enabled_short">Enabled</string>
+    <string name="status_not_enabled_short">Off</string>
 
     <!-- Tag filters -->
     <string name="section_tag_filter">Tag Filters</string>
@@ -24,16 +29,18 @@
     <string name="hint_tags_applied">Changes take effect on next wallpaper refresh.</string>
 
     <!-- Theme -->
-    <string name="label_theme_system">Follow system</string>
+    <string name="label_appearance_mode">Appearance mode</string>
+    <string name="label_theme_system">System</string>
     <string name="label_theme_light">Light</string>
     <string name="label_theme_dark">Dark</string>
 
     <!-- Color source -->
-    <string name="section_color_source">COLOR SOURCE</string>
+    <string name="section_color_source">Color source</string>
     <string name="section_color_style">COLOR STYLE</string>
-    <string name="label_color_source_default">Default (Pink)</string>
-    <string name="label_color_source_image">From artwork</string>
-    <string name="label_color_source_manual">Manual color</string>
+    <string name="title_color_style_preview">Color style preview</string>
+    <string name="label_color_source_default">Default</string>
+    <string name="label_color_source_image">Artwork</string>
+    <string name="label_color_source_manual">Manual</string>
     <string name="label_hex_color">Hex color</string>
     <string name="msg_invalid_hex_color">Enter a valid #RRGGBB color</string>
     <string name="hint_no_artwork_for_color">No artwork available for color extraction</string>

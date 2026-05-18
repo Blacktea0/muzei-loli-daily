@@ -1,13 +1,42 @@
 package me.eroi.lolidaily.muzei.api
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import me.eroi.lolidaily.muzei.model.BangumiReply
 import me.eroi.lolidaily.muzei.model.BangumiTopic
+import me.eroi.lolidaily.muzei.model.BangumiUser
 import okhttp3.Request
 
 object BangumiApiClient {
     private const val TAG = "BangumiApiClient"
+
+    fun fetchUser(
+        context: Context,
+        username: String,
+    ): BangumiUser? {
+        val encodedUsername = Uri.encode(username)
+        val url = "${LoliApiClient.getBangumiBaseUrl(context)}/v0/users/$encodedUsername"
+        val request =
+            Request.Builder()
+                .url(url)
+                .header("User-Agent", "LoliDaily/1.0 (Android)")
+                .get()
+                .build()
+
+        return try {
+            val response = LoliApiClient.httpClient.newCall(request).execute()
+            val body = response.body?.string() ?: return null
+            if (!response.isSuccessful) {
+                Log.w(TAG, "Bangumi user API returned ${response.code}: $body")
+                return null
+            }
+            LoliApiClient.json.decodeFromString<BangumiUser>(body)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to fetch user $username", e)
+            null
+        }
+    }
 
     fun fetchTopic(
         context: Context,

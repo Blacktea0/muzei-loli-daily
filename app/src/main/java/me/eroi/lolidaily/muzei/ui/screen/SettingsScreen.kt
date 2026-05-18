@@ -1,8 +1,14 @@
 package me.eroi.lolidaily.muzei.ui.screen
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -14,9 +20,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
@@ -25,7 +38,9 @@ import me.eroi.lolidaily.muzei.ui.screen.gallery.*
 import me.eroi.lolidaily.muzei.ui.theme.ColorSource
 import me.eroi.lolidaily.muzei.ui.theme.ColorStyle
 import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
-import me.eroi.lolidaily.muzei.util.SectionTitle
+import me.eroi.lolidaily.muzei.util.M3SchemeGenerator
+
+private val DEFAULT_SOURCE_COLOR = 0xFFF09199.toInt()
 
 private const val KEY_BANNER_DISMISSED = "banner_dismissed_status"
 private const val KEY_LAST_TAB = "settings_last_tab"
@@ -51,6 +66,9 @@ fun SettingsScreen(
     onLogin: () -> Unit = {},
     onLogout: () -> Unit = {},
     onReactionClick: (token: String, emojiValue: Int) -> Unit = { _, _ -> },
+    bgmUsername: String? = null,
+    bgmNickname: String? = null,
+    bgmAvatarUrl: String? = null,
     bgmDomain: String = "chii.in",
     onDomainChanged: (String) -> Unit = {},
     isSourceActivated: Boolean = false,
@@ -69,6 +87,7 @@ fun SettingsScreen(
     onColorStyleChanged: (ColorStyle) -> Unit = {},
     manualColorArgb: Int = 0xFF6B4DA3.toInt(),
     onManualColorChanged: (Int) -> Unit = {},
+    sourceColorArgb: Int? = null,
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, android.content.Context.MODE_PRIVATE) }
@@ -190,6 +209,9 @@ fun SettingsScreen(
                         isLoggedIn = isLoggedIn,
                         onLogin = onLogin,
                         onLogout = onLogout,
+                        bgmUsername = bgmUsername,
+                        bgmNickname = bgmNickname,
+                        bgmAvatarUrl = bgmAvatarUrl,
                         bgmDomain = bgmDomain,
                         onDomainChanged = onDomainChanged,
                         isSourceActivated = isSourceActivated,
@@ -203,6 +225,7 @@ fun SettingsScreen(
                         onColorStyleChanged = onColorStyleChanged,
                         manualColorArgb = manualColorArgb,
                         onManualColorChanged = onManualColorChanged,
+                        sourceColorArgb = sourceColorArgb,
                         onOpenDebug = onOpenDebug,
                         todayArtwork = todayArtwork,
                     )
@@ -215,6 +238,566 @@ fun SettingsScreen(
     }
 }
 
+private enum class SettingsSheet {
+    WALLPAPER,
+    ACCOUNT,
+    THEME,
+}
+
+@Composable
+private fun SettingsSectionLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(start = 4.dp, top = 10.dp, bottom = 2.dp),
+    )
+}
+
+@Composable
+private fun SettingsRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    accent: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    leadingContent: (@Composable () -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+    endIcon: ImageVector = Icons.Filled.ChevronRight,
+) {
+    Surface(
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = RoundedCornerShape(20.dp),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            if (leadingContent != null) {
+                leadingContent()
+            } else {
+                Surface(
+                    color = accent.copy(alpha = 0.14f),
+                    contentColor = accent,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp))
+                    }
+                }
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            trailing?.invoke()
+            Icon(
+                imageVector = endIcon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatusBadge(
+    text: String,
+    active: Boolean,
+) {
+    val color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+    Surface(
+        color = color.copy(alpha = 0.14f),
+        contentColor = color,
+        shape = RoundedCornerShape(8.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            if (active) {
+                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(12.dp))
+            }
+            Text(text = text, style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+@Composable
+private fun PaletteDots(
+    argb: Int,
+    style: ColorStyle,
+    dark: Boolean,
+) {
+    val scheme = remember(argb, style, dark) { M3SchemeGenerator.fromSourceColor(argb, dark, style) }
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        listOf(scheme.primary, scheme.secondary, scheme.tertiary).forEach { color ->
+            Box(
+                modifier =
+                    Modifier
+                        .size(10.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(color),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsBottomSheet(
+    onDismiss: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            content = content,
+        )
+    }
+}
+
+@Composable
+private fun SheetTitle(
+    icon: ImageVector,
+    text: String,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.padding(top = 2.dp),
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        Text(text = text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
+private fun WallpaperSheet(
+    selectedTags: Set<String>,
+    onTagsChanged: (Set<String>) -> Unit,
+    isSourceActivated: Boolean,
+    isMuzeiInstalled: Boolean,
+    onOpenMuzei: () -> Unit,
+) {
+    SheetTitle(Icons.Filled.Photo, stringResource(R.string.title_muzei_wallpaper))
+    SettingsChoiceGroup {
+        ChoiceRow(
+            label = stringResource(R.string.label_tag_lc0_lc_yj),
+            selected = selectedTags == setOf("LC0", "LC YJ"),
+            icon = Icons.Filled.PhotoLibrary,
+            onClick = { onTagsChanged(setOf("LC0", "LC YJ")) },
+        )
+        ChoiceRow(
+            label = stringResource(R.string.label_tag_lc_es),
+            selected = selectedTags.contains("LC ES"),
+            icon = Icons.Filled.PhotoAlbum,
+            onClick = { onTagsChanged(setOf("LC ES")) },
+        )
+    }
+    SourceStatusCard(
+        isSourceActivated = isSourceActivated,
+        isMuzeiInstalled = isMuzeiInstalled,
+        onClick = onOpenMuzei,
+    )
+}
+
+@Composable
+private fun AccountSheet(
+    isLoggedIn: Boolean,
+    bgmDomain: String,
+    bgmUsername: String?,
+    bgmNickname: String?,
+    bgmAvatarUrl: String?,
+    onLogin: () -> Unit,
+    onLogout: () -> Unit,
+    onDomainChanged: (String) -> Unit,
+) {
+    var showDomainPicker by remember { mutableStateOf(false) }
+
+    SheetTitle(Icons.Filled.AccountCircle, stringResource(R.string.title_bangumi_account))
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(20.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            AccountAvatar(
+                avatarUrl = if (isLoggedIn) bgmAvatarUrl else null,
+                nickname = bgmNickname ?: bgmUsername,
+                size = 52.dp,
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text =
+                        if (isLoggedIn) {
+                            bgmNickname ?: bgmUsername ?: stringResource(R.string.status_logged_in)
+                        } else {
+                            stringResource(R.string.status_not_logged_in)
+                        },
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text =
+                        if (isLoggedIn && bgmUsername != null) {
+                            "@$bgmUsername · $bgmDomain"
+                        } else {
+                            stringResource(R.string.label_via_domain, bgmDomain)
+                        },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+
+    if (isLoggedIn) {
+        OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.action_logout))
+        }
+    } else {
+        FilledTonalButton(onClick = { showDomainPicker = true }, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Filled.Login, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.action_login))
+        }
+    }
+
+    if (showDomainPicker) {
+        DomainPickerDialog(
+            currentDomain = bgmDomain,
+            onDomainSelected = { domain ->
+                showDomainPicker = false
+                onDomainChanged(domain)
+                onLogin()
+            },
+            onDismiss = { showDomainPicker = false },
+        )
+    }
+}
+
+@Composable
+private fun AccountAvatar(
+    avatarUrl: String?,
+    nickname: String?,
+    size: Dp,
+) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        modifier = Modifier.size(size),
+    ) {
+        if (!avatarUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = avatarUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(50)),
+            )
+        } else {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = nickname?.firstOrNull()?.uppercase() ?: "B",
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ThemeSheet(
+    themeMode: ThemeMode,
+    onThemeModeChanged: (ThemeMode) -> Unit,
+    colorSource: ColorSource,
+    onColorSourceChanged: (ColorSource) -> Unit,
+    colorStyle: ColorStyle,
+    onColorStyleChanged: (ColorStyle) -> Unit,
+    manualColorArgb: Int,
+    onManualColorChanged: (Int) -> Unit,
+    sourceColorArgb: Int?,
+    artworkAvailable: Boolean,
+) {
+    val darkPreview =
+        when (themeMode) {
+            ThemeMode.SYSTEM -> isSystemInDarkTheme()
+            ThemeMode.LIGHT -> false
+            ThemeMode.DARK -> true
+        }
+    val previewArgb = sourceColorArgb ?: if (colorSource == ColorSource.MANUAL) manualColorArgb else DEFAULT_SOURCE_COLOR
+
+    SheetTitle(Icons.Filled.Palette, stringResource(R.string.title_theme_colors))
+
+    SettingsSubhead(stringResource(R.string.label_appearance_mode))
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        ThemeMode.entries.forEachIndexed { index, mode ->
+            SegmentedButton(
+                selected = themeMode == mode,
+                onClick = { onThemeModeChanged(mode) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = ThemeMode.entries.size),
+            ) {
+                Text(themeModeLabel(mode), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+    }
+
+    SettingsSubhead(stringResource(R.string.section_color_source))
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        ColorSource.entries.forEach { source ->
+            FilterChip(
+                selected = colorSource == source,
+                onClick = { onColorSourceChanged(source) },
+                leadingIcon = {
+                    Icon(colorSourceIcon(source), contentDescription = null, modifier = Modifier.size(18.dp))
+                },
+                label = { Text(colorSourceLabel(source)) },
+            )
+        }
+    }
+
+    if (colorSource == ColorSource.IMAGE && !artworkAvailable) {
+        Text(
+            text = stringResource(R.string.hint_no_artwork_for_color),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    if (colorSource == ColorSource.MANUAL) {
+        ManualColorPickerRow(
+            currentColorArgb = manualColorArgb,
+            onColorChanged = onManualColorChanged,
+        )
+    }
+
+    SettingsSubhead(stringResource(R.string.title_color_style_preview))
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        items(colorStyleOptions()) { style ->
+            ColorStylePreviewCard(
+                style = style,
+                selected = colorStyle == style,
+                sourceArgb = previewArgb,
+                dark = darkPreview,
+                onClick = { onColorStyleChanged(style) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsSubhead(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 4.dp),
+    )
+}
+
+@Composable
+private fun ColorStylePreviewCard(
+    style: ColorStyle,
+    selected: Boolean,
+    sourceArgb: Int,
+    dark: Boolean,
+    onClick: () -> Unit,
+) {
+    val scheme = remember(style, sourceArgb, dark) { M3SchemeGenerator.fromSourceColor(sourceArgb, dark, style) }
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border =
+            BorderStroke(
+                width = if (selected) 2.dp else 1.dp,
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+            ),
+        modifier = Modifier.width(112.dp),
+    ) {
+        Column {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(68.dp),
+            ) {
+                Box(
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(scheme.surface),
+                )
+                Box(
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(scheme.primary),
+                )
+                Box(
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(scheme.secondary),
+                )
+                Box(
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(scheme.tertiary),
+                )
+            }
+            Text(
+                text = colorStyleLabel(style),
+                style = MaterialTheme.typography.labelMedium,
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsChoiceGroup(content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(20.dp),
+    ) {
+        Column(modifier = Modifier.padding(4.dp), content = content)
+    }
+}
+
+@Composable
+private fun ChoiceRow(
+    label: String,
+    selected: Boolean,
+    icon: ImageVector,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .selectable(selected = selected, onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.width(12.dp))
+        Text(text = label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        RadioButton(selected = selected, onClick = null)
+    }
+}
+
+@Composable
+private fun selectedTagsLabel(tags: Set<String>): String {
+    return when {
+        tags == setOf("LC0", "LC YJ") -> stringResource(R.string.label_tag_lc0_lc_yj)
+        tags.contains("LC ES") -> stringResource(R.string.label_tag_lc_es)
+        tags.isEmpty() -> stringResource(R.string.label_all)
+        else -> tags.joinToString(" / ")
+    }
+}
+
+@Composable
+private fun themeModeLabel(mode: ThemeMode): String {
+    return when (mode) {
+        ThemeMode.SYSTEM -> stringResource(R.string.label_theme_system)
+        ThemeMode.LIGHT -> stringResource(R.string.label_theme_light)
+        ThemeMode.DARK -> stringResource(R.string.label_theme_dark)
+    }
+}
+
+@Composable
+private fun colorSourceLabel(source: ColorSource): String {
+    return when (source) {
+        ColorSource.DEFAULT -> stringResource(R.string.label_color_source_default)
+        ColorSource.IMAGE -> stringResource(R.string.label_color_source_image)
+        ColorSource.MANUAL -> stringResource(R.string.label_color_source_manual)
+    }
+}
+
+private fun colorSourceIcon(source: ColorSource): ImageVector {
+    return when (source) {
+        ColorSource.DEFAULT -> Icons.Filled.AutoAwesome
+        ColorSource.IMAGE -> Icons.Filled.ImageSearch
+        ColorSource.MANUAL -> Icons.Filled.ColorLens
+    }
+}
+
+@Composable
+private fun colorStyleLabel(style: ColorStyle): String {
+    return when (style) {
+        ColorStyle.TONAL_SPOT -> stringResource(R.string.label_style_tonal_spot)
+        ColorStyle.VIBRANT -> stringResource(R.string.label_style_vibrant)
+        ColorStyle.CONTENT -> stringResource(R.string.label_style_content)
+        ColorStyle.FIDELITY -> stringResource(R.string.label_style_fidelity)
+        ColorStyle.EXPRESSIVE -> stringResource(R.string.label_style_expressive)
+        ColorStyle.MONOCHROME -> stringResource(R.string.label_style_monochrome)
+        ColorStyle.NEUTRAL -> stringResource(R.string.label_style_neutral)
+        ColorStyle.RAINBOW -> stringResource(R.string.label_style_rainbow)
+        ColorStyle.FRUIT_SALAD -> stringResource(R.string.label_style_fruit_salad)
+    }
+}
+
+private fun colorStyleOptions(): List<ColorStyle> =
+    listOf(
+        ColorStyle.TONAL_SPOT,
+        ColorStyle.VIBRANT,
+        ColorStyle.CONTENT,
+        ColorStyle.FIDELITY,
+        ColorStyle.EXPRESSIVE,
+        ColorStyle.MONOCHROME,
+        ColorStyle.RAINBOW,
+        ColorStyle.FRUIT_SALAD,
+        ColorStyle.NEUTRAL,
+    )
+
 // ── Settings (Preferences) ─────────────────────────────────────
 
 @Composable
@@ -224,6 +807,9 @@ private fun PreferenceTab(
     isLoggedIn: Boolean = false,
     onLogin: () -> Unit = {},
     onLogout: () -> Unit = {},
+    bgmUsername: String? = null,
+    bgmNickname: String? = null,
+    bgmAvatarUrl: String? = null,
     bgmDomain: String = "chii.in",
     onDomainChanged: (String) -> Unit = {},
     isSourceActivated: Boolean = false,
@@ -237,11 +823,13 @@ private fun PreferenceTab(
     onColorStyleChanged: (ColorStyle) -> Unit = {},
     manualColorArgb: Int = 0xFF6B4DA3.toInt(),
     onManualColorChanged: (Int) -> Unit = {},
+    sourceColorArgb: Int? = null,
     onOpenDebug: () -> Unit = {},
     todayArtwork: List<ArtworkPreview> = emptyList(),
 ) {
     val context = LocalContext.current
     val showBanner = (!isMuzeiInstalled || !isSourceActivated)
+    var openSheet by remember { mutableStateOf<SettingsSheet?>(null) }
 
     LaunchedEffect(isMuzeiInstalled, isSourceActivated) {
         val prefs =
@@ -259,8 +847,8 @@ private fun PreferenceTab(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (showBanner) {
             item {
@@ -272,215 +860,127 @@ private fun PreferenceTab(
             }
         }
 
-        item { SectionTitle(stringResource(R.string.section_muzei_wallpaper)) }
+        item { SettingsSectionLabel(stringResource(R.string.section_muzei_wallpaper)) }
 
         item {
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Column(modifier = Modifier.padding(4.dp)) {
-                    FilterOption(
-                        label = stringResource(R.string.label_tag_lc0_lc_yj),
-                        selected = selectedTags == setOf("LC0", "LC YJ"),
-                        onClick = { onTagsChanged(setOf("LC0", "LC YJ")) },
+            SettingsRow(
+                icon = Icons.Filled.Photo,
+                title = stringResource(R.string.title_muzei_wallpaper),
+                subtitle = selectedTagsLabel(selectedTags),
+                accent = MaterialTheme.colorScheme.primary,
+                trailing = {
+                    StatusBadge(
+                        text =
+                            if (isSourceActivated) {
+                                stringResource(R.string.status_enabled_short)
+                            } else {
+                                stringResource(R.string.status_not_enabled_short)
+                            },
+                        active = isSourceActivated,
                     )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                    )
-                    FilterOption(
-                        label = stringResource(R.string.label_tag_lc_es),
-                        selected = selectedTags.contains("LC ES"),
-                        onClick = { onTagsChanged(setOf("LC ES")) },
-                    )
-                }
-            }
-        }
-
-        item {
-            SourceStatusCard(
-                isSourceActivated = isSourceActivated,
-                isMuzeiInstalled = isMuzeiInstalled,
-                onClick = onOpenMuzei,
+                },
+                onClick = { openSheet = SettingsSheet.WALLPAPER },
             )
         }
 
-        item { SectionTitle(stringResource(R.string.section_account)) }
+        item { SettingsSectionLabel(stringResource(R.string.section_account)) }
 
         item {
-            AccountCard(
-                isLoggedIn = isLoggedIn,
-                bgmDomain = bgmDomain,
-                onLogin = onLogin,
-                onLogout = onLogout,
-                onDomainChanged = onDomainChanged,
-            )
-        }
-
-        item { SectionTitle(stringResource(R.string.section_theme)) }
-
-        item {
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Column(modifier = Modifier.padding(4.dp)) {
-                    ThemeOption(
-                        label = stringResource(R.string.label_theme_system),
-                        selected = themeMode == ThemeMode.SYSTEM,
-                        onClick = { onThemeModeChanged(ThemeMode.SYSTEM) },
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                    )
-                    ThemeOption(
-                        label = stringResource(R.string.label_theme_light),
-                        selected = themeMode == ThemeMode.LIGHT,
-                        onClick = { onThemeModeChanged(ThemeMode.LIGHT) },
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                    )
-                    ThemeOption(
-                        label = stringResource(R.string.label_theme_dark),
-                        selected = themeMode == ThemeMode.DARK,
-                        onClick = { onThemeModeChanged(ThemeMode.DARK) },
-                    )
-                }
-            }
-        }
-
-        item { SectionTitle(stringResource(R.string.section_color_source)) }
-
-        item {
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Column(modifier = Modifier.padding(4.dp)) {
-                    ThemeOption(
-                        label = stringResource(R.string.label_color_source_default),
-                        selected = colorSource == ColorSource.DEFAULT,
-                        onClick = { onColorSourceChanged(ColorSource.DEFAULT) },
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                    )
-                    ThemeOption(
-                        label = stringResource(R.string.label_color_source_image),
-                        selected = colorSource == ColorSource.IMAGE,
-                        onClick = { onColorSourceChanged(ColorSource.IMAGE) },
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant,
-                    )
-                    ThemeOption(
-                        label = stringResource(R.string.label_color_source_manual),
-                        selected = colorSource == ColorSource.MANUAL,
-                        onClick = { onColorSourceChanged(ColorSource.MANUAL) },
-                    )
-                }
-            }
-        }
-
-        if (colorSource == ColorSource.IMAGE && todayArtwork.isEmpty()) {
-            item {
-                Text(
-                    text = stringResource(R.string.hint_no_artwork_for_color),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 20.dp, top = 4.dp),
-                )
-            }
-        }
-
-        if (colorSource == ColorSource.MANUAL) {
-            item {
-                ManualColorPickerRow(
-                    currentColorArgb = manualColorArgb,
-                    onColorChanged = onManualColorChanged,
-                )
-            }
-        }
-
-        if (colorSource == ColorSource.IMAGE || colorSource == ColorSource.MANUAL) {
-            item { SectionTitle(stringResource(R.string.section_color_style)) }
-
-            item {
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    shape = RoundedCornerShape(16.dp),
-                ) {
-                    Column(modifier = Modifier.padding(4.dp)) {
-                        val styles =
-                            listOf(
-                                ColorStyle.TONAL_SPOT to R.string.label_style_tonal_spot,
-                                ColorStyle.VIBRANT to R.string.label_style_vibrant,
-                                ColorStyle.CONTENT to R.string.label_style_content,
-                                ColorStyle.FIDELITY to R.string.label_style_fidelity,
-                                ColorStyle.EXPRESSIVE to R.string.label_style_expressive,
-                                ColorStyle.MONOCHROME to R.string.label_style_monochrome,
-                                ColorStyle.NEUTRAL to R.string.label_style_neutral,
-                                ColorStyle.RAINBOW to R.string.label_style_rainbow,
-                                ColorStyle.FRUIT_SALAD to R.string.label_style_fruit_salad,
-                            )
-                        styles.forEachIndexed { index, (style, labelRes) ->
-                            if (index > 0) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                    color = MaterialTheme.colorScheme.outlineVariant,
-                                )
-                            }
-                            ThemeOption(
-                                label = stringResource(labelRes),
-                                selected = colorStyle == style,
-                                onClick = { onColorStyleChanged(style) },
+            SettingsRow(
+                icon = Icons.Filled.AccountCircle,
+                title = stringResource(R.string.title_bangumi_account),
+                subtitle =
+                    if (isLoggedIn) {
+                        bgmNickname ?: bgmUsername ?: stringResource(R.string.status_logged_in)
+                    } else {
+                        stringResource(R.string.label_login_to_react)
+                    },
+                accent = MaterialTheme.colorScheme.secondary,
+                leadingContent =
+                    if (isLoggedIn) {
+                        {
+                            AccountAvatar(
+                                avatarUrl = bgmAvatarUrl,
+                                nickname = bgmNickname ?: bgmUsername,
+                                size = 40.dp,
                             )
                         }
-                    }
-                }
-            }
+                    } else {
+                        null
+                    },
+                onClick = { openSheet = SettingsSheet.ACCOUNT },
+            )
         }
 
-        item { SectionTitle(stringResource(R.string.section_debug)) }
+        item { SettingsSectionLabel(stringResource(R.string.section_theme)) }
 
         item {
-            Surface(
+            SettingsRow(
+                icon = Icons.Filled.Palette,
+                title = stringResource(R.string.title_theme_colors),
+                subtitle =
+                    "${themeModeLabel(themeMode)} · ${colorStyleLabel(colorStyle)}",
+                accent = MaterialTheme.colorScheme.tertiary,
+                trailing = {
+                    PaletteDots(
+                        argb = sourceColorArgb ?: if (colorSource == ColorSource.MANUAL) manualColorArgb else DEFAULT_SOURCE_COLOR,
+                        style = colorStyle,
+                        dark = themeMode == ThemeMode.DARK,
+                    )
+                },
+                onClick = { openSheet = SettingsSheet.THEME },
+            )
+        }
+
+        item { SettingsSectionLabel(stringResource(R.string.section_debug)) }
+
+        item {
+            SettingsRow(
+                icon = Icons.Filled.Settings,
+                title = stringResource(R.string.title_debug_settings),
+                subtitle = stringResource(R.string.label_debug_subtitle),
+                accent = MaterialTheme.colorScheme.primary,
+                endIcon = Icons.AutoMirrored.Filled.OpenInNew,
                 onClick = onOpenDebug,
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                shape = RoundedCornerShape(16.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(24.dp),
+            )
+        }
+    }
+
+    openSheet?.let { sheet ->
+        SettingsBottomSheet(onDismiss = { openSheet = null }) {
+            when (sheet) {
+                SettingsSheet.WALLPAPER ->
+                    WallpaperSheet(
+                        selectedTags = selectedTags,
+                        onTagsChanged = onTagsChanged,
+                        isSourceActivated = isSourceActivated,
+                        isMuzeiInstalled = isMuzeiInstalled,
+                        onOpenMuzei = onOpenMuzei,
                     )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = stringResource(R.string.title_debug_settings), style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            text = stringResource(R.string.label_debug_subtitle),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp),
+                SettingsSheet.ACCOUNT ->
+                    AccountSheet(
+                        isLoggedIn = isLoggedIn,
+                        bgmDomain = bgmDomain,
+                        bgmUsername = bgmUsername,
+                        bgmNickname = bgmNickname,
+                        bgmAvatarUrl = bgmAvatarUrl,
+                        onLogin = onLogin,
+                        onLogout = onLogout,
+                        onDomainChanged = onDomainChanged,
                     )
-                }
+                SettingsSheet.THEME ->
+                    ThemeSheet(
+                        themeMode = themeMode,
+                        onThemeModeChanged = onThemeModeChanged,
+                        colorSource = colorSource,
+                        onColorSourceChanged = onColorSourceChanged,
+                        colorStyle = colorStyle,
+                        onColorStyleChanged = onColorStyleChanged,
+                        manualColorArgb = manualColorArgb,
+                        onManualColorChanged = onManualColorChanged,
+                        sourceColorArgb = sourceColorArgb,
+                        artworkAvailable = todayArtwork.isNotEmpty(),
+                    )
             }
         }
     }

@@ -19,6 +19,7 @@ import com.google.android.apps.muzei.api.MuzeiContract
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import me.eroi.lolidaily.muzei.api.BangumiApiClient
 import me.eroi.lolidaily.muzei.db.DatabaseProvider
 import me.eroi.lolidaily.muzei.db.EntityMapper
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
@@ -48,6 +49,9 @@ class SettingsActivity : AppCompatActivity() {
     private var bookmarkPreviews by mutableStateOf(emptyList<ArtworkPreview>())
     private var cachedCardsByToken: Map<String, Card> = emptyMap()
     private var isLoggedIn by mutableStateOf(false)
+    private var bgmUsername by mutableStateOf<String?>(null)
+    private var bgmNickname by mutableStateOf<String?>(null)
+    private var bgmAvatarUrl by mutableStateOf<String?>(null)
     private var bgmDomain by mutableStateOf("chii.in")
     private var isSourceActivated by mutableStateOf(false)
     private var isMuzeiInstalled by mutableStateOf(false)
@@ -90,11 +94,17 @@ class SettingsActivity : AppCompatActivity() {
                     todayArtwork = todayPreviews,
                     bookmarkArtwork = bookmarkPreviews,
                     isLoggedIn = isLoggedIn,
+                    bgmUsername = bgmUsername,
+                    bgmNickname = bgmNickname,
+                    bgmAvatarUrl = bgmAvatarUrl,
                     onLogin = { startActivity(Intent(this, LoginActivity::class.java)) },
                     onLogout = {
                         LoliDailyArtWorker.clearSession(this)
                         LoginActivity.clearBgmCookies()
                         isLoggedIn = false
+                        bgmUsername = null
+                        bgmNickname = null
+                        bgmAvatarUrl = null
                         buildPreviews()
                         Toast.makeText(this, getString(R.string.msg_logged_out), Toast.LENGTH_SHORT).show()
                     },
@@ -134,6 +144,7 @@ class SettingsActivity : AppCompatActivity() {
                             extractedArgb = argb
                         }
                     },
+                    sourceColorArgb = extractedArgb,
                     onOpenDebug = {
                         startActivity(
                             Intent(this@SettingsActivity, DebugSettingsActivity::class.java),
@@ -179,12 +190,17 @@ class SettingsActivity : AppCompatActivity() {
         super.onResume()
         val wasLoggedIn = isLoggedIn
         isLoggedIn = LoliDailyArtWorker.loadSession(this) != null
+        loadAccountProfile()
         loadSourceStatus()
 
         if (!wasLoggedIn && isLoggedIn) {
             // Just logged in — full refresh to fetch user reactions
+            refreshAccountProfile()
             loadPreview()
         } else {
+            if (isLoggedIn && (bgmNickname == null || bgmAvatarUrl == null)) {
+                refreshAccountProfile()
+            }
             buildPreviews()
         }
     }
@@ -217,6 +233,7 @@ class SettingsActivity : AppCompatActivity() {
         val enabledTags = prefs.getStringSet(LoliDailyArtWorker.KEY_ENABLED_TAGS, null)
         selectedTags = enabledTags ?: setOf("LC0", "LC YJ")
         bgmDomain = LoliDailyArtWorker.loadDomain(this)
+        loadAccountProfile()
         themeMode = loadThemeMode()
         colorSource = loadColorSource()
         colorStyle = loadColorStyle()
@@ -226,6 +243,30 @@ class SettingsActivity : AppCompatActivity() {
     private fun saveState() {
         prefs.edit().putStringSet(LoliDailyArtWorker.KEY_ENABLED_TAGS, selectedTags).apply()
         LoliDailyArtWorker.enqueueRefilter(this)
+    }
+
+    private fun loadAccountProfile() {
+        val session = LoliDailyArtWorker.loadSession(this)
+        bgmUsername = LoliDailyArtWorker.loadUsername(this) ?: session?.let { LoliDailyArtWorker.getUsername(it) }
+        bgmNickname = LoliDailyArtWorker.loadNickname(this)
+        bgmAvatarUrl = LoliDailyArtWorker.loadAvatarUrl(this)
+    }
+
+    private fun refreshAccountProfile() {
+        val username = bgmUsername ?: return
+        Thread {
+            val user = BangumiApiClient.fetchUser(this@SettingsActivity, username) ?: return@Thread
+            val avatarUrl =
+                listOfNotNull(user.avatar?.large, user.avatar?.medium, user.avatar?.small)
+                    .firstOrNull { it.isNotBlank() }
+            LoliDailyArtWorker.saveUserProfile(
+                this@SettingsActivity,
+                user.username.ifBlank { username },
+                user.nickname.ifBlank { user.username.ifBlank { username } },
+                avatarUrl,
+            )
+            runOnUiThread { loadAccountProfile() }
+        }.start()
     }
 
     private fun loadThemeMode(): ThemeMode {
