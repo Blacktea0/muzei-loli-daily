@@ -430,6 +430,8 @@ class SettingsActivity : AppCompatActivity() {
                         tags = card?.tags ?: roomFields?.tags ?: "",
                         characterNames =
                             card?.characterNames ?: roomFields?.characterNames ?: emptyList(),
+                        characterIds =
+                            card?.characterIds ?: roomFields?.characterIds ?: emptyList(),
                         sourceUrl = card?.sourceUrl ?: roomFields?.sourceUrl ?: "",
                         artistUrl = card?.artistUrl ?: roomFields?.artistUrl ?: "",
                         date = dateMap[token] ?: roomFields?.date ?: apiDate,

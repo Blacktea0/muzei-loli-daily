@@ -18,10 +18,12 @@ data class CachedArtworkEntity(
     @ColumnInfo(name = "artist_url") val artistUrl: String,
     @ColumnInfo(name = "comment") val comment: String,
     @ColumnInfo(name = "tags") val tags: String,
-    /** JSON-serialised [List] of character names. */
-    @ColumnInfo(name = "character_names") val characterNames: String,
-    /** JSON-serialised [me.eroi.lolidaily.muzei.model.SuggestedBy], or null. */
-    @ColumnInfo(name = "suggested_by") val suggestedBy: String?,
+    /** JSON-serialised list of character objects: `[{"name":"...","id":123},...]`. */
+    @ColumnInfo(name = "characters") val characters: String,
+    /** Nickname of the user who suggested this artwork, or null. */
+    @ColumnInfo(name = "suggested_by_nickname") val suggestedByNickname: String?,
+    /** Username of the user who suggested this artwork, or null. */
+    @ColumnInfo(name = "suggested_by_username") val suggestedByUsername: String?,
     /** The API `date` field of the batch this artwork came from. */
     @ColumnInfo(name = "date") val date: String,
     /** Unix-epoch millis when this record was inserted (not the API date). */

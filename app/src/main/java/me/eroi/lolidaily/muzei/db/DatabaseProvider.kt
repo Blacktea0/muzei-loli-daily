@@ -21,7 +21,7 @@ object DatabaseProvider {
                         AppDatabase::class.java,
                         "lolidaily_artwork_cache.db",
                     )
-                        .addMigrations(AppDatabase.MIGRATION_1_2)
+                        .fallbackToDestructiveMigration(dropAllTables = true)
                         .build()
                         .also { instance = it }
             }

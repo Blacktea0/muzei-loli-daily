@@ -11,6 +11,7 @@ data class ArtworkPreview(
     val comment: String,
     val tags: String,
     val characterNames: List<String>,
+    val characterIds: List<Long> = emptyList(),
     val sourceUrl: String,
     val artistUrl: String,
     val date: String,

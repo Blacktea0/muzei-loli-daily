@@ -36,6 +36,7 @@ import coil3.request.ImageRequest
 import kotlinx.coroutines.launch
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.ReactionService
+import me.eroi.lolidaily.muzei.api.SessionManager
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.BangumiReply
 import me.eroi.lolidaily.muzei.ui.screen.components.*
@@ -571,6 +572,7 @@ fun HeroArtwork(
 
             // Characters
             if (preview.characterNames.isNotEmpty()) {
+                val bgmDomain = remember { SessionManager.loadDomain(context) }
                 Text(
                     text = stringResource(R.string.label_characters),
                     style = MaterialTheme.typography.labelLarge,
@@ -580,9 +582,17 @@ fun HeroArtwork(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    preview.characterNames.forEach { name ->
+                    preview.characterNames.forEachIndexed { index, name ->
+                        val characterId = preview.characterIds.getOrNull(index)
                         SuggestionChip(
-                            onClick = {},
+                            onClick = {
+                                if (characterId != null) {
+                                    val url = "https://$bgmDomain/character/$characterId"
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse(url)),
+                                    )
+                                }
+                            },
                             label = { Text(name, style = MaterialTheme.typography.labelMedium) },
                         )
                     }

@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -16,6 +17,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import me.eroi.lolidaily.muzei.R
+import me.eroi.lolidaily.muzei.api.SessionManager
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -42,7 +44,7 @@ fun ArtworkDetailBottomSheet(
                 color = MaterialTheme.colorScheme.onSurface,
             )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(16.dp))
 
             if (preview.date.isNotBlank()) {
                 DetailRow(icon = Icons.Default.CalendarToday, label = stringResource(R.string.label_date), value = preview.date)
@@ -54,6 +56,17 @@ fun ArtworkDetailBottomSheet(
                 label = stringResource(R.string.label_artist),
                 value = preview.artistName.ifBlank { stringResource(R.string.label_unknown) },
             )
+
+            Spacer(Modifier.height(12.dp))
+
+            val suggestedName = preview.suggestedByName
+            if (!suggestedName.isNullOrBlank()) {
+                DetailRow(
+                    icon = Icons.Default.Person,
+                    label = stringResource(R.string.label_suggested_by_title),
+                    value = suggestedName,
+                )
+            }
 
             Spacer(Modifier.height(12.dp))
 
@@ -74,19 +87,28 @@ fun ArtworkDetailBottomSheet(
             }
 
             if (preview.characterNames.isNotEmpty()) {
+                val bgmDomain = remember { SessionManager.loadDomain(context) }
                 Text(
                     text = stringResource(R.string.label_characters),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(8.dp))
                 FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    preview.characterNames.forEach { name ->
+                    preview.characterNames.forEachIndexed { index, name ->
+                        val characterId = preview.characterIds.getOrNull(index)
                         SuggestionChip(
-                            onClick = {},
+                            onClick = {
+                                if (characterId != null) {
+                                    val url = "https://$bgmDomain/character/$characterId"
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse(url)),
+                                    )
+                                }
+                            },
                             label = { Text(name, style = MaterialTheme.typography.labelMedium) },
                         )
                     }
@@ -122,7 +144,7 @@ fun ArtworkDetailBottomSheet(
                 color = MaterialTheme.colorScheme.outline,
             )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(16.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(Modifier.height(16.dp))
 
@@ -143,7 +165,7 @@ fun ArtworkDetailBottomSheet(
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
                         )
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.label_source))
                     }
                 }
@@ -160,7 +182,7 @@ fun ArtworkDetailBottomSheet(
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
                         )
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.label_artist))
                     }
                 }
@@ -182,13 +204,13 @@ fun DetailRow(
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(4.dp))
         if (content != null) {
             content()
         } else {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (icon != null) {
                     Icon(
