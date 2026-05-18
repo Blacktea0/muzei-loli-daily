@@ -4,15 +4,12 @@ import android.content.Context
 import android.util.Log
 import androidx.work.*
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
-import java.time.LocalTime
-import java.time.ZoneId
-import java.time.ZonedDateTime
 import java.util.UUID
 
 object WorkScheduler {
     private const val TAG = "LoliDailyWorker"
     private const val WORK_NAME = "lolidaily_art_load"
-    private const val KEY_NEXT_DAILY_REFRESH_TS = "next_daily_refresh_ts"
+    const val KEY_NEXT_DAILY_REFRESH_TS = "next_daily_refresh_ts"
     private const val KEY_LAST_WORK_COMPLETED = "last_work_completed"
     private const val KEY_FORCE_REFRESH = "force_refresh"
     private const val KEY_INITIAL = "initial"
@@ -23,6 +20,8 @@ object WorkScheduler {
         context: Context,
         forceRefresh: Boolean = false,
         initial: Boolean = true,
+        scheduledTargetTs: Long = 0L,
+        scheduledDeadlineTs: Long = 0L,
     ): UUID? {
         val prefs =
             context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
@@ -46,8 +45,7 @@ object WorkScheduler {
         val shouldDailyRefresh = !forceRefresh && System.currentTimeMillis() > nextRefreshTs
         if (shouldDailyRefresh) {
             Log.d(TAG, "Daily refresh triggered — past scheduled time")
-            val newNext = computeNextRefreshTime(context)
-            prefs.edit().putLong(KEY_NEXT_DAILY_REFRESH_TS, newNext).apply()
+            DailyRefreshScheduler.scheduleNext(context)
         }
 
         val work =
@@ -59,6 +57,8 @@ object WorkScheduler {
                     Data.Builder()
                         .putBoolean(KEY_FORCE_REFRESH, forceRefresh || shouldDailyRefresh)
                         .putBoolean(KEY_INITIAL, initial)
+                        .putLong(DailyRefreshScheduler.KEY_SCHEDULED_TARGET_TS, scheduledTargetTs)
+                        .putLong(DailyRefreshScheduler.KEY_SCHEDULED_DEADLINE_TS, scheduledDeadlineTs)
                         .build(),
                 )
                 .build()
@@ -82,24 +82,29 @@ object WorkScheduler {
     }
 
     fun computeNextRefreshTime(context: Context): Long {
-        val (hour, minute) = getRefreshTimeFromPrefrence(context)
-        val gmt8Zone = ZoneId.of("GMT+8")
-        val now = ZonedDateTime.now(gmt8Zone)
-        val targetTime = LocalTime.of(hour, minute)
-
-        var targetDateTime = now.toLocalDate().atTime(targetTime).atZone(gmt8Zone)
-        if (!targetDateTime.isAfter(now)) {
-            targetDateTime = targetDateTime.plusDays(1)
-        }
-
-        return targetDateTime.toInstant().toEpochMilli()
+        return DailyRefreshScheduler.computeNextRefreshTime(context)
     }
 
     fun resetDailyRefreshState(context: Context) {
-        val prefs =
-            context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
-        val nextTs = computeNextRefreshTime(context)
-        prefs.edit().putLong(KEY_NEXT_DAILY_REFRESH_TS, nextTs).apply()
+        DailyRefreshScheduler.resetAndSchedule(context)
+    }
+
+    fun ensureDailyRefreshScheduled(context: Context) {
+        DailyRefreshScheduler.ensureScheduled(context)
+    }
+
+    fun enqueueScheduledDailyRefresh(
+        context: Context,
+        scheduledTargetTs: Long,
+        scheduledDeadlineTs: Long,
+    ): UUID? {
+        return enqueueLoad(
+            context = context,
+            forceRefresh = true,
+            initial = false,
+            scheduledTargetTs = scheduledTargetTs,
+            scheduledDeadlineTs = scheduledDeadlineTs,
+        )
     }
 
     fun getRefreshTimeFromPrefrence(context: Context): Pair<Int, Int> {

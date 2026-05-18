@@ -66,6 +66,7 @@ class SettingsActivity : AppCompatActivity() {
 
         loadState()
         loadSourceStatus()
+        LoliDailyArtWorker.ensureDailyRefreshScheduled(this)
 
         // Muzei launches with an explicit Intent (no action); launcher uses ACTION_MAIN
         val fromMuzei = intent?.action != Intent.ACTION_MAIN

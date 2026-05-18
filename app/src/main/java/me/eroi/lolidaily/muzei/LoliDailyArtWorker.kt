@@ -20,6 +20,7 @@ import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyResponse
 import me.eroi.lolidaily.muzei.util.Md5
 import me.eroi.lolidaily.muzei.worker.ArtworkBuilder
+import me.eroi.lolidaily.muzei.worker.DailyRefreshScheduler
 import me.eroi.lolidaily.muzei.worker.EmojiMap
 import me.eroi.lolidaily.muzei.worker.ImageDownloader
 import me.eroi.lolidaily.muzei.worker.WorkScheduler
@@ -49,10 +50,19 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         val forceRefresh = inputData.getBoolean(KEY_FORCE_REFRESH, false)
         val refilterOnly = inputData.getBoolean(KEY_REFILTER_ONLY, false)
         val initial = inputData.getBoolean(KEY_INITIAL, true)
-
-        refreshProgress.value = 0f
+        val scheduledTargetTs =
+            inputData.getLong(DailyRefreshScheduler.KEY_SCHEDULED_TARGET_TS, 0L)
+        val scheduledDeadlineTs =
+            inputData.getLong(DailyRefreshScheduler.KEY_SCHEDULED_DEADLINE_TS, 0L)
 
         return try {
+            if (!isScheduledRefreshInWindow(scheduledTargetTs, scheduledDeadlineTs)) {
+                refreshProgress.value = null
+                return Result.success()
+            }
+
+            refreshProgress.value = 0f
+
             var isNewDay = false
             var cards = emptyList<Card>()
             var apiDate = ""
@@ -224,6 +234,23 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         if (skipCache) return true
         val cached = loadCachedResponse()
         return cached == null
+    }
+
+    private fun isScheduledRefreshInWindow(
+        targetTs: Long,
+        deadlineTs: Long,
+    ): Boolean {
+        if (targetTs == 0L && deadlineTs == 0L) return true
+        val now = System.currentTimeMillis()
+        if (targetTs > 0L && now < targetTs) {
+            Log.w(TAG, "Scheduled refresh started before target; skipping")
+            return false
+        }
+        if (deadlineTs > 0L && now > deadlineTs) {
+            Log.w(TAG, "Scheduled refresh started after deadline; skipping")
+            return false
+        }
+        return true
     }
 
     private fun markFetchTime() {
@@ -439,6 +466,8 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         fun enqueueRefilter(context: Context) = WorkScheduler.enqueueRefilter(context)
 
         fun resetDailyRefreshState(context: Context) = WorkScheduler.resetDailyRefreshState(context)
+
+        fun ensureDailyRefreshScheduled(context: Context) = WorkScheduler.ensureDailyRefreshScheduled(context)
 
         fun getRefreshTimeFromPrefrence(context: Context): Pair<Int, Int> = WorkScheduler.getRefreshTimeFromPrefrence(context)
 

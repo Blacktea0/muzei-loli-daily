@@ -34,6 +34,7 @@ class LoliDailyArtProvider : MuzeiArtProvider() {
                 }
 
         Log.d(TAG, "onLoadRequested(initial=$initial) — enqueuing load")
+        LoliDailyArtWorker.ensureDailyRefreshScheduled(appContext)
         LoliDailyArtWorker.enqueueLoad(appContext, forceRefresh = false, initial = initial)
     }
 
