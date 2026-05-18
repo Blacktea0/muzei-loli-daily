@@ -666,13 +666,6 @@ private fun ColorStylePreviewCard(
                         Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .background(scheme.surface),
-                )
-                Box(
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
                             .background(scheme.primary),
                 )
                 Box(
@@ -688,6 +681,13 @@ private fun ColorStylePreviewCard(
                             .weight(1f)
                             .fillMaxHeight()
                             .background(scheme.tertiary),
+                )
+                Box(
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(scheme.surface),
                 )
             }
             Text(
