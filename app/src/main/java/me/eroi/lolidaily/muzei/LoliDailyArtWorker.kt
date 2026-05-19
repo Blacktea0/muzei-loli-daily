@@ -536,6 +536,15 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
         fun loadDomain(context: Context): String = SessionManager.loadDomain(context)
 
+        fun saveBadge(
+            context: Context,
+            badge: String,
+        ) = SessionManager.saveBadge(context, badge)
+
+        fun loadBadge(context: Context): String = SessionManager.loadBadge(context)
+
+        fun loadRawBadge(context: Context): String? = SessionManager.loadRawBadge(context)
+
         fun getUsername(session: Session): String? = SessionManager.getUsername(session)
     }
 }

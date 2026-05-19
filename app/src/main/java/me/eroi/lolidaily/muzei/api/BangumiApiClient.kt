@@ -16,7 +16,7 @@ object BangumiApiClient {
         username: String,
     ): BangumiUser? {
         val encodedUsername = Uri.encode(username)
-        val url = "${LoliApiClient.getBangumiBaseUrl(context)}/v0/users/$encodedUsername"
+        val url = "${LoliApiClient.getBangumiBaseUrl(context)}/p1/users/$encodedUsername"
         val request =
             Request.Builder()
                 .url(url)

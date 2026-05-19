@@ -19,6 +19,7 @@ object SessionManager {
     private const val KEY_BGM_NICKNAME = "bgm_nickname"
     private const val KEY_BGM_AVATAR_URL = "bgm_avatar_url"
     private const val KEY_BGM_DOMAIN = "bgm_domain"
+    private const val KEY_LC_BADGE = "lc_badge"
     private const val DEFAULT_BGM_DOMAIN = "chii.in"
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -53,8 +54,9 @@ object SessionManager {
             .remove(KEY_BGM_USERNAME)
             .remove(KEY_BGM_NICKNAME)
             .remove(KEY_BGM_AVATAR_URL)
+            .remove(KEY_LC_BADGE)
             .remove("user_reactions")
-            .apply()
+            .commit()
     }
 
     fun saveUsername(
@@ -118,6 +120,32 @@ object SessionManager {
         return context
             .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
             .getString(KEY_BGM_DOMAIN, DEFAULT_BGM_DOMAIN) ?: DEFAULT_BGM_DOMAIN
+    }
+
+    fun saveBadge(
+        context: Context,
+        badge: String,
+    ) {
+        context
+            .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_LC_BADGE, badge)
+            .apply()
+    }
+
+    fun loadBadge(context: Context): String {
+        return context
+            .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_LC_BADGE, null)
+            ?.takeIf { it.isNotBlank() && it != "未授权" }
+            ?: LoliApiClient.DEFAULT_BADGE
+    }
+
+    fun loadRawBadge(context: Context): String? {
+        return context
+            .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_LC_BADGE, null)
+            ?.takeIf { it.isNotBlank() }
     }
 
     fun getUsername(session: Session): String? {

@@ -15,11 +15,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
+import coil3.ImageLoader
+import coil3.SingletonImageLoader
+import coil3.svg.SvgDecoder
 import com.google.android.apps.muzei.api.MuzeiContract
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import me.eroi.lolidaily.muzei.api.BangumiApiClient
+import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.db.DatabaseProvider
 import me.eroi.lolidaily.muzei.db.EntityMapper
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
@@ -53,6 +57,7 @@ class SettingsActivity : AppCompatActivity() {
     private var bgmNickname by mutableStateOf<String?>(null)
     private var bgmAvatarUrl by mutableStateOf<String?>(null)
     private var bgmDomain by mutableStateOf("chii.in")
+    private var lcBadge by mutableStateOf<String?>(null)
     private var isSourceActivated by mutableStateOf(false)
     private var isMuzeiInstalled by mutableStateOf(false)
     private var themeMode by mutableStateOf(ThemeMode.SYSTEM)
@@ -67,6 +72,13 @@ class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Configure Coil with SVG decoder
+        SingletonImageLoader.setSafe { context ->
+            ImageLoader.Builder(context)
+                .components { add(SvgDecoder.Factory()) }
+                .build()
+        }
 
         loadState()
         loadSourceStatus()
@@ -105,7 +117,8 @@ class SettingsActivity : AppCompatActivity() {
                         bgmUsername = null
                         bgmNickname = null
                         bgmAvatarUrl = null
-                        buildPreviews()
+                        lcBadge = null
+                        startRefresh()
                         Toast.makeText(this, getString(R.string.msg_logged_out), Toast.LENGTH_SHORT).show()
                     },
                     bgmDomain = bgmDomain,
@@ -113,6 +126,7 @@ class SettingsActivity : AppCompatActivity() {
                         bgmDomain = domain
                         LoliDailyArtWorker.saveDomain(this, domain)
                     },
+                    lcBadge = lcBadge,
                     onReactionClick = { token, emojiValue ->
                         handleReactionClick(token, emojiValue)
                     },
@@ -194,11 +208,10 @@ class SettingsActivity : AppCompatActivity() {
         loadSourceStatus()
 
         if (!wasLoggedIn && isLoggedIn) {
-            // Just logged in — full refresh to fetch user reactions
-            refreshAccountProfile()
-            loadPreview()
+            // Just logged in — full refresh to fetch user reactions and daily with new badge
+            refreshAccountProfile(forceRefreshOnComplete = true)
         } else {
-            if (isLoggedIn && (bgmNickname == null || bgmAvatarUrl == null)) {
+            if (isLoggedIn && (bgmNickname == null || bgmAvatarUrl == null || lcBadge == null)) {
                 refreshAccountProfile()
             }
             buildPreviews()
@@ -250,22 +263,55 @@ class SettingsActivity : AppCompatActivity() {
         bgmUsername = LoliDailyArtWorker.loadUsername(this) ?: session?.let { LoliDailyArtWorker.getUsername(it) }
         bgmNickname = LoliDailyArtWorker.loadNickname(this)
         bgmAvatarUrl = LoliDailyArtWorker.loadAvatarUrl(this)
+        lcBadge = LoliDailyArtWorker.loadRawBadge(this)
     }
 
-    private fun refreshAccountProfile() {
+    private fun refreshAccountProfile(forceRefreshOnComplete: Boolean = false) {
         val username = bgmUsername ?: return
+        val session = LoliDailyArtWorker.loadSession(this)
         Thread {
-            val user = BangumiApiClient.fetchUser(this@SettingsActivity, username) ?: return@Thread
-            val avatarUrl =
-                listOfNotNull(user.avatar?.large, user.avatar?.medium, user.avatar?.small)
-                    .firstOrNull { it.isNotBlank() }
-            LoliDailyArtWorker.saveUserProfile(
-                this@SettingsActivity,
-                user.username.ifBlank { username },
-                user.nickname.ifBlank { user.username.ifBlank { username } },
-                avatarUrl,
-            )
-            runOnUiThread { loadAccountProfile() }
+            // Fetch Bangumi user profile (avatar, nickname)
+            try {
+                val user = BangumiApiClient.fetchUser(this@SettingsActivity, username)
+                if (user != null) {
+                    val avatarUrl =
+                        listOfNotNull(user.avatar?.large, user.avatar?.medium, user.avatar?.small)
+                            .firstOrNull { it.isNotBlank() }
+                    LoliDailyArtWorker.saveUserProfile(
+                        this@SettingsActivity,
+                        user.username.ifBlank { username },
+                        user.nickname.ifBlank { user.username.ifBlank { username } },
+                        avatarUrl,
+                    )
+                }
+            } catch (e: Exception) {
+                Log.w("SettingsActivity", "Failed to fetch Bangumi user profile", e)
+            }
+
+            // Fetch LC badge (independent of Bangumi profile)
+            if (session != null) {
+                Log.d("SettingsActivity", "Fetching LC badge for $username")
+                try {
+                    val userInfo = LoliApiClient.fetchUserInfo(this@SettingsActivity, username, session.token)
+                    if (userInfo != null) {
+                        Log.d("SettingsActivity", "LC badge fetched: ${userInfo.badge}")
+                        LoliDailyArtWorker.saveBadge(this@SettingsActivity, userInfo.badge)
+                    } else {
+                        Log.w("SettingsActivity", "LC badge fetch returned null")
+                    }
+                } catch (e: Exception) {
+                    Log.w("SettingsActivity", "Failed to fetch LC badge", e)
+                }
+            } else {
+                Log.w("SettingsActivity", "No session available for badge fetch")
+            }
+
+            runOnUiThread {
+                loadAccountProfile()
+                if (forceRefreshOnComplete) {
+                    startRefresh()
+                }
+            }
         }.start()
     }
 

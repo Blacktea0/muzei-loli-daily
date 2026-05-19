@@ -147,6 +147,7 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-compose:3.0.4")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")
     implementation("io.coil-kt.coil3:coil-gif:3.0.4")
+    implementation("io.coil-kt.coil3:coil-svg:3.0.4")
 
     // Zoomable — pinch-to-zoom with snap-back
     implementation("net.engawapg.lib:zoomable:2.11.1")

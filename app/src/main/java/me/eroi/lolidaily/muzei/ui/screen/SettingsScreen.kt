@@ -71,6 +71,7 @@ fun SettingsScreen(
     bgmAvatarUrl: String? = null,
     bgmDomain: String = "chii.in",
     onDomainChanged: (String) -> Unit = {},
+    lcBadge: String? = null,
     isSourceActivated: Boolean = false,
     isMuzeiInstalled: Boolean = false,
     onOpenMuzei: () -> Unit = {},
@@ -214,6 +215,7 @@ fun SettingsScreen(
                         bgmAvatarUrl = bgmAvatarUrl,
                         bgmDomain = bgmDomain,
                         onDomainChanged = onDomainChanged,
+                        lcBadge = lcBadge,
                         isSourceActivated = isSourceActivated,
                         isMuzeiInstalled = isMuzeiInstalled,
                         onOpenMuzei = onOpenMuzei,
@@ -405,21 +407,26 @@ private fun WallpaperSheet(
     isSourceActivated: Boolean,
     isMuzeiInstalled: Boolean,
     onOpenMuzei: () -> Unit,
+    isLoggedIn: Boolean = false,
+    lcBadge: String? = null,
 ) {
+    val hasEsBadge = lcBadge?.contains("ES") == true
+    val showTagSelector = isLoggedIn && !lcBadge.isNullOrBlank() && hasEsBadge
+
     SheetTitle(Icons.Filled.Photo, stringResource(R.string.title_muzei_wallpaper))
-    SettingsChoiceGroup {
-        ChoiceRow(
-            label = stringResource(R.string.label_tag_lc0_lc_yj),
-            selected = selectedTags == setOf("LC0", "LC YJ"),
-            icon = Icons.Filled.PhotoLibrary,
-            onClick = { onTagsChanged(setOf("LC0", "LC YJ")) },
-        )
-        ChoiceRow(
-            label = stringResource(R.string.label_tag_lc_es),
-            selected = selectedTags.contains("LC ES"),
-            icon = Icons.Filled.PhotoAlbum,
-            onClick = { onTagsChanged(setOf("LC ES")) },
-        )
+    if (showTagSelector) {
+        SettingsChoiceGroup {
+            ChoiceRowWithBadge(
+                badgeAsset = "lc_badges/LC0.svg",
+                selected = selectedTags == setOf("LC0", "LC YJ"),
+                onClick = { onTagsChanged(setOf("LC0", "LC YJ")) },
+            )
+            ChoiceRowWithBadge(
+                badgeAsset = "lc_badges/LC ES.svg",
+                selected = selectedTags.contains("LC ES"),
+                onClick = { onTagsChanged(setOf("LC ES")) },
+            )
+        }
     }
     SourceStatusCard(
         isSourceActivated = isSourceActivated,
@@ -435,6 +442,7 @@ private fun AccountSheet(
     bgmUsername: String?,
     bgmNickname: String?,
     bgmAvatarUrl: String?,
+    lcBadge: String?,
     onLogin: () -> Unit,
     onLogout: () -> Unit,
     onDomainChanged: (String) -> Unit,
@@ -446,40 +454,47 @@ private fun AccountSheet(
         color = MaterialTheme.colorScheme.surfaceContainer,
         shape = RoundedCornerShape(20.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            AccountAvatar(
-                avatarUrl = if (isLoggedIn) bgmAvatarUrl else null,
-                nickname = bgmNickname ?: bgmUsername,
-                size = 52.dp,
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text =
-                        if (isLoggedIn) {
-                            bgmNickname ?: bgmUsername ?: stringResource(R.string.status_logged_in)
-                        } else {
-                            stringResource(R.string.status_not_logged_in)
-                        },
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                AccountAvatar(
+                    avatarUrl = if (isLoggedIn) bgmAvatarUrl else null,
+                    nickname = bgmNickname ?: bgmUsername,
+                    size = 52.dp,
                 )
-                Text(
-                    text =
-                        if (isLoggedIn && bgmUsername != null) {
-                            "@$bgmUsername · $bgmDomain"
-                        } else {
-                            stringResource(R.string.label_via_domain, bgmDomain)
-                        },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text =
+                            if (isLoggedIn) {
+                                bgmNickname ?: bgmUsername ?: stringResource(R.string.status_logged_in)
+                            } else {
+                                stringResource(R.string.status_not_logged_in)
+                            },
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text =
+                            if (isLoggedIn && bgmUsername != null) {
+                                "@$bgmUsername · $bgmDomain"
+                            } else {
+                                stringResource(R.string.label_via_domain, bgmDomain)
+                            },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+
+            if (isLoggedIn && !lcBadge.isNullOrBlank()) {
+                Spacer(Modifier.height(12.dp))
+                LcBadgeImage(badge = lcBadge)
             }
         }
     }
@@ -539,6 +554,16 @@ private fun AccountAvatar(
             }
         }
     }
+}
+
+@Composable
+private fun LcBadgeImage(badge: String) {
+    val svgUri = "file:///android_asset/lc_badges/$badge.svg"
+    AsyncImage(
+        model = svgUri,
+        contentDescription = badge,
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -735,10 +760,33 @@ private fun ChoiceRow(
 }
 
 @Composable
+private fun ChoiceRowWithBadge(
+    badgeAsset: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .selectable(selected = selected, onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AsyncImage(
+            model = "file:///android_asset/$badgeAsset",
+            contentDescription = null,
+            modifier = Modifier.height(36.dp).weight(1f),
+        )
+        RadioButton(selected = selected, onClick = null)
+    }
+}
+
+@Composable
 private fun selectedTagsLabel(tags: Set<String>): String {
     return when {
-        tags == setOf("LC0", "LC YJ") -> stringResource(R.string.label_tag_lc0_lc_yj)
-        tags.contains("LC ES") -> stringResource(R.string.label_tag_lc_es)
+        tags == setOf("LC0", "LC YJ") -> "LC0 / LC YJ"
+        tags.contains("LC ES") -> "LC ES"
         tags.isEmpty() -> stringResource(R.string.label_all)
         else -> tags.joinToString(" / ")
     }
@@ -812,6 +860,7 @@ private fun PreferenceTab(
     bgmAvatarUrl: String? = null,
     bgmDomain: String = "chii.in",
     onDomainChanged: (String) -> Unit = {},
+    lcBadge: String? = null,
     isSourceActivated: Boolean = false,
     isMuzeiInstalled: Boolean = false,
     onOpenMuzei: () -> Unit = {},
@@ -956,6 +1005,8 @@ private fun PreferenceTab(
                         isSourceActivated = isSourceActivated,
                         isMuzeiInstalled = isMuzeiInstalled,
                         onOpenMuzei = onOpenMuzei,
+                        isLoggedIn = isLoggedIn,
+                        lcBadge = lcBadge,
                     )
                 SettingsSheet.ACCOUNT ->
                     AccountSheet(
@@ -964,6 +1015,7 @@ private fun PreferenceTab(
                         bgmUsername = bgmUsername,
                         bgmNickname = bgmNickname,
                         bgmAvatarUrl = bgmAvatarUrl,
+                        lcBadge = lcBadge,
                         onLogin = onLogin,
                         onLogout = onLogout,
                         onDomainChanged = onDomainChanged,

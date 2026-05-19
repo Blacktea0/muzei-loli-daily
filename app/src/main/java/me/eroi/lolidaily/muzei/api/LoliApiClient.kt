@@ -1,11 +1,13 @@
 package me.eroi.lolidaily.muzei.api
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import kotlinx.serialization.json.Json
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyResponse
+import me.eroi.lolidaily.muzei.model.LcUserInfo
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
@@ -13,6 +15,7 @@ import java.util.concurrent.TimeUnit
 object LoliApiClient {
     private const val TAG = "LoliApiClient"
     private const val USER_AGENT = "LoliDaily/1.0 (Android)"
+    const val DEFAULT_BADGE = "LC0"
 
     const val DEFAULT_API_BASE_URL = "https://loliconey.tsuki.ga"
     const val KEY_DEBUG_API_BASE_URL = "debug_api_base_url"
@@ -47,9 +50,19 @@ object LoliApiClient {
             ?: DEFAULT_BANGUMI_BASE_URL
     }
 
-    fun apiUrl(context: Context) = "${getApiBaseUrl(context)}/api/v1/daily?badge=LC%20YJ-ES-NC-PG"
+    private fun getBadge(context: Context): String {
+        return SessionManager.loadBadge(context)
+    }
 
-    fun reactApiUrl(context: Context) = "${getApiBaseUrl(context)}/api/v1/daily/react?badge=LC%20YJ-ES-NC-PG"
+    fun apiUrl(context: Context): String {
+        val badge = getBadge(context)
+        return "${getApiBaseUrl(context)}/api/v1/daily?badge=${Uri.encode(badge)}"
+    }
+
+    fun reactApiUrl(context: Context): String {
+        val badge = getBadge(context)
+        return "${getApiBaseUrl(context)}/api/v1/daily/react?badge=${Uri.encode(badge)}"
+    }
 
     val json = Json { ignoreUnknownKeys = true }
     val httpClient =
@@ -74,5 +87,37 @@ object LoliApiClient {
 
         val daily = json.decodeFromString<DailyResponse>(body)
         return daily.cards to daily.date
+    }
+
+    /** Fetches LC user info (including badge) from the Loli Commons API. */
+    fun fetchUserInfo(
+        context: Context,
+        username: String,
+        token: String,
+    ): LcUserInfo? {
+        val encodedUsername = Uri.encode(username)
+        val url = "${getApiBaseUrl(context)}/api/v1/user/$encodedUsername"
+        val request =
+            Request.Builder()
+                .url(url)
+                .header("User-Agent", USER_AGENT)
+                .header("Authorization", "Bearer $token")
+                .get()
+                .build()
+
+        return try {
+            Log.d(TAG, "Fetching LC user info for $username from $url")
+            val response = httpClient.newCall(request).execute()
+            val responseBody = response.body?.string() ?: return null
+            if (!response.isSuccessful) {
+                Log.w(TAG, "LC user info API returned ${response.code}: $responseBody")
+                return null
+            }
+            Log.d(TAG, "LC user info response: $responseBody")
+            json.decodeFromString<LcUserInfo>(responseBody)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to fetch LC user info for $username", e)
+            null
+        }
     }
 }

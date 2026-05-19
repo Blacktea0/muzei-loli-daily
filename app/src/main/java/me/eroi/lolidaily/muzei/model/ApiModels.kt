@@ -103,3 +103,13 @@ data class BangumiReactionUser(
     val username: String = "",
     val nickname: String = "",
 )
+
+// ── Loli Commons User Info ─────────────────────────────────
+
+@Serializable
+data class LcUserInfo(
+    val badge: String = "未授权",
+    val privacy: String = "private",
+    val sd: String = "",
+    val subPrivacy: String = "private",
+)
