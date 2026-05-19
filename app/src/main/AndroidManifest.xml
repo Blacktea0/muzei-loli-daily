@@ -36,6 +36,11 @@
             android:exported="false"
             android:label="Debug Settings" />
 
+        <!-- API server picker — standalone server selection screen -->
+        <activity
+            android:name="me.eroi.lolidaily.muzei.ApiServerPickerActivity"
+            android:exported="false" />
+
         <!-- BroadcastReceiver for force-refresh command from Muzei -->
         <receiver
             android:name=".RefreshReceiver"
