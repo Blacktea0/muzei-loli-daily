@@ -262,6 +262,35 @@ app.get("/user/:username", (_req, res) => {
 </html>`);
 });
 
+// GET /api/v1/user/:username — LC user info (requires Bearer auth)
+app.get("/api/v1/user/:username", (req, res) => {
+  const authHeader = req.headers.authorization || "";
+  if (!authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "missing or invalid authorization header" });
+  }
+  const fixture = readFixture("user");
+  if (fixture) {
+    fixture.badge = "LC0";
+    console.log(`[mock] Returning LC user info for ${req.params.username}`);
+    res.json(fixture);
+  } else {
+    res.status(404).json({ error: "fixture not found: user.json" });
+  }
+});
+
+// GET /p1/users/:username — Bangumi user profile
+app.get("/p1/users/:username", (req, res) => {
+  const fixture = readFixture("bangumi_user");
+  if (fixture) {
+    fixture.username = req.params.username;
+    fixture.nickname = req.params.username;
+    console.log(`[mock] Returning Bangumi user for ${req.params.username}`);
+    res.json(fixture);
+  } else {
+    res.status(404).json({ error: "fixture not found: bangumi_user.json" });
+  }
+});
+
 // Health check
 app.get("/", (_req, res) => {
   res.json({ server: "loli-daily-mock", version: "1.0.0" });

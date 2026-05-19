@@ -1,0 +1,10 @@
+{
+  "id": 1000001,
+  "username": "mock_user",
+  "nickname": "Mock User",
+  "avatar": {
+    "small": "https://lain.bgm.tv/pic/user/s/avatar.jpg",
+    "medium": "https://lain.bgm.tv/pic/user/m/avatar.jpg",
+    "large": "https://lain.bgm.tv/pic/user/l/avatar.jpg"
+  }
+}
