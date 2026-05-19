@@ -124,6 +124,19 @@
     <string name="action_login">ログイン</string>
     <string name="title_choose_login_site">ログインサイトを選択</string>
     <string name="action_confirm">確認</string>
+    <string name="msg_badge_update_failed">バッジの更新に失敗しました</string>
+    <string name="title_badge_picker">ライセンスを選択</string>
+    <string name="badge_q1">ロリと交流するとき、どこまで受け入れられますか？</string>
+    <string name="badge_q1_a0">手をつないだり、ハグしたり、おんぶ</string>
+    <string name="badge_q1_a1">キス、さわさわ、えっち</string>
+    <string name="badge_q1_a2">キス、さわさわ、えっちで彼女を泣かせる</string>
+    <string name="badge_q1_a3">ちょっと痛いよ…（███を取り出す）</string>
+    <string name="badge_q2">幼女はあなたにとってどんな存在ですか？</string>
+    <string name="badge_q2_a0">幼女もロリも大好き</string>
+    <string name="badge_q2_a1">あまり興味がない</string>
+    <string name="badge_q3">今日はボテ腹、いかがですか？</string>
+    <string name="badge_q3_a0">hso、もっとくれ</string>
+    <string name="badge_q3_a1">いや、いいです</string>
 
     <!-- Reactions -->
     <string name="reaction_title">リアクション</string>

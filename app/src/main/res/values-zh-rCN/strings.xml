@@ -124,6 +124,19 @@
     <string name="action_login">登录</string>
     <string name="title_choose_login_site">选择登录站点</string>
     <string name="action_confirm">确认</string>
+    <string name="msg_badge_update_failed">徽章更新失败</string>
+    <string name="title_badge_picker">选择你的许可证</string>
+    <string name="badge_q1">与萝莉交流时，你可以接受到哪种程度？</string>
+    <string name="badge_q1_a0">牵手抱抱举高高</string>
+    <string name="badge_q1_a1">爱的亲亲摸摸嘿嘿嘿</string>
+    <string name="badge_q1_a2">让她掉小珍珠的亲亲摸摸嘿嘿嘿</string>
+    <string name="badge_q1_a3">嘿嘿……等下"有点"痛哦（拿出███</string>
+    <string name="badge_q2">对于你来说，幼女是怎样的存在？</string>
+    <string name="badge_q2_a0">幼女和萝莉我都萌呀</string>
+    <string name="badge_q2_a1">我不太感兴趣</string>
+    <string name="badge_q3">请问您今天要来点西瓜肚吗？</string>
+    <string name="badge_q3_a0">hso，多来点</string>
+    <string name="badge_q3_a1">不了不了</string>
 
     <!-- Reactions -->
     <string name="reaction_title">表态</string>

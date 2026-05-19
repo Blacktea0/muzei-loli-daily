@@ -8,8 +8,10 @@ import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyResponse
 import me.eroi.lolidaily.muzei.model.LcUserInfo
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
 
 object LoliApiClient {
@@ -118,6 +120,33 @@ object LoliApiClient {
         } catch (e: Exception) {
             Log.w(TAG, "Failed to fetch LC user info for $username", e)
             null
+        }
+    }
+
+    fun updateBadge(
+        context: Context,
+        badge: String,
+        token: String,
+    ): Boolean {
+        val url = "${getApiBaseUrl(context)}/api/v1/settings"
+        val body = """{"badge":"$badge"}""".toRequestBody("application/json".toMediaType())
+        val request =
+            Request.Builder()
+                .url(url)
+                .header("User-Agent", USER_AGENT)
+                .header("Authorization", "Bearer $token")
+                .post(body)
+                .build()
+
+        return try {
+            val response = httpClient.newCall(request).execute()
+            if (!response.isSuccessful) {
+                Log.w(TAG, "updateBadge returned ${response.code}: ${response.body?.string()}")
+            }
+            response.isSuccessful
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to update badge", e)
+            false
         }
     }
 }

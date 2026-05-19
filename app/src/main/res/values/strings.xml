@@ -124,6 +124,19 @@
     <string name="action_login">Login</string>
     <string name="title_choose_login_site">Choose login site</string>
     <string name="action_confirm">Confirm</string>
+    <string name="msg_badge_update_failed">Badge update failed</string>
+    <string name="title_badge_picker">Choose Your License</string>
+    <string name="badge_q1">To what extent can you accept when interacting with lolis?</string>
+    <string name="badge_q1_a0">Hold hands, hugs, and carry</string>
+    <string name="badge_q1_a1">Kisses, touches, and doing it</string>
+    <string name="badge_q1_a2">Making her cry with kisses, touches, and doing it</string>
+    <string name="badge_q1_a3">Wait, it\'ll kinda hurt… (pulls out ███)</string>
+    <string name="badge_q2">What do youjo mean to you?</string>
+    <string name="badge_q2_a0">I love both youjo and lolis</string>
+    <string name="badge_q2_a1">I\'m not that interested</string>
+    <string name="badge_q3">Would you like some big belly today?</string>
+    <string name="badge_q3_a0">hso, more please</string>
+    <string name="badge_q3_a1">Nah, I\'m good</string>
 
     <!-- Reactions -->
     <string name="reaction_title">Reactions</string>

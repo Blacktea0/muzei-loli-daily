@@ -127,6 +127,7 @@ class SettingsActivity : AppCompatActivity() {
                         LoliDailyArtWorker.saveDomain(this, domain)
                     },
                     lcBadge = lcBadge,
+                    onBadgeChanged = { newBadge -> updateBadge(newBadge) },
                     onReactionClick = { token, emojiValue ->
                         handleReactionClick(token, emojiValue)
                     },
@@ -207,11 +208,13 @@ class SettingsActivity : AppCompatActivity() {
         loadAccountProfile()
         loadSourceStatus()
 
+        val needsProfile = bgmNickname == null || bgmAvatarUrl == null || lcBadge == null
         if (!wasLoggedIn && isLoggedIn) {
-            // Just logged in — full refresh to fetch user reactions and daily with new badge
-            refreshAccountProfile(forceRefreshOnComplete = true)
+            if (needsProfile) {
+                refreshAccountProfile(forceRefreshOnComplete = true)
+            }
         } else {
-            if (isLoggedIn && (bgmNickname == null || bgmAvatarUrl == null || lcBadge == null)) {
+            if (isLoggedIn && needsProfile) {
                 refreshAccountProfile()
             }
             buildPreviews()
@@ -269,6 +272,7 @@ class SettingsActivity : AppCompatActivity() {
     private fun refreshAccountProfile(forceRefreshOnComplete: Boolean = false) {
         val username = bgmUsername ?: return
         val session = LoliDailyArtWorker.loadSession(this)
+        val oldBadge = LoliDailyArtWorker.loadBadge(this)
         Thread {
             // Fetch Bangumi user profile (avatar, nickname)
             try {
@@ -289,6 +293,7 @@ class SettingsActivity : AppCompatActivity() {
             }
 
             // Fetch LC badge (independent of Bangumi profile)
+            var newBadge = oldBadge
             if (session != null) {
                 Log.d("SettingsActivity", "Fetching LC badge for $username")
                 try {
@@ -296,6 +301,7 @@ class SettingsActivity : AppCompatActivity() {
                     if (userInfo != null) {
                         Log.d("SettingsActivity", "LC badge fetched: ${userInfo.badge}")
                         LoliDailyArtWorker.saveBadge(this@SettingsActivity, userInfo.badge)
+                        newBadge = userInfo.badge
                     } else {
                         Log.w("SettingsActivity", "LC badge fetch returned null")
                     }
@@ -306,10 +312,30 @@ class SettingsActivity : AppCompatActivity() {
                 Log.w("SettingsActivity", "No session available for badge fetch")
             }
 
+            val badgeChanged = newBadge != oldBadge
             runOnUiThread {
                 loadAccountProfile()
-                if (forceRefreshOnComplete) {
+                if (forceRefreshOnComplete && badgeChanged) {
                     startRefresh()
+                }
+            }
+        }.start()
+    }
+
+    private fun updateBadge(badge: String) {
+        val session = LoliDailyArtWorker.loadSession(this) ?: return
+        Thread {
+            val ok = LoliApiClient.updateBadge(this@SettingsActivity, badge, session.token)
+            if (ok) {
+                LoliDailyArtWorker.saveBadge(this@SettingsActivity, badge)
+                runOnUiThread { lcBadge = badge }
+            } else {
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        getString(R.string.msg_badge_update_failed),
+                        Toast.LENGTH_SHORT,
+                    ).show()
                 }
             }
         }.start()
