@@ -56,5 +56,6 @@ fun LoliDailyTheme(
         }
     }
 
-    MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+    val animatedScheme = rememberAnimatedColorScheme(colorScheme)
+    MaterialTheme(colorScheme = animatedScheme, typography = Typography, content = content)
 }
