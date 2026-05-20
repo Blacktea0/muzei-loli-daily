@@ -188,7 +188,7 @@
 
     <!-- Debug: API -->
     <string name="section_debug_api">API</string>
-    <string name="title_api_server">API サーバー</string>
+    <string name="title_api_server">Loli Commons サーバー</string>
     <string name="desc_api_server">使用する API サーバーを選択。デフォルト：%1$s</string>
     <string name="label_custom">カスタム</string>
     <string name="label_server_url">サーバー URL</string>

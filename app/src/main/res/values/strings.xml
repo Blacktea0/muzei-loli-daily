@@ -188,7 +188,7 @@
 
     <!-- Debug: API -->
     <string name="section_debug_api">API</string>
-    <string name="title_api_server">API Server</string>
+    <string name="title_api_server">Loli Commons Server</string>
     <string name="desc_api_server">Select the API server to use. Default: %1$s</string>
     <string name="label_custom">Custom</string>
     <string name="label_server_url">Server URL</string>

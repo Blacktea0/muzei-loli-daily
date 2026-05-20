@@ -188,7 +188,7 @@
 
     <!-- Debug: API -->
     <string name="section_debug_api">API</string>
-    <string name="title_api_server">API 服务器</string>
+    <string name="title_api_server">Loli Commons 服务器</string>
     <string name="desc_api_server">选择要使用的 API 服务器。默认：%1$s</string>
     <string name="label_custom">自定义</string>
     <string name="label_server_url">服务器 URL</string>
