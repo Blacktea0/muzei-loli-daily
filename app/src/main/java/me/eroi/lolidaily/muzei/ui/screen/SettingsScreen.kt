@@ -29,7 +29,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil3.compose.AsyncImage
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
@@ -330,6 +332,7 @@ private fun SettingsRow(
 private fun StatusBadge(
     text: String,
     active: Boolean,
+    letterSpacing: TextUnit = TextUnit.Unspecified,
 ) {
     val color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
     Surface(
@@ -337,16 +340,12 @@ private fun StatusBadge(
         contentColor = color,
         shape = RoundedCornerShape(8.dp),
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            if (active) {
-                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(12.dp))
-            }
-            Text(text = text, style = MaterialTheme.typography.labelSmall)
-        }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            letterSpacing = letterSpacing,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+        )
     }
 }
 
@@ -1166,11 +1165,7 @@ private fun PreferenceTab(
                     },
                 trailing = {
                     if (isLoggedIn && !lcBadge.isNullOrBlank()) {
-                        AsyncImage(
-                            model = "file:///android_asset/lc_badges/$lcBadge.svg",
-                            contentDescription = lcBadge,
-                            modifier = Modifier.height(28.dp),
-                        )
+                        StatusBadge(text = lcBadge, active = true, letterSpacing = (-0.5).sp)
                     }
                 },
                 onClick = { openSheet = SettingsSheet.ACCOUNT },
