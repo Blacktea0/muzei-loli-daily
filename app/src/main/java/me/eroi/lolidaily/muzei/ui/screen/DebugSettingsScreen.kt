@@ -286,6 +286,7 @@ private fun RefreshTimeCard() {
             initialMinute = minute,
             onDismiss = { showDialog = false },
             onConfirm = { h, m ->
+                val oldDayChangeDate = LoliDailyArtWorker.computeDayChangeDate(context, System.currentTimeMillis())
                 hour = h
                 minute = m
                 prefs
@@ -293,6 +294,10 @@ private fun RefreshTimeCard() {
                     .putInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_HOUR, h)
                     .putInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_MINUTE, m)
                     .apply()
+                val newDayChangeDate = LoliDailyArtWorker.computeDayChangeDate(context, System.currentTimeMillis())
+                if (oldDayChangeDate != newDayChangeDate) {
+                    LoliDailyArtWorker.enqueueLoad(context, forceRefresh = true)
+                }
                 LoliDailyArtWorker.resetDailyRefreshState(context)
                 showDialog = false
             },

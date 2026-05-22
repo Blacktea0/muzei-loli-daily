@@ -178,7 +178,7 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         loadPreview()
-        if (todayPreviews.isEmpty()) {
+        if (!LoliDailyArtWorker.isAlreadyFetchedToday(this) || todayPreviews.isEmpty()) {
             startRefresh()
         }
     }

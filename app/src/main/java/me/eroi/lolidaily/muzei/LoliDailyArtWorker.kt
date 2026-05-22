@@ -25,6 +25,9 @@ import me.eroi.lolidaily.muzei.worker.EmojiMap
 import me.eroi.lolidaily.muzei.worker.ImageDownloader
 import me.eroi.lolidaily.muzei.worker.WorkScheduler
 import java.io.File
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 /**
  * WorkManager Worker that fetches artwork from the Loli Daily API and keeps the Muzei queue in sync
@@ -80,6 +83,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                     apiDate = fetchedDate
                     saveCachedResponse(fetchedCards, fetchedDate)
                     markFetchTime()
+                    saveDayChangeDate()
 
                     isNewDay = forceRefresh || cachedDate == null || cachedDate != fetchedDate
 
@@ -157,6 +161,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                         apiDate = fbDate
                         saveCachedResponse(fbCards, fbDate)
                         markFetchTime()
+                        saveDayChangeDate()
 
                         if (cards.isNotEmpty()) {
                             downloadNewImages(cards, forceDownload = false) { fraction ->
@@ -230,8 +235,8 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
     private fun shouldFetchApi(forceRefresh: Boolean): Boolean {
         if (forceRefresh) return true
-        val skipCache = prefs.getBoolean("debug_skip_cache", false)
-        if (skipCache) return true
+        if (prefs.getBoolean("debug_skip_cache", false)) return true
+        if (!isAlreadyFetchedToday(applicationContext)) return true
         val cached = loadCachedResponse()
         return cached == null
     }
@@ -259,6 +264,11 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
     private fun markWorkCompleted() {
         prefs.edit().putLong(KEY_LAST_WORK_COMPLETED, System.currentTimeMillis()).apply()
+    }
+
+    private fun saveDayChangeDate() {
+        val date = computeDayChangeDate(applicationContext, System.currentTimeMillis())
+        prefs.edit().putString(KEY_LAST_FETCH_DAY_CHANGE_DATE, date).apply()
     }
 
     // ── Card data cache (filesystem) ──────────────────────────────
@@ -438,6 +448,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         const val KEY_IMAGE_DATES = "image_dates"
         private const val KEY_INITIAL = "initial"
 
+        const val KEY_LAST_FETCH_DAY_CHANGE_DATE = "last_fetch_day_change_date"
         const val KEY_DEBUG_REFRESH_HOUR = "debug_refresh_hour"
         const val KEY_DEBUG_REFRESH_MINUTE = "debug_refresh_minute"
 
@@ -470,6 +481,26 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         fun ensureDailyRefreshScheduled(context: Context) = WorkScheduler.ensureDailyRefreshScheduled(context)
 
         fun getRefreshTimeFromPrefrence(context: Context): Pair<Int, Int> = WorkScheduler.getRefreshTimeFromPrefrence(context)
+
+        fun computeDayChangeDate(
+            context: Context,
+            epochMillis: Long,
+        ): String {
+            val (hour, minute) = getRefreshTimeFromPrefrence(context)
+            val zone = ZoneId.of("GMT+8")
+            return ZonedDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), zone)
+                .minusHours(hour.toLong())
+                .minusMinutes(minute.toLong())
+                .toLocalDate()
+                .toString()
+        }
+
+        fun isAlreadyFetchedToday(context: Context): Boolean {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val lastDate = prefs.getString(KEY_LAST_FETCH_DAY_CHANGE_DATE, null) ?: return false
+            val todayDate = computeDayChangeDate(context, System.currentTimeMillis())
+            return lastDate == todayDate
+        }
 
         fun loadImageDates(context: Context): Map<String, String> {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
