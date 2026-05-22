@@ -265,10 +265,6 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
             Log.w(TAG, "Scheduled refresh started before target; skipping")
             return false
         }
-        if (deadlineTs > 0L && now > deadlineTs) {
-            Log.w(TAG, "Scheduled refresh started after deadline; skipping")
-            return false
-        }
         return true
     }
 
