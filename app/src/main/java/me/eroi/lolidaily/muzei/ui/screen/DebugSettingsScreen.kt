@@ -1,5 +1,6 @@
 package me.eroi.lolidaily.muzei.ui.screen
 
+import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -296,7 +297,13 @@ private fun RefreshTimeCard() {
                     .apply()
                 val newDayChangeDate = LoliDailyArtWorker.computeDayChangeDate(context, System.currentTimeMillis())
                 if (oldDayChangeDate != newDayChangeDate) {
+                    Log.d(
+                        "DebugSettings",
+                        "Refresh time changed: day-change date $oldDayChangeDate -> $newDayChangeDate, triggering force refresh",
+                    )
                     LoliDailyArtWorker.enqueueLoad(context, forceRefresh = true)
+                } else {
+                    Log.d("DebugSettings", "Refresh time changed: day-change date unchanged ($newDayChangeDate), no force refresh needed")
                 }
                 LoliDailyArtWorker.resetDailyRefreshState(context)
                 showDialog = false

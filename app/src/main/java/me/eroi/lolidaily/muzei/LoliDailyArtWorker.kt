@@ -234,10 +234,24 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
     // ── API fetch gating ──────────────────────────────────────────
 
     private fun shouldFetchApi(forceRefresh: Boolean): Boolean {
-        if (forceRefresh) return true
-        if (prefs.getBoolean("debug_skip_cache", false)) return true
-        if (!isAlreadyFetchedToday(applicationContext)) return true
+        if (forceRefresh) {
+            Log.d(TAG, "shouldFetchApi=true: forceRefresh")
+            return true
+        }
+        if (prefs.getBoolean("debug_skip_cache", false)) {
+            Log.d(TAG, "shouldFetchApi=true: debug_skip_cache")
+            return true
+        }
+        if (!isAlreadyFetchedToday(applicationContext)) {
+            Log.d(TAG, "shouldFetchApi=true: not yet fetched today")
+            return true
+        }
         val cached = loadCachedResponse()
+        if (cached == null) {
+            Log.d(TAG, "shouldFetchApi=true: no cached response")
+        } else {
+            Log.d(TAG, "shouldFetchApi=false: already fetched today + cache exists")
+        }
         return cached == null
     }
 
@@ -268,6 +282,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
     private fun saveDayChangeDate() {
         val date = computeDayChangeDate(applicationContext, System.currentTimeMillis())
+        Log.d(TAG, "Saving day-change date: $date")
         prefs.edit().putString(KEY_LAST_FETCH_DAY_CHANGE_DATE, date).apply()
     }
 
@@ -488,18 +503,27 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         ): String {
             val (hour, minute) = getRefreshTimeFromPrefrence(context)
             val zone = ZoneId.of("GMT+8")
-            return ZonedDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), zone)
-                .minusHours(hour.toLong())
-                .minusMinutes(minute.toLong())
-                .toLocalDate()
-                .toString()
+            val date =
+                ZonedDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), zone)
+                    .minusHours(hour.toLong())
+                    .minusMinutes(minute.toLong())
+                    .toLocalDate()
+                    .toString()
+            Log.d(TAG, "computeDayChangeDate(epoch=$epochMillis, hour=$hour, minute=$minute) = $date")
+            return date
         }
 
         fun isAlreadyFetchedToday(context: Context): Boolean {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val lastDate = prefs.getString(KEY_LAST_FETCH_DAY_CHANGE_DATE, null) ?: return false
+            val lastDate =
+                prefs.getString(KEY_LAST_FETCH_DAY_CHANGE_DATE, null) ?: run {
+                    Log.d(TAG, "isAlreadyFetchedToday=false: no previous fetch record")
+                    return false
+                }
             val todayDate = computeDayChangeDate(context, System.currentTimeMillis())
-            return lastDate == todayDate
+            val result = lastDate == todayDate
+            Log.d(TAG, "isAlreadyFetchedToday=$result (last=$lastDate, today=$todayDate)")
+            return result
         }
 
         fun loadImageDates(context: Context): Map<String, String> {
