@@ -107,7 +107,7 @@ object WorkScheduler {
         )
     }
 
-    fun getRefreshTimeFromPrefrence(context: Context): Pair<Int, Int> {
+    fun getRefreshTimeFromPreference(context: Context): Pair<Int, Int> {
         val prefs =
             context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
         val hour = prefs.getInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_HOUR, 7)

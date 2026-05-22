@@ -491,13 +491,13 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
         fun ensureDailyRefreshScheduled(context: Context) = WorkScheduler.ensureDailyRefreshScheduled(context)
 
-        fun getRefreshTimeFromPrefrence(context: Context): Pair<Int, Int> = WorkScheduler.getRefreshTimeFromPrefrence(context)
+        fun getRefreshTimeFromPreference(context: Context): Pair<Int, Int> = WorkScheduler.getRefreshTimeFromPreference(context)
 
         fun computeDayChangeDate(
             context: Context,
             epochMillis: Long,
         ): String {
-            val (hour, minute) = getRefreshTimeFromPrefrence(context)
+            val (hour, minute) = getRefreshTimeFromPreference(context)
             val zone = ZoneId.of("GMT+8")
             val date =
                 ZonedDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), zone)

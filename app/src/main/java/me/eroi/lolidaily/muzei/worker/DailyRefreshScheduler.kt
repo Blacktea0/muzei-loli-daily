@@ -46,7 +46,7 @@ object DailyRefreshScheduler {
     fun resetAndSchedule(context: Context): Long = scheduleNext(context)
 
     fun computeNextRefreshTime(context: Context): Long {
-        val (hour, minute) = WorkScheduler.getRefreshTimeFromPrefrence(context)
+        val (hour, minute) = WorkScheduler.getRefreshTimeFromPreference(context)
         val now = ZonedDateTime.now(refreshZone)
         val targetTime = LocalTime.of(hour, minute)
 
@@ -59,7 +59,7 @@ object DailyRefreshScheduler {
     }
 
     fun computeWindowForTodayOrPrevious(context: Context): Pair<Long, Long> {
-        val (hour, minute) = WorkScheduler.getRefreshTimeFromPrefrence(context)
+        val (hour, minute) = WorkScheduler.getRefreshTimeFromPreference(context)
         val now = ZonedDateTime.now(refreshZone)
         val targetTime = LocalTime.of(hour, minute)
         var targetDateTime = now.toLocalDate().atTime(targetTime).atZone(refreshZone)
