@@ -48,7 +48,7 @@ Supporting pieces:
 - `LoginActivity` — WebView OAuth flow against Bangumi, extracts JWT session from redirect URL
 - `RefreshReceiver` — broadcast handler for the Force Refresh command action
 - `api/LoliApiClient.kt` — OkHttp client with API endpoint URLs
-- `api/ReactionService.kt` — fetches, caches, and submits reactions (5-min cooldown on fetch)
+- `api/ReactionService.kt` — fetches, caches, and submits reactions (1-min cooldown on fetch)
 - `api/SessionManager.kt` — persists OAuth JWT session + username in SharedPreferences
 - `model/ApiModels.kt` — `DailyResponse`, `Card`, `DailyReactResponse`, etc. (kotlinx-serialization)
 - `model/ArtworkPreview.kt` — UI model combining local file URI with API metadata + reactions
@@ -78,7 +78,7 @@ Muzei → LoliDailyArtProvider.onLoadRequested
 - **Room stores complex fields as JSON strings** (`characterNames`, `suggestedBy`) to keep the schema flat and migration-free.
 - **`LoliDailyArtWorker.companion` is the public API surface**. Most callers go through static methods on the companion object which delegate to the appropriate service class (`WorkScheduler`, `ReactionService`, `SessionManager`).
 - **Daily refresh is scheduled in GMT+8** (default 07:30). `WorkScheduler.computeNextRefreshTime()` calculates the next trigger epoch.
-- **Cooldown enforcement**: 10s between worker enqueues, 5-min between reaction fetches.
+- **Cooldown enforcement**: 10s between worker enqueues, 1-min between reaction fetches.
 
 ## Conventional Commits
 

@@ -484,11 +484,11 @@ class SettingsActivity : AppCompatActivity() {
 
         // Background fetch — mirrors the JS lazy-load behaviour:
         // reactions are fetched each time the gallery is opened.
-        // Gated by a 5-minute cooldown to avoid spamming the API.
+        // Gated by a 1-minute cooldown to avoid spamming the API.
         Thread {
             if (!forceRefresh) {
                 val lastFetch = prefs.getLong(LoliDailyArtWorker.KEY_LAST_REACTION_FETCH, 0)
-                val cooldownMs = 5 * 60 * 1000L
+                val cooldownMs = 60 * 1000L
                 if (System.currentTimeMillis() - lastFetch < cooldownMs) {
                     return@Thread
                 }
