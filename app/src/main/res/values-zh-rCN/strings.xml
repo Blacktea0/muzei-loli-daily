@@ -54,8 +54,8 @@
     <string name="label_style_rainbow">彩虹</string>
     <string name="label_style_fruit_salad">水果沙拉</string>
 
-    <!-- Debug entry -->
-    <string name="title_debug_settings">调试设置</string>
+    <!-- Additional settings entry -->
+    <string name="title_debug_settings">更多设置</string>
     <string name="label_debug_subtitle">开发者选项和工具</string>
 
     <!-- Bookmark gallery -->

@@ -54,8 +54,8 @@
     <string name="label_style_rainbow">Rainbow</string>
     <string name="label_style_fruit_salad">Fruit Salad</string>
 
-    <!-- Debug entry -->
-    <string name="title_debug_settings">Debug Settings</string>
+    <!-- Additional settings entry -->
+    <string name="title_debug_settings">Additional Settings</string>
     <string name="label_debug_subtitle">Developer options and tools</string>
 
     <!-- Bookmark gallery -->

@@ -54,8 +54,8 @@
     <string name="label_style_rainbow">レインボー</string>
     <string name="label_style_fruit_salad">フルーツサラダ</string>
 
-    <!-- Debug entry -->
-    <string name="title_debug_settings">デバッグ設定</string>
+    <!-- Additional settings entry -->
+    <string name="title_debug_settings">その他の設定</string>
     <string name="label_debug_subtitle">開発者オプションとツール</string>
 
     <!-- Bookmark gallery -->
