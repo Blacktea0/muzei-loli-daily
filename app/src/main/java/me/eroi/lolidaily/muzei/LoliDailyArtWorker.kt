@@ -426,6 +426,22 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                 ArtworkBuilder.buildArtworkFromCache(applicationContext, card, artworksDir, apiDate)
             }
 
+        val currentTokens = queryCurrentMuzeiTokens()
+        val newTokens = artworks.mapNotNull { it.token }.toSet()
+
+        if (currentTokens == newTokens) {
+            Log.d(TAG, "Artwork tokens unchanged — skipping setArtwork() (no notification)")
+            if (isNewDay) {
+                applicationContext.sendBroadcast(
+                    Intent("com.google.android.apps.muzei.action.NEXT_ARTWORK").apply {
+                        setPackage("net.nurik.roman.muzei")
+                    },
+                )
+                Log.d(TAG, "New day — advancing Muzei rotation")
+            }
+            return
+        }
+
         val client =
             ProviderContract.getProviderClient(applicationContext, LoliDailyArtProvider::class.java)
         client.setArtwork(artworks)
@@ -440,6 +456,23 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         }
 
         Log.d(TAG, "Set ${artworks.size} artworks (newDay=$isNewDay, tags=$enabledTags)")
+    }
+
+    private fun queryCurrentMuzeiTokens(): Set<String> {
+        return try {
+            val contentUri = ProviderContract.getContentUri(PROVIDER_AUTHORITY)
+            applicationContext.contentResolver.query(contentUri, null, null, null, null)?.use { cursor ->
+                val tokens = mutableSetOf<String>()
+                val tokenCol = cursor.getColumnIndex(ProviderContract.Artwork.TOKEN)
+                while (cursor.moveToNext()) {
+                    cursor.getString(tokenCol)?.let { tokens.add(it) }
+                }
+                tokens
+            } ?: emptySet()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to query current Muzei tokens", e)
+            emptySet()
+        }
     }
 
     // ── Companion ─────────────────────────────────────────────────────
