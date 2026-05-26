@@ -517,11 +517,11 @@ fun HeroArtwork(
         ) {
             // Comment card
             if (preview.comment.isNotBlank()) {
-                ElevatedCard(
+                Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors =
-                        CardDefaults.elevatedCardColors(
+                        CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         ),
                 ) {

@@ -165,9 +165,6 @@ fun ArtworkGallery(
                         ArtworkCard(
                             preview = preview,
                             onImageClick = { onFullscreenImage(preview) },
-                            isLoggedIn = isLoggedIn,
-                            onLogin = onLogin,
-                            onReactionClick = onReactionClick,
                             onRemoveBookmark = onRemoveBookmark,
                         )
                     }
@@ -240,15 +237,11 @@ fun ArtworkGallery(
 fun ArtworkCard(
     preview: ArtworkPreview,
     onImageClick: () -> Unit,
-    isLoggedIn: Boolean = false,
-    onLogin: () -> Unit = {},
-    onReactionClick: (token: String, emojiValue: Int) -> Unit = { _, _ -> },
     onRemoveBookmark: (ArtworkPreview) -> Unit = {},
 ) {
     val context = LocalContext.current
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val token = preview.filename.substringBeforeLast('.')
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -390,12 +383,12 @@ fun ArtworkCard(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                FilledTonalIconButton(onClick = { exportArtwork(context, preview) }) {
-                    Icon(Icons.Default.Save, contentDescription = stringResource(R.string.content_desc_export_artwork))
-                }
-
                 FilledTonalIconButton(onClick = { showBottomSheet = true }) {
                     Icon(Icons.Default.Info, contentDescription = stringResource(R.string.content_desc_artwork_details))
+                }
+
+                FilledTonalIconButton(onClick = { exportArtwork(context, preview) }) {
+                    Icon(Icons.Default.Save, contentDescription = stringResource(R.string.content_desc_export_artwork))
                 }
 
                 var showRemoveDialog by remember { mutableStateOf(false) }
