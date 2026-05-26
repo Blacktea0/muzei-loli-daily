@@ -53,7 +53,7 @@ private const val KEY_BANNER_DISMISSED = "banner_dismissed_status"
 private const val KEY_LAST_TAB = "settings_last_tab"
 
 /**
- * MD3 settings screen for the Loli Daily Muzei plugin.
+ * MD3 main screen for the Loli Daily Muzei plugin.
  *
  * Three destinations via bottom NavigationBar:
  * - Today: current day's artwork gallery
@@ -62,7 +62,7 @@ private const val KEY_LAST_TAB = "settings_last_tab"
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun SettingsScreen(
+fun MainScreen(
     selectedTags: Set<String>,
     onTagsChanged: (Set<String>) -> Unit,
     todayArtwork: List<ArtworkPreview>,

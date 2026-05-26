@@ -42,7 +42,7 @@ Three core components fan out from `LoliDailyArtWorker` (the central orchestrato
 
 - **`LoliDailyArtProvider`** (`MuzeiArtProvider`) — Muzei's entry point. `onLoadRequested` enqueues the Worker. Provides command actions (View Source / View Artist / Force Refresh).
 - **`LoliDailyArtWorker`** (`WorkManager` `Worker`) — fetches daily JSON via `LoliApiClient`, downloads images to `filesDir/artworks/`, persists metadata to Room, filters by user's selected tags, and pushes to Muzei via `ProviderClient.setArtwork()`.
-- **`SettingsActivity`** (Compose, 3-tab NavigationBar: Today / Bookmark / Settings) — tag filter, cached gallery with reactions, Bangumi login, theme selector.
+- **`MainActivity`** (Compose, 3-tab NavigationBar: Today / Bookmark / Settings) — tag filter, cached gallery with reactions, Bangumi login, theme selector.
 
 Supporting pieces:
 - `LoginActivity` — WebView OAuth flow against Bangumi, extracts JWT session from redirect URL

@@ -72,7 +72,7 @@ const val KEY_HIDE_RECENTS_CONTENT = "hide_recents_content"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DebugSettingsScreen(onBack: () -> Unit) {
+fun AdditionalSettingsScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(

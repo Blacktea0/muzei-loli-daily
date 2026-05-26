@@ -30,7 +30,7 @@ import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyResponse
 import me.eroi.lolidaily.muzei.ui.screen.KEY_HIDE_RECENTS_CONTENT
-import me.eroi.lolidaily.muzei.ui.screen.SettingsScreen
+import me.eroi.lolidaily.muzei.ui.screen.MainScreen
 import me.eroi.lolidaily.muzei.ui.theme.ColorSource
 import me.eroi.lolidaily.muzei.ui.theme.ColorStyle
 import me.eroi.lolidaily.muzei.ui.theme.LoliDailyTheme
@@ -41,11 +41,11 @@ import me.eroi.lolidaily.muzei.util.applyRecentsPrivacy
 import java.io.File
 
 /**
- * Settings activity launched from Muzei's source configuration screen and the app drawer.
+ * Main activity launched from Muzei's source configuration screen and the app drawer.
  *
  * Displays tag filter and cached artwork previews with metadata.
  */
-class SettingsActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity() {
     private val prefs by lazy {
         getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
     }
@@ -97,7 +97,7 @@ class SettingsActivity : AppCompatActivity() {
                 sourceArgb = extractedArgb,
                 colorStyle = colorStyle,
             ) {
-                SettingsScreen(
+                MainScreen(
                     selectedTags = selectedTags,
                     onTagsChanged = { newTags ->
                         selectedTags = newTags
@@ -165,7 +165,7 @@ class SettingsActivity : AppCompatActivity() {
                     sourceColorArgb = extractedArgb,
                     onOpenDebug = {
                         startActivity(
-                            Intent(this@SettingsActivity, DebugSettingsActivity::class.java),
+                            Intent(this@MainActivity, AdditionalSettingsActivity::class.java),
                         )
                     },
                     onBookmarkToggle = { token, fileName, bookmarked ->
@@ -280,40 +280,40 @@ class SettingsActivity : AppCompatActivity() {
         Thread {
             // Fetch Bangumi user profile (avatar, nickname)
             try {
-                val user = BangumiApiClient.fetchUser(this@SettingsActivity, username)
+                val user = BangumiApiClient.fetchUser(this@MainActivity, username)
                 if (user != null) {
                     val avatarUrl =
                         listOfNotNull(user.avatar?.large, user.avatar?.medium, user.avatar?.small)
                             .firstOrNull { it.isNotBlank() }
                     LoliDailyArtWorker.saveUserProfile(
-                        this@SettingsActivity,
+                        this@MainActivity,
                         user.username.ifBlank { username },
                         user.nickname.ifBlank { user.username.ifBlank { username } },
                         avatarUrl,
                     )
                 }
             } catch (e: Exception) {
-                Log.w("SettingsActivity", "Failed to fetch Bangumi user profile", e)
+                Log.w("MainActivity", "Failed to fetch Bangumi user profile", e)
             }
 
             // Fetch LC badge (independent of Bangumi profile)
             var newBadge = oldBadge
             if (session != null) {
-                Log.d("SettingsActivity", "Fetching LC badge for $username")
+                Log.d("MainActivity", "Fetching LC badge for $username")
                 try {
-                    val userInfo = LoliApiClient.fetchUserInfo(this@SettingsActivity, username, session.token)
+                    val userInfo = LoliApiClient.fetchUserInfo(this@MainActivity, username, session.token)
                     if (userInfo != null) {
-                        Log.d("SettingsActivity", "LC badge fetched: ${userInfo.badge}")
-                        LoliDailyArtWorker.saveBadge(this@SettingsActivity, userInfo.badge)
+                        Log.d("MainActivity", "LC badge fetched: ${userInfo.badge}")
+                        LoliDailyArtWorker.saveBadge(this@MainActivity, userInfo.badge)
                         newBadge = userInfo.badge
                     } else {
-                        Log.w("SettingsActivity", "LC badge fetch returned null")
+                        Log.w("MainActivity", "LC badge fetch returned null")
                     }
                 } catch (e: Exception) {
-                    Log.w("SettingsActivity", "Failed to fetch LC badge", e)
+                    Log.w("MainActivity", "Failed to fetch LC badge", e)
                 }
             } else {
-                Log.w("SettingsActivity", "No session available for badge fetch")
+                Log.w("MainActivity", "No session available for badge fetch")
             }
 
             val badgeChanged = newBadge != oldBadge
@@ -329,9 +329,9 @@ class SettingsActivity : AppCompatActivity() {
     private fun updateBadge(badge: String) {
         val session = LoliDailyArtWorker.loadSession(this) ?: return
         Thread {
-            val ok = LoliApiClient.updateBadge(this@SettingsActivity, badge, session.token)
+            val ok = LoliApiClient.updateBadge(this@MainActivity, badge, session.token)
             if (ok) {
-                LoliDailyArtWorker.saveBadge(this@SettingsActivity, badge)
+                LoliDailyArtWorker.saveBadge(this@MainActivity, badge)
                 runOnUiThread { lcBadge = badge }
             } else {
                 runOnUiThread {
@@ -497,7 +497,7 @@ class SettingsActivity : AppCompatActivity() {
                     return@Thread
                 }
             }
-            LoliDailyArtWorker.fetchAndCacheReactions(this@SettingsActivity)
+            LoliDailyArtWorker.fetchAndCacheReactions(this@MainActivity)
             prefs.edit()
                 .putLong(LoliDailyArtWorker.KEY_LAST_REACTION_FETCH, System.currentTimeMillis())
                 .apply()
@@ -585,11 +585,11 @@ class SettingsActivity : AppCompatActivity() {
         return try {
             val entities =
                 runBlocking {
-                    DatabaseProvider.getInstance(this@SettingsActivity).cachedArtworkDao().getAll()
+                    DatabaseProvider.getInstance(this@MainActivity).cachedArtworkDao().getAll()
                 }
             entities.associate { entity -> entity.token to EntityMapper.entityToCardFields(entity) }
         } catch (e: Exception) {
-            Log.w("SettingsActivity", "Failed to load artwork metadata from Room", e)
+            Log.w("MainActivity", "Failed to load artwork metadata from Room", e)
             emptyMap()
         }
     }
@@ -624,7 +624,7 @@ class SettingsActivity : AppCompatActivity() {
                 }
                 runOnUiThread { buildPreviews() }
             } catch (e: Exception) {
-                Log.w("SettingsActivity", "Failed to toggle bookmark", e)
+                Log.w("MainActivity", "Failed to toggle bookmark", e)
             }
         }.start()
     }
@@ -644,7 +644,7 @@ class SettingsActivity : AppCompatActivity() {
 
                 runOnUiThread { buildPreviews() }
             } catch (e: Exception) {
-                Log.w("SettingsActivity", "Failed to remove bookmark", e)
+                Log.w("MainActivity", "Failed to remove bookmark", e)
             }
         }.start()
     }

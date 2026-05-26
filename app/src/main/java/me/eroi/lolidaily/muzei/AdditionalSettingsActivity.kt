@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import me.eroi.lolidaily.muzei.ui.screen.DebugSettingsScreen
+import me.eroi.lolidaily.muzei.ui.screen.AdditionalSettingsScreen
 import me.eroi.lolidaily.muzei.ui.screen.KEY_HIDE_RECENTS_CONTENT
 import me.eroi.lolidaily.muzei.ui.theme.ColorSource
 import me.eroi.lolidaily.muzei.ui.theme.ColorStyle
@@ -12,7 +12,7 @@ import me.eroi.lolidaily.muzei.ui.theme.LoliDailyTheme
 import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
 import me.eroi.lolidaily.muzei.util.applyRecentsPrivacy
 
-class DebugSettingsActivity : AppCompatActivity() {
+class AdditionalSettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -59,7 +59,7 @@ class DebugSettingsActivity : AppCompatActivity() {
                 sourceArgb = sourceArgb,
                 colorStyle = colorStyle,
             ) {
-                DebugSettingsScreen(onBack = { finish() })
+                AdditionalSettingsScreen(onBack = { finish() })
             }
         }
     }

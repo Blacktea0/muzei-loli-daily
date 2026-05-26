@@ -13,9 +13,9 @@
         android:theme="@style/Theme.LoliDaily"
         android:networkSecurityConfig="@xml/network_security_config">
 
-        <!-- Settings activity — launched from Muzei's source config and app drawer -->
+        <!-- Main activity — launched from Muzei's source config and app drawer -->
         <activity
-            android:name="me.eroi.lolidaily.muzei.SettingsActivity"
+            android:name="me.eroi.lolidaily.muzei.MainActivity"
             android:exported="true"
             android:label="@string/app_name">
             <intent-filter>
@@ -30,11 +30,11 @@
             android:exported="false"
             android:label="Login to Bangumi" />
 
-        <!-- Debug settings — developer tools and testing options -->
+        <!-- Additional settings — developer tools and testing options -->
         <activity
-            android:name="me.eroi.lolidaily.muzei.DebugSettingsActivity"
+            android:name="me.eroi.lolidaily.muzei.AdditionalSettingsActivity"
             android:exported="false"
-            android:label="Debug Settings" />
+            android:label="Additional Settings" />
 
 
         <!-- BroadcastReceiver for force-refresh command from Muzei -->
@@ -72,7 +72,7 @@
             </intent-filter>
             <meta-data
                 android:name="settingsActivity"
-                android:value="me.eroi.lolidaily.muzei.SettingsActivity" />
+                android:value="me.eroi.lolidaily.muzei.MainActivity" />
         </provider>
 
         <!-- FileProvider — serves local cached images to Muzei -->
