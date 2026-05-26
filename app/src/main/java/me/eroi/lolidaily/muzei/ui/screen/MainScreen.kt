@@ -892,16 +892,18 @@ private fun ThemeSheet(
         )
     }
 
-    SettingsSubhead(stringResource(R.string.title_color_style_preview))
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        items(colorStyleOptions()) { style ->
-            ColorStylePreviewCard(
-                style = style,
-                selected = colorStyle == style,
-                sourceArgb = previewArgb,
-                dark = darkPreview,
-                onClick = { onColorStyleChanged(style) },
-            )
+    if (colorSource != ColorSource.DEFAULT) {
+        SettingsSubhead(stringResource(R.string.title_color_style_preview))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(colorStyleOptions()) { style ->
+                ColorStylePreviewCard(
+                    style = style,
+                    selected = colorStyle == style,
+                    sourceArgb = previewArgb,
+                    dark = darkPreview,
+                    onClick = { onColorStyleChanged(style) },
+                )
+            }
         }
     }
 }
