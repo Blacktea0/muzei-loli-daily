@@ -470,28 +470,28 @@ private fun LanguagePickerDialog(
             "ja" to stringResource(R.string.label_language_ja),
         )
 
+    var selectedTag by remember { mutableStateOf(currentTag) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.title_language)) },
         text = {
             Column {
-                languages.forEachIndexed { index, (tag, label) ->
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                languages.forEachIndexed { _, (tag, label) ->
                     ThemeOption(
                         label = label,
-                        selected = currentTag == tag,
-                        onClick = { onLanguageSelected(tag) },
+                        selected = selectedTag == tag,
+                        onClick = { selectedTag = tag },
                     )
-                    if (index < languages.lastIndex) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant,
-                        )
-                    }
                 }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_ok)) }
+            TextButton(onClick = { onLanguageSelected(selectedTag) }) {
+                Text(stringResource(R.string.action_ok))
+            }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
@@ -540,6 +540,7 @@ private fun ApiServerPickerDialog(onDismiss: () -> Unit) {
         title = { Text(stringResource(R.string.title_api_server)) },
         text = {
             Column {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 LoliApiClient.KNOWN_SERVERS.forEach { server ->
                     ThemeOption(
                         label = server,
@@ -548,10 +549,6 @@ private fun ApiServerPickerDialog(onDismiss: () -> Unit) {
                             selected = server
                             persist(server)
                         },
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant,
                     )
                 }
 
@@ -576,6 +573,7 @@ private fun ApiServerPickerDialog(onDismiss: () -> Unit) {
                         label = { Text(stringResource(R.string.label_server_url)) },
                     )
                 }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         },
         confirmButton = {
@@ -631,6 +629,7 @@ private fun BangumiApiServerPickerDialog(onDismiss: () -> Unit) {
         title = { Text(stringResource(R.string.title_bangumi_api_server)) },
         text = {
             Column {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 LoliApiClient.KNOWN_BANGUMI_SERVERS.forEach { server ->
                     ThemeOption(
                         label = server,
@@ -639,10 +638,6 @@ private fun BangumiApiServerPickerDialog(onDismiss: () -> Unit) {
                             selected = server
                             persist(server)
                         },
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant,
                     )
                 }
 
@@ -667,6 +662,7 @@ private fun BangumiApiServerPickerDialog(onDismiss: () -> Unit) {
                         label = { Text(stringResource(R.string.label_bangumi_server_url)) },
                     )
                 }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         },
         confirmButton = {
