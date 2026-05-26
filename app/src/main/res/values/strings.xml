@@ -11,9 +11,6 @@
 
     <!-- Settings -->
     <string name="title_settings">Loli Daily (๑• ‸ •๑)</string>
-    <string name="section_muzei_wallpaper">MUZEI WALLPAPER</string>
-    <string name="section_account">ACCOUNT</string>
-    <string name="section_settings">SETTINGS</string>
     <string name="title_muzei_wallpaper">Muzei Wallpaper</string>
     <string name="title_bangumi_account">Bangumi</string>
     <string name="title_theme_colors">Theme &amp; Colors</string>
@@ -25,7 +22,6 @@
     <string name="label_tag_lc0_lc_yj">LC0 / LC YJ</string>
     <string name="label_tag_lc0">LC0</string>
     <string name="label_tag_lc_es">LC ES</string>
-    <string name="hint_tags_applied">Changes take effect on next wallpaper refresh.</string>
 
     <!-- Theme -->
     <string name="label_appearance_mode">Appearance mode</string>
@@ -35,7 +31,6 @@
 
     <!-- Color source -->
     <string name="section_color_source">Color source</string>
-    <string name="section_color_style">COLOR STYLE</string>
     <string name="title_color_style_preview">Color style preview</string>
     <string name="label_color_source_default">Default</string>
     <string name="label_color_source_image">Artwork</string>
@@ -55,7 +50,7 @@
 
     <!-- Additional settings entry -->
     <string name="title_debug_settings">Additional Settings</string>
-    <string name="label_debug_subtitle">Developer options and tools</string>
+    <string name="label_debug_subtitle">Some useful and some useless settings</string>
 
     <!-- Bookmark gallery -->
     <string name="msg_no_bookmarks">No bookmarked artwork yet.\nTap the bookmark icon on Today\'s artwork to save it here.</string>
@@ -86,7 +81,7 @@
     <string name="content_desc_bookmark">Bookmark</string>
     <string name="content_desc_add_reaction">Add reaction</string>
     <string name="label_comment_by">%1$s\'s comment</string>
-    <string name="label_anonymous_comment">Anonymous\'s comment</string>
+    <string name="label_anonymous_comment">" Anonymous lolicon's comment"</string>
 
     <!-- Artwork detail bottom sheet -->
     <string name="title_artwork_details">Artwork Details</string>
@@ -134,7 +129,7 @@
     <string name="badge_q2_a0">I love both youjo and lolis</string>
     <string name="badge_q2_a1">I\'m not that interested</string>
     <string name="badge_q3">Would you like some big belly today?</string>
-    <string name="badge_q3_a0">hso, more please</string>
+    <string name="badge_q3_a0">So horny, more please</string>
     <string name="badge_q3_a1">Nah, I\'m good</string>
 
     <!-- Reactions -->
@@ -188,14 +183,13 @@
     <!-- Debug: API -->
     <string name="section_debug_api">API</string>
     <string name="title_api_server">Loli Commons Server</string>
-    <string name="desc_api_server">Select the API server to use. Default: %1$s</string>
+    <string name="desc_api_server">Select the API server to use</string>
     <string name="label_custom">Custom</string>
     <string name="label_server_url">Server URL</string>
     <string name="action_apply">Apply</string>
-    <string name="label_active_url">Active: %1$s</string>
 
     <string name="title_bangumi_api_server">Bangumi API Server</string>
-    <string name="desc_bangumi_api_server">Server for fetching topic comments. Default: %1$s</string>
+    <string name="desc_bangumi_api_server">Server for fetching topic comments</string>
     <string name="label_bangumi_server_url">Bangumi Server URL</string>
 
     <string name="title_skip_cache">Skip API Cache</string>
@@ -212,7 +206,7 @@
     <string name="action_ok">OK</string>
 
     <!-- Debug: Language -->
-    <string name="section_language">LANGUAGE</string>
+    <string name="section_language">Language</string>
     <string name="title_language">Language</string>
     <string name="desc_language">Change the app display language</string>
     <string name="label_language_system">Follow system</string>

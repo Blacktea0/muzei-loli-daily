@@ -11,9 +11,6 @@
 
     <!-- Settings -->
     <string name="title_settings">ロリ毎日 (๑• ‸ •๑)</string>
-    <string name="section_muzei_wallpaper">MUZEI 壁紙</string>
-    <string name="section_account">アカウント</string>
-    <string name="section_settings">設定</string>
     <string name="title_muzei_wallpaper">Muzei 壁紙</string>
     <string name="title_bangumi_account">Bangumi</string>
     <string name="title_theme_colors">テーマとカラー</string>
@@ -25,7 +22,6 @@
     <string name="label_tag_lc0_lc_yj">LC0 / LC YJ</string>
     <string name="label_tag_lc0">LC0</string>
     <string name="label_tag_lc_es">LC ES</string>
-    <string name="hint_tags_applied">変更は次回の壁紙更新時に反映されます。</string>
 
     <!-- Theme -->
     <string name="label_appearance_mode">外観モード</string>
@@ -35,7 +31,6 @@
 
     <!-- Color source -->
     <string name="section_color_source">カラーソース</string>
-    <string name="section_color_style">カラースタイル</string>
     <string name="title_color_style_preview">カラースタイルプレビュー</string>
     <string name="label_color_source_default">デフォルト</string>
     <string name="label_color_source_image">絵から</string>
@@ -55,7 +50,7 @@
 
     <!-- Additional settings entry -->
     <string name="title_debug_settings">その他の設定</string>
-    <string name="label_debug_subtitle">開発者オプションとツール</string>
+    <string name="label_debug_subtitle">便利な設定と役に立たない設定がある</string>
 
     <!-- Bookmark gallery -->
     <string name="msg_no_bookmarks">ブックマークされた作品はまだありません。\n今日の作品のブックマークアイコンをタップして保存しましょう。</string>
@@ -86,7 +81,7 @@
     <string name="content_desc_bookmark">ブックマーク</string>
     <string name="content_desc_add_reaction">リアクションを追加</string>
     <string name="label_comment_by">%1$s のコメント</string>
-    <string name="label_anonymous_comment">匿名のコメント</string>
+    <string name="label_anonymous_comment">名無しロリコンのコメント</string>
 
     <!-- Artwork detail bottom sheet -->
     <string name="title_artwork_details">作品の詳細</string>
@@ -109,7 +104,7 @@
     <string name="banner_muzei_not_installed">Muzei がインストールされていません</string>
     <string name="banner_source_not_enabled">ソースが有効化されていません</string>
     <string name="content_desc_dismiss">閉じる</string>
-    <string name="msg_browse_without_muzei">Muzei をインストールせずに作品を閲覧しタグを管理できます。壁紙に設定するには、Muzei をインストールしてこのソースを有効化してください。</string>
+    <string name="msg_browse_without_muzei">" Muzeiをインストールしなくても作品を閲覧できます。ただし、作品を壁紙として設定するには、Muzeiをインストールしてこのソースを有効にしてください。"</string>
     <string name="action_install_muzei">Muzei をインストール</string>
     <string name="action_open_muzei">Muzei を開く</string>
     <string name="action_dismiss">閉じる</string>
@@ -134,7 +129,7 @@
     <string name="badge_q2_a0">幼女もロリも大好き</string>
     <string name="badge_q2_a1">あまり興味がない</string>
     <string name="badge_q3">今日はボテ腹、いかがですか？</string>
-    <string name="badge_q3_a0">hso、もっとくれ</string>
+    <string name="badge_q3_a0">えっちだ、もっとくれ</string>
     <string name="badge_q3_a1">いや、いいです</string>
 
     <!-- Reactions -->
@@ -188,14 +183,13 @@
     <!-- Debug: API -->
     <string name="section_debug_api">API</string>
     <string name="title_api_server">Loli Commons サーバー</string>
-    <string name="desc_api_server">使用する API サーバーを選択。デフォルト：%1$s</string>
+    <string name="desc_api_server">使用する API サーバーを選択</string>
     <string name="label_custom">カスタム</string>
     <string name="label_server_url">サーバー URL</string>
     <string name="action_apply">適用</string>
-    <string name="label_active_url">有効：%1$s</string>
 
     <string name="title_bangumi_api_server">Bangumi API サーバー</string>
-    <string name="desc_bangumi_api_server">トピックコメントの取得用サーバー。デフォルト：%1$s</string>
+    <string name="desc_bangumi_api_server">トピックコメントの取得用サーバー</string>
     <string name="label_bangumi_server_url">Bangumi サーバー URL</string>
 
     <string name="title_skip_cache">API キャッシュをスキップ</string>

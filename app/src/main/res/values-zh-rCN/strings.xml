@@ -11,9 +11,6 @@
 
     <!-- Settings -->
     <string name="title_settings">每日萝莉 (๑• ‸ •๑)</string>
-    <string name="section_muzei_wallpaper">MUZEI 壁纸</string>
-    <string name="section_account">账户</string>
-    <string name="section_settings">设置</string>
     <string name="title_muzei_wallpaper">Muzei 壁纸</string>
     <string name="title_bangumi_account">Bangumi</string>
     <string name="title_theme_colors">主题与配色</string>
@@ -25,7 +22,6 @@
     <string name="label_tag_lc0_lc_yj">LC0 / LC YJ</string>
     <string name="label_tag_lc0">LC0</string>
     <string name="label_tag_lc_es">LC ES</string>
-    <string name="hint_tags_applied">更改将在下次壁纸刷新时生效。</string>
 
     <!-- Theme -->
     <string name="label_appearance_mode">外观模式</string>
@@ -35,7 +31,6 @@
 
     <!-- Color source -->
     <string name="section_color_source">颜色来源</string>
-    <string name="section_color_style">配色风格</string>
     <string name="title_color_style_preview">配色风格预览</string>
     <string name="label_color_source_default">默认</string>
     <string name="label_color_source_image">从画作提取</string>
@@ -55,7 +50,7 @@
 
     <!-- Additional settings entry -->
     <string name="title_debug_settings">更多设置</string>
-    <string name="label_debug_subtitle">开发者选项和工具</string>
+    <string name="label_debug_subtitle">一些有用的没用的设置</string>
 
     <!-- Bookmark gallery -->
     <string name="msg_no_bookmarks">还没有收藏的画作。\n点击今日画作上的收藏图标即可保存。</string>
@@ -82,11 +77,11 @@
     <string name="label_characters">角色</string>
     <string name="label_source">来源</string>
     <string name="label_artist">画师</string>
-    <string name="content_desc_react">表态</string>
+    <string name="content_desc_react">贴贴</string>
     <string name="content_desc_bookmark">收藏</string>
-    <string name="content_desc_add_reaction">添加互动</string>
+    <string name="content_desc_add_reaction">添加贴贴</string>
     <string name="label_comment_by">%1$s 的评论</string>
-    <string name="label_anonymous_comment">匿名评论</string>
+    <string name="label_anonymous_comment">某不愿意透露名字的萝莉控的评论</string>
 
     <!-- Artwork detail bottom sheet -->
     <string name="title_artwork_details">画作详情</string>
@@ -109,7 +104,7 @@
     <string name="banner_muzei_not_installed">未安装 Muzei</string>
     <string name="banner_source_not_enabled">来源未启用</string>
     <string name="content_desc_dismiss">关闭</string>
-    <string name="msg_browse_without_muzei">你可以不安装 Muzei 就浏览画作和管理标签。要将图片设为壁纸，请安装 Muzei 并启用此来源。</string>
+    <string name="msg_browse_without_muzei">不安装 Muzei 也能浏览画作。但要将画作设为壁纸，请安装 Muzei 并启用此来源。</string>
     <string name="action_install_muzei">安装 Muzei</string>
     <string name="action_open_muzei">打开 Muzei</string>
     <string name="action_dismiss">关闭</string>
@@ -118,7 +113,7 @@
     <string name="status_logged_in">已登录 Bangumi</string>
     <string name="status_not_logged_in">未登录</string>
     <string name="label_via_domain">通过 %1$s</string>
-    <string name="label_login_to_react">登录后可对图片表态</string>
+    <string name="label_login_to_react">登录后可对图片贴贴</string>
     <string name="action_logout">退出登录</string>
     <string name="action_login">登录</string>
     <string name="title_choose_login_site">选择登录站点</string>
@@ -138,9 +133,9 @@
     <string name="badge_q3_a1">不了不了</string>
 
     <!-- Reactions -->
-    <string name="reaction_title">表态</string>
-    <string name="msg_login_to_react">请先登录 Bangumi 再表态</string>
-    <string name="label_tap_emoji_react">点击表情表态</string>
+    <string name="reaction_title">贴贴</string>
+    <string name="msg_login_to_react">请先登录 Bangumi 再贴贴</string>
+    <string name="label_tap_emoji_react">点击表情贴贴</string>
 
     <!-- Comments -->
     <string name="label_comments">评论</string>
@@ -175,7 +170,7 @@
     <!-- Toast messages -->
     <string name="msg_logged_out">已退出登录</string>
     <string name="msg_refresh_enqueued">已加入刷新队列</string>
-    <string name="msg_reaction_failed">表态失败 — 会话可能已过期</string>
+    <string name="msg_reaction_failed">贴贴失败 — 会话可能已过期</string>
     <string name="msg_muzei_not_installed_opening">未安装 Muzei — 正在打开 Play Store</string>
     <string name="msg_no_app_store">没有可用的应用商店</string>
 
@@ -188,14 +183,13 @@
     <!-- Debug: API -->
     <string name="section_debug_api">API</string>
     <string name="title_api_server">Loli Commons 服务器</string>
-    <string name="desc_api_server">选择要使用的 API 服务器。默认：%1$s</string>
+    <string name="desc_api_server">选择要使用的 API 服务器</string>
     <string name="label_custom">自定义</string>
     <string name="label_server_url">服务器 URL</string>
     <string name="action_apply">应用</string>
-    <string name="label_active_url">当前：%1$s</string>
 
     <string name="title_bangumi_api_server">Bangumi API 服务器</string>
-    <string name="desc_bangumi_api_server">用于获取话题评论的服务器。默认：%1$s</string>
+    <string name="desc_bangumi_api_server">用于获取话题评论的服务器</string>
     <string name="label_bangumi_server_url">Bangumi 服务器 URL</string>
 
     <string name="title_skip_cache">跳过 API 缓存</string>
