@@ -524,7 +524,6 @@ fun HeroArtwork(
                         CardDefaults.elevatedCardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         ),
-                    elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp),
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {

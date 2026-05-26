@@ -1234,13 +1234,15 @@ private fun PreferenceTab(
                     icon = Icons.Filled.Palette,
                     title = stringResource(R.string.title_theme_colors),
                     subtitle =
-                        "${themeModeLabel(themeMode)} · ${colorStyleLabel(colorStyle)}",
+                        "${themeModeLabel(
+                            themeMode,
+                        )} · ${colorStyleLabel(if (colorSource == ColorSource.DEFAULT) ColorStyle.TONAL_SPOT else colorStyle)}",
                     iconContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
                     iconContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                     trailing = {
                         PaletteDots(
                             argb = sourceColorArgb ?: if (colorSource == ColorSource.MANUAL) manualColorArgb else DEFAULT_SOURCE_COLOR,
-                            style = colorStyle,
+                            style = if (colorSource == ColorSource.DEFAULT) ColorStyle.TONAL_SPOT else colorStyle,
                             dark = themeMode == ThemeMode.DARK,
                         )
                     },
