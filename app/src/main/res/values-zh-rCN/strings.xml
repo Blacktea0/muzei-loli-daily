@@ -220,6 +220,11 @@
     <string name="label_language_zh">中文</string>
     <string name="label_language_ja">日本語</string>
 
+    <!-- Debug: Privacy -->
+    <string name="section_privacy">隐私</string>
+    <string name="title_hide_recents">在最近任务中隐藏内容</string>
+    <string name="desc_hide_recents">防止应用内容在最近任务概览中显示</string>
+
     <!-- Muzei commands -->
     <string name="cmd_view_source">查看来源</string>
     <string name="cmd_view_artist">查看画师</string>

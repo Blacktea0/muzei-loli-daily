@@ -29,6 +29,7 @@ import me.eroi.lolidaily.muzei.db.EntityMapper
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyResponse
+import me.eroi.lolidaily.muzei.ui.screen.KEY_HIDE_RECENTS_CONTENT
 import me.eroi.lolidaily.muzei.ui.screen.SettingsScreen
 import me.eroi.lolidaily.muzei.ui.theme.ColorSource
 import me.eroi.lolidaily.muzei.ui.theme.ColorStyle
@@ -36,6 +37,7 @@ import me.eroi.lolidaily.muzei.ui.theme.LoliDailyTheme
 import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
 import me.eroi.lolidaily.muzei.util.ArtworkColorExtractor
 import me.eroi.lolidaily.muzei.util.Md5
+import me.eroi.lolidaily.muzei.util.applyRecentsPrivacy
 import java.io.File
 
 /**
@@ -81,6 +83,7 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         loadState()
+        applyRecentsPrivacy(this, prefs.getBoolean(KEY_HIDE_RECENTS_CONTENT, false))
         loadSourceStatus()
         LoliDailyArtWorker.ensureDailyRefreshScheduled(this)
 
@@ -203,6 +206,7 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        applyRecentsPrivacy(this, prefs.getBoolean(KEY_HIDE_RECENTS_CONTENT, false))
         val wasLoggedIn = isLoggedIn
         isLoggedIn = LoliDailyArtWorker.loadSession(this) != null
         loadAccountProfile()

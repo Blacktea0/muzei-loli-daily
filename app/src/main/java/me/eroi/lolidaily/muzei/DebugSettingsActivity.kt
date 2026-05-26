@@ -5,10 +5,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import me.eroi.lolidaily.muzei.ui.screen.DebugSettingsScreen
+import me.eroi.lolidaily.muzei.ui.screen.KEY_HIDE_RECENTS_CONTENT
 import me.eroi.lolidaily.muzei.ui.theme.ColorSource
 import me.eroi.lolidaily.muzei.ui.theme.ColorStyle
 import me.eroi.lolidaily.muzei.ui.theme.LoliDailyTheme
 import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
+import me.eroi.lolidaily.muzei.util.applyRecentsPrivacy
 
 class DebugSettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -16,6 +18,7 @@ class DebugSettingsActivity : AppCompatActivity() {
         enableEdgeToEdge()
 
         val prefs = getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, MODE_PRIVATE)
+        applyRecentsPrivacy(this, prefs.getBoolean(KEY_HIDE_RECENTS_CONTENT, false))
 
         val themeMode =
             try {

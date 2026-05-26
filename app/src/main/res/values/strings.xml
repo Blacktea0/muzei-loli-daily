@@ -220,6 +220,11 @@
     <string name="label_language_zh">中文</string>
     <string name="label_language_ja">日本語</string>
 
+    <!-- Debug: Privacy -->
+    <string name="section_privacy">Privacy</string>
+    <string name="title_hide_recents">Hide content in Recents</string>
+    <string name="desc_hide_recents">Prevent app content from showing in recent tasks overview</string>
+
     <!-- Muzei commands -->
     <string name="cmd_view_source">View Source</string>
     <string name="cmd_view_artist">View Artist</string>

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -67,6 +68,7 @@ import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.ui.screen.components.ThemeOption
 
 private const val CUSTOM_OPTION = "Custom"
+const val KEY_HIDE_RECENTS_CONTENT = "hide_recents_content"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,6 +109,12 @@ fun DebugSettingsScreen(onBack: () -> Unit) {
             item {
                 SettingsGroup {
                     RefreshTimeCard()
+                }
+            }
+            item { SettingsSectionLabel(stringResource(R.string.section_privacy)) }
+            item {
+                SettingsGroup {
+                    HideRecentsCard()
                 }
             }
         }
@@ -344,6 +352,39 @@ private fun RefreshTimeCard() {
             },
         )
     }
+}
+
+// ── Hide Recents Card ─────────────────────────────────────────
+
+@Composable
+private fun HideRecentsCard() {
+    val context = LocalContext.current
+    val prefs =
+        remember {
+            context.getSharedPreferences(
+                LoliDailyArtWorker.PREFS_NAME,
+                android.content.Context.MODE_PRIVATE,
+            )
+        }
+
+    var hideRecents by remember {
+        mutableStateOf(prefs.getBoolean(KEY_HIDE_RECENTS_CONTENT, false))
+    }
+
+    SettingsRow(
+        icon = Icons.Default.VisibilityOff,
+        title = stringResource(R.string.title_hide_recents),
+        subtitle = stringResource(R.string.desc_hide_recents),
+        trailing = {
+            Switch(
+                checked = hideRecents,
+                onCheckedChange = { checked ->
+                    hideRecents = checked
+                    prefs.edit().putBoolean(KEY_HIDE_RECENTS_CONTENT, checked).apply()
+                },
+            )
+        },
+    )
 }
 
 // ── Refresh Time Dialog ──────────────────────────────────────────

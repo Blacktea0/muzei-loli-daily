@@ -220,6 +220,11 @@
     <string name="label_language_zh">中文</string>
     <string name="label_language_ja">日本語</string>
 
+    <!-- Debug: Privacy -->
+    <string name="section_privacy">プライバシー</string>
+    <string name="title_hide_recents">最近のタスクでコンテンツを非表示</string>
+    <string name="desc_hide_recents">最近のタスク概要にアプリのコンテンツを表示しない</string>
+
     <!-- Muzei commands -->
     <string name="cmd_view_source">ソースを見る</string>
     <string name="cmd_view_artist">アーティストを見る</string>
