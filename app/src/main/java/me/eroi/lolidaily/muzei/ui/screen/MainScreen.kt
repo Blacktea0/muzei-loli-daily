@@ -91,7 +91,7 @@ fun MainScreen(
     initialTab: Int? = null,
     colorSource: ColorSource = ColorSource.DEFAULT,
     onColorSourceChanged: (ColorSource) -> Unit = {},
-    colorStyle: ColorStyle = ColorStyle.TONAL_SPOT,
+    colorStyle: ColorStyle = ColorStyle.NEUTRAL,
     onColorStyleChanged: (ColorStyle) -> Unit = {},
     manualColorArgb: Int = 0xFF6B4DA3.toInt(),
     onManualColorChanged: (Int) -> Unit = {},
@@ -1128,7 +1128,7 @@ private fun PreferenceTab(
     onThemeModeChanged: (ThemeMode) -> Unit = {},
     colorSource: ColorSource = ColorSource.DEFAULT,
     onColorSourceChanged: (ColorSource) -> Unit = {},
-    colorStyle: ColorStyle = ColorStyle.TONAL_SPOT,
+    colorStyle: ColorStyle = ColorStyle.NEUTRAL,
     onColorStyleChanged: (ColorStyle) -> Unit = {},
     manualColorArgb: Int = 0xFF6B4DA3.toInt(),
     onManualColorChanged: (Int) -> Unit = {},
@@ -1236,13 +1236,13 @@ private fun PreferenceTab(
                     subtitle =
                         "${themeModeLabel(
                             themeMode,
-                        )} · ${colorStyleLabel(if (colorSource == ColorSource.DEFAULT) ColorStyle.TONAL_SPOT else colorStyle)}",
+                        )} · ${colorStyleLabel(if (colorSource == ColorSource.DEFAULT) ColorStyle.NEUTRAL else colorStyle)}",
                     iconContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
                     iconContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                     trailing = {
                         PaletteDots(
                             argb = sourceColorArgb ?: if (colorSource == ColorSource.MANUAL) manualColorArgb else DEFAULT_SOURCE_COLOR,
-                            style = if (colorSource == ColorSource.DEFAULT) ColorStyle.TONAL_SPOT else colorStyle,
+                            style = if (colorSource == ColorSource.DEFAULT) ColorStyle.NEUTRAL else colorStyle,
                             dark = themeMode == ThemeMode.DARK,
                         )
                     },

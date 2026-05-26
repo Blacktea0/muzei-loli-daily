@@ -64,7 +64,7 @@ class MainActivity : AppCompatActivity() {
     private var isMuzeiInstalled by mutableStateOf(false)
     private var themeMode by mutableStateOf(ThemeMode.SYSTEM)
     private var colorSource by mutableStateOf(ColorSource.DEFAULT)
-    private var colorStyle by mutableStateOf(ColorStyle.TONAL_SPOT)
+    private var colorStyle by mutableStateOf(ColorStyle.NEUTRAL)
     private var manualColorArgb by mutableStateOf(0xFFF09199.toInt())
     private var extractedArgb by mutableStateOf<Int?>(null)
     private var refreshProgress by mutableStateOf<Float?>(null)
@@ -372,11 +372,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadColorStyle(): ColorStyle {
-        val stored = prefs.getString(KEY_COLOR_STYLE, null) ?: return ColorStyle.TONAL_SPOT
+        val stored = prefs.getString(KEY_COLOR_STYLE, null) ?: return ColorStyle.NEUTRAL
         return try {
             ColorStyle.valueOf(stored)
         } catch (_: IllegalArgumentException) {
-            ColorStyle.TONAL_SPOT
+            ColorStyle.NEUTRAL
         }
     }
 

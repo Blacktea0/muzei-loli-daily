@@ -20,7 +20,7 @@ object M3SchemeGenerator {
     fun fromSourceColor(
         sourceArgb: Int,
         darkMode: Boolean,
-        style: ColorStyle = ColorStyle.TONAL_SPOT,
+        style: ColorStyle = ColorStyle.NEUTRAL,
     ): androidx.compose.material3.ColorScheme {
         val hct = Hct.fromInt(sourceArgb)
         val scheme = createScheme(hct, darkMode, style)

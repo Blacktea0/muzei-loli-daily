@@ -21,7 +21,7 @@ fun LoliDailyTheme(
     dynamicColor: Boolean = true,
     colorSource: ColorSource = ColorSource.DEFAULT,
     sourceArgb: Int? = null,
-    colorStyle: ColorStyle = ColorStyle.TONAL_SPOT,
+    colorStyle: ColorStyle = ColorStyle.NEUTRAL,
     content: @Composable () -> Unit,
 ) {
     val darkTheme =
@@ -40,11 +40,11 @@ fun LoliDailyTheme(
                 if (argb != null) {
                     M3SchemeGenerator.fromSourceColor(argb, darkTheme, colorStyle)
                 } else {
-                    M3SchemeGenerator.fromSourceColor(defaultSourceArgb, darkTheme, ColorStyle.TONAL_SPOT)
+                    M3SchemeGenerator.fromSourceColor(defaultSourceArgb, darkTheme, ColorStyle.NEUTRAL)
                 }
             }
             ColorSource.DEFAULT -> {
-                M3SchemeGenerator.fromSourceColor(defaultSourceArgb, darkTheme, ColorStyle.TONAL_SPOT)
+                M3SchemeGenerator.fromSourceColor(defaultSourceArgb, darkTheme, ColorStyle.NEUTRAL)
             }
         }
 

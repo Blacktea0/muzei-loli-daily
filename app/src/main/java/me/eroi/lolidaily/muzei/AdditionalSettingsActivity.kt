@@ -36,9 +36,9 @@ class AdditionalSettingsActivity : AppCompatActivity() {
 
         val colorStyle =
             try {
-                ColorStyle.valueOf(prefs.getString("color_style", null) ?: ColorStyle.TONAL_SPOT.name)
+                ColorStyle.valueOf(prefs.getString("color_style", null) ?: ColorStyle.NEUTRAL.name)
             } catch (_: IllegalArgumentException) {
-                ColorStyle.TONAL_SPOT
+                ColorStyle.NEUTRAL
             }
 
         val manualColorArgb = prefs.getInt("manual_color", 0xFFF09199.toInt())
