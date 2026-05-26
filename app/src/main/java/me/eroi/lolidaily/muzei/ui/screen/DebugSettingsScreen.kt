@@ -2,22 +2,21 @@ package me.eroi.lolidaily.muzei.ui.screen
 
 import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Forum
@@ -28,6 +27,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -37,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -47,8 +49,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.Lifecycle
@@ -58,7 +65,6 @@ import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.ui.screen.components.ThemeOption
-import me.eroi.lolidaily.muzei.util.SectionTitle
 
 private const val CUSTOM_OPTION = "Custom"
 
@@ -77,25 +83,138 @@ fun DebugSettingsScreen(onBack: () -> Unit) {
                         )
                     }
                 },
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
             )
         },
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // ── Language ──────────────────────────
-            item { SectionTitle(stringResource(R.string.section_language)) }
-            item { LanguageCard() }
-
-            // ── API ───────────────────────────────
-            item { SectionTitle(stringResource(R.string.section_debug_api)) }
+            item { SettingsSectionLabel(stringResource(R.string.section_language)) }
+            item {
+                SettingsGroup {
+                    LanguageCard()
+                }
+            }
+            item { SettingsSectionLabel(stringResource(R.string.section_debug_api)) }
             item { ApiCombinedCard() }
+            item { SettingsSectionLabel(stringResource(R.string.section_debug_refresh)) }
+            item {
+                SettingsGroup {
+                    RefreshTimeCard()
+                }
+            }
+        }
+    }
+}
 
-            // ── Refresh Schedule ─────────────────
-            item { SectionTitle(stringResource(R.string.section_debug_refresh)) }
-            item { RefreshTimeCard() }
+@Composable
+private fun SettingsSectionLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 2.dp),
+    )
+}
+
+@Composable
+private fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp)),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        content = content,
+    )
+}
+
+@Composable
+private fun SettingsRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: (() -> Unit)? = null,
+    leadingContent: (@Composable () -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+    endIcon: ImageVector = Icons.Filled.ChevronRight,
+) {
+    val content: @Composable () -> Unit = {
+        ListItem(
+            modifier = Modifier.defaultMinSize(minHeight = 76.dp),
+            headlineContent = {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+            supportingContent = {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+            leadingContent =
+                if (leadingContent != null) {
+                    { leadingContent() }
+                } else {
+                    {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
+                },
+            trailingContent = {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    trailing?.invoke()
+                    if (onClick != null) {
+                        Icon(
+                            imageVector = endIcon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+            },
+            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        )
+    }
+
+    if (onClick != null) {
+        Surface(
+            onClick = onClick,
+            shape = RoundedCornerShape(4.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            content()
+        }
+    } else {
+        Surface(
+            shape = RoundedCornerShape(4.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            content()
         }
     }
 }
@@ -131,88 +250,24 @@ private fun ApiCombinedCard() {
     var showApiDialog by remember { mutableStateOf(false) }
     var showBangumiDialog by remember { mutableStateOf(false) }
 
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = RoundedCornerShape(16.dp),
-    ) {
-        Column(modifier = Modifier.padding(4.dp)) {
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth()
-                        .clickable { showApiDialog = true }
-                        .padding(vertical = 12.dp, horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Dns,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp),
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = stringResource(R.string.title_api_server), style = MaterialTheme.typography.bodyLarge)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = apiUrl,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                color = MaterialTheme.colorScheme.outlineVariant,
-            )
-
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth()
-                        .clickable { showBangumiDialog = true }
-                        .padding(vertical = 12.dp, horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Forum,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp),
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = stringResource(R.string.title_bangumi_api_server), style = MaterialTheme.typography.bodyLarge)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = bangumiUrl,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                color = MaterialTheme.colorScheme.outlineVariant,
-            )
-
-            Row(
-                modifier =
-                    Modifier.fillMaxWidth()
-                        .padding(vertical = 12.dp, horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CloudOff,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp),
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = stringResource(R.string.title_skip_cache), style = MaterialTheme.typography.bodyLarge)
-                }
-                Spacer(modifier = Modifier.width(12.dp))
+    SettingsGroup {
+        SettingsRow(
+            icon = Icons.Default.Dns,
+            title = stringResource(R.string.title_api_server),
+            subtitle = "${stringResource(R.string.desc_api_server, LoliApiClient.KNOWN_SERVERS.first())} · $apiUrl",
+            onClick = { showApiDialog = true },
+        )
+        SettingsRow(
+            icon = Icons.Default.Forum,
+            title = stringResource(R.string.title_bangumi_api_server),
+            subtitle = "${stringResource(R.string.desc_bangumi_api_server, LoliApiClient.KNOWN_BANGUMI_SERVERS.first())} · $bangumiUrl",
+            onClick = { showBangumiDialog = true },
+        )
+        SettingsRow(
+            icon = Icons.Default.CloudOff,
+            title = stringResource(R.string.title_skip_cache),
+            subtitle = stringResource(R.string.desc_skip_cache),
+            trailing = {
                 Switch(
                     checked = skipCache,
                     onCheckedChange = { checked ->
@@ -220,8 +275,8 @@ private fun ApiCombinedCard() {
                         prefs.edit().putBoolean("debug_skip_cache", checked).apply()
                     },
                 )
-            }
-        }
+            },
+        )
     }
 
     if (showApiDialog) {
@@ -253,33 +308,12 @@ private fun RefreshTimeCard() {
     }
     var showDialog by remember { mutableStateOf(false) }
 
-    Surface(
+    SettingsRow(
+        icon = Icons.Default.Schedule,
+        title = stringResource(R.string.title_refresh_time),
+        subtitle = "${stringResource(R.string.desc_refresh_time)} · %02d:%02d GMT+8".format(hour, minute),
         onClick = { showDialog = true },
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = RoundedCornerShape(16.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Default.Schedule,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp),
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = stringResource(R.string.title_refresh_time), style = MaterialTheme.typography.bodyLarge)
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "%02d:%02d GMT+8".format(hour, minute),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-    }
+    )
 
     if (showDialog) {
         RefreshTimeDialog(
@@ -356,35 +390,12 @@ private fun LanguageCard() {
             else -> stringResource(R.string.label_language_system)
         }
 
-    Surface(
+    SettingsRow(
+        icon = Icons.Default.Language,
+        title = stringResource(R.string.title_language),
+        subtitle = "${stringResource(R.string.desc_language)} · $currentLabel",
         onClick = { showDialog = true },
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = RoundedCornerShape(16.dp),
-    ) {
-        Row(
-            modifier =
-                Modifier.fillMaxWidth()
-                    .padding(vertical = 12.dp, horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Default.Language,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp),
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = stringResource(R.string.title_language), style = MaterialTheme.typography.bodyLarge)
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = currentLabel,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-    }
+    )
 
     if (showDialog) {
         LanguagePickerDialog(

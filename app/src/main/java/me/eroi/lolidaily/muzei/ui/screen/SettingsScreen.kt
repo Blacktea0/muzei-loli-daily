@@ -10,8 +10,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Bookmarks
@@ -115,7 +118,7 @@ fun SettingsScreen(
                 CenterAlignedTopAppBar(
                     title = { Text(stringResource(R.string.title_settings)) },
                     colors =
-                        TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        TopAppBarDefaults.topAppBarColors(
                             containerColor = MaterialTheme.colorScheme.surface,
                         ),
                 )
@@ -253,61 +256,50 @@ private enum class SettingsSheet {
 }
 
 @Composable
-private fun SettingsSectionLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.primary,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(start = 4.dp, top = 10.dp, bottom = 2.dp),
+private fun SegmentedSettingsGroup(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp)),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        content = content,
     )
 }
 
 @Composable
-private fun SettingsRow(
+private fun GroupedSettingsRow(
     icon: ImageVector,
     title: String,
     subtitle: String,
-    accent: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    iconContainerColor: Color = MaterialTheme.colorScheme.secondaryContainer,
+    iconContentColor: Color = MaterialTheme.colorScheme.onSecondaryContainer,
     leadingContent: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     endIcon: ImageVector = Icons.Filled.ChevronRight,
 ) {
     Surface(
         onClick = onClick,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = RoundedCornerShape(4.dp),
         modifier = modifier.fillMaxWidth(),
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            if (leadingContent != null) {
-                leadingContent()
-            } else {
-                Surface(
-                    color = accent.copy(alpha = 0.14f),
-                    contentColor = accent,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp))
-                    }
-                }
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
+        ListItem(
+            modifier = Modifier.defaultMinSize(minHeight = 76.dp),
+            headlineContent = {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+            },
+            supportingContent = {
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
@@ -315,16 +307,35 @@ private fun SettingsRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-            }
-
-            trailing?.invoke()
-            Icon(
-                imageVector = endIcon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp),
-            )
-        }
+            },
+            leadingContent =
+                if (leadingContent != null) {
+                    { leadingContent() }
+                } else {
+                    {
+                        SettingsIconContainer(
+                            icon = icon,
+                            containerColor = iconContainerColor,
+                            contentColor = iconContentColor,
+                        )
+                    }
+                },
+            trailingContent = {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    trailing?.invoke()
+                    Icon(
+                        imageVector = endIcon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            },
+            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        )
     }
 }
 
@@ -334,11 +345,16 @@ private fun StatusBadge(
     active: Boolean,
     letterSpacing: TextUnit = TextUnit.Unspecified,
 ) {
-    val color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+    val color =
+        if (active) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.error
+        }
     Surface(
-        color = color.copy(alpha = 0.14f),
+        color = color.copy(alpha = 0.12f),
         contentColor = color,
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(10.dp),
     ) {
         Text(
             text = text,
@@ -350,21 +366,53 @@ private fun StatusBadge(
 }
 
 @Composable
+private fun SettingsIconContainer(
+    icon: ImageVector,
+    containerColor: Color,
+    contentColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = CircleShape,
+        color = containerColor,
+        contentColor = contentColor,
+        modifier = modifier.size(44.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+    }
+}
+
+@Composable
 private fun PaletteDots(
     argb: Int,
     style: ColorStyle,
     dark: Boolean,
 ) {
     val scheme = remember(argb, style, dark) { M3SchemeGenerator.fromSourceColor(argb, dark, style) }
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        listOf(scheme.primary, scheme.secondary, scheme.tertiary).forEach { color ->
-            Box(
-                modifier =
-                    Modifier
-                        .size(10.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(color),
-            )
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            listOf(scheme.primary, scheme.secondary, scheme.tertiary).forEach { color ->
+                Box(
+                    modifier =
+                        Modifier
+                            .size(12.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(color),
+                )
+            }
         }
     }
 }
@@ -378,10 +426,10 @@ private fun SettingsBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 28.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             content = content,
         )
@@ -398,7 +446,11 @@ private fun SheetTitle(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier.padding(top = 2.dp),
     ) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        SettingsIconContainer(
+            icon = icon,
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
         Text(text = text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Medium)
     }
 }
@@ -509,13 +561,13 @@ private fun AccountSheet(
 
     if (isLoggedIn) {
         OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
+            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
             Text(stringResource(R.string.action_logout))
         }
     } else {
         FilledTonalButton(onClick = { showDomainPicker = true }, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Filled.Login, contentDescription = null, modifier = Modifier.size(18.dp))
+            Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
             Text(stringResource(R.string.action_login))
         }
@@ -552,7 +604,7 @@ private fun AccountAvatar(
     size: Dp,
 ) {
     Surface(
-        shape = RoundedCornerShape(50),
+        shape = CircleShape,
         color = MaterialTheme.colorScheme.secondaryContainer,
         modifier = Modifier.size(size),
     ) {
@@ -1102,8 +1154,8 @@ private fun PreferenceTab(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 28.dp),
     ) {
         if (showBanner) {
             item {
@@ -1115,94 +1167,93 @@ private fun PreferenceTab(
             }
         }
 
-        item { SettingsSectionLabel(stringResource(R.string.section_muzei_wallpaper)) }
-
         item {
-            SettingsRow(
-                icon = Icons.Filled.Photo,
-                title = stringResource(R.string.title_muzei_wallpaper),
-                subtitle = selectedTagsLabel(selectedTags),
-                accent = MaterialTheme.colorScheme.primary,
-                trailing = {
-                    StatusBadge(
-                        text =
-                            if (isSourceActivated) {
-                                stringResource(R.string.status_enabled_short)
-                            } else {
-                                stringResource(R.string.status_not_enabled_short)
-                            },
-                        active = isSourceActivated,
-                    )
-                },
-                onClick = { openSheet = SettingsSheet.WALLPAPER },
-            )
+            SegmentedSettingsGroup {
+                GroupedSettingsRow(
+                    icon = Icons.Filled.Photo,
+                    title = stringResource(R.string.title_muzei_wallpaper),
+                    subtitle = selectedTagsLabel(selectedTags),
+                    iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    iconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    trailing = {
+                        StatusBadge(
+                            text =
+                                if (isSourceActivated) {
+                                    stringResource(R.string.status_enabled_short)
+                                } else {
+                                    stringResource(R.string.status_not_enabled_short)
+                                },
+                            active = isSourceActivated,
+                        )
+                    },
+                    onClick = { openSheet = SettingsSheet.WALLPAPER },
+                )
+            }
         }
 
-        item { SettingsSectionLabel(stringResource(R.string.section_account)) }
-
         item {
-            SettingsRow(
-                icon = Icons.Filled.AccountCircle,
-                title = stringResource(R.string.title_bangumi_account),
-                subtitle =
-                    if (isLoggedIn) {
-                        bgmNickname ?: bgmUsername ?: stringResource(R.string.status_logged_in)
-                    } else {
-                        stringResource(R.string.label_login_to_react)
-                    },
-                accent = MaterialTheme.colorScheme.secondary,
-                leadingContent =
-                    if (isLoggedIn) {
-                        {
-                            AccountAvatar(
-                                avatarUrl = bgmAvatarUrl,
-                                nickname = bgmNickname ?: bgmUsername,
-                                size = 40.dp,
-                            )
+            SegmentedSettingsGroup {
+                GroupedSettingsRow(
+                    icon = Icons.Filled.AccountCircle,
+                    title = stringResource(R.string.title_bangumi_account),
+                    subtitle =
+                        if (isLoggedIn) {
+                            "${bgmNickname ?: bgmUsername ?: stringResource(R.string.status_logged_in)} · $bgmDomain"
+                        } else {
+                            stringResource(R.string.label_login_to_react)
+                        },
+                    iconContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    iconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    leadingContent =
+                        if (isLoggedIn) {
+                            {
+                                AccountAvatar(
+                                    avatarUrl = bgmAvatarUrl,
+                                    nickname = bgmNickname ?: bgmUsername,
+                                    size = 40.dp,
+                                )
+                            }
+                        } else {
+                            null
+                        },
+                    trailing = {
+                        if (isLoggedIn && !lcBadge.isNullOrBlank()) {
+                            StatusBadge(text = lcBadge, active = true, letterSpacing = (-0.5).sp)
                         }
-                    } else {
-                        null
                     },
-                trailing = {
-                    if (isLoggedIn && !lcBadge.isNullOrBlank()) {
-                        StatusBadge(text = lcBadge, active = true, letterSpacing = (-0.5).sp)
-                    }
-                },
-                onClick = { openSheet = SettingsSheet.ACCOUNT },
-            )
+                    onClick = { openSheet = SettingsSheet.ACCOUNT },
+                )
+            }
         }
 
-        item { SettingsSectionLabel(stringResource(R.string.section_theme)) }
-
         item {
-            SettingsRow(
-                icon = Icons.Filled.Palette,
-                title = stringResource(R.string.title_theme_colors),
-                subtitle =
-                    "${themeModeLabel(themeMode)} · ${colorStyleLabel(colorStyle)}",
-                accent = MaterialTheme.colorScheme.tertiary,
-                trailing = {
-                    PaletteDots(
-                        argb = sourceColorArgb ?: if (colorSource == ColorSource.MANUAL) manualColorArgb else DEFAULT_SOURCE_COLOR,
-                        style = colorStyle,
-                        dark = themeMode == ThemeMode.DARK,
-                    )
-                },
-                onClick = { openSheet = SettingsSheet.THEME },
-            )
-        }
-
-        item { SettingsSectionLabel(stringResource(R.string.section_debug)) }
-
-        item {
-            SettingsRow(
-                icon = Icons.Filled.Settings,
-                title = stringResource(R.string.title_debug_settings),
-                subtitle = stringResource(R.string.label_debug_subtitle),
-                accent = MaterialTheme.colorScheme.primary,
-                endIcon = Icons.AutoMirrored.Filled.OpenInNew,
-                onClick = onOpenDebug,
-            )
+            SegmentedSettingsGroup {
+                GroupedSettingsRow(
+                    icon = Icons.Filled.Palette,
+                    title = stringResource(R.string.title_theme_colors),
+                    subtitle =
+                        "${themeModeLabel(themeMode)} · ${colorStyleLabel(colorStyle)}",
+                    iconContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    iconContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    trailing = {
+                        PaletteDots(
+                            argb = sourceColorArgb ?: if (colorSource == ColorSource.MANUAL) manualColorArgb else DEFAULT_SOURCE_COLOR,
+                            style = colorStyle,
+                            dark = themeMode == ThemeMode.DARK,
+                        )
+                    },
+                    onClick = { openSheet = SettingsSheet.THEME },
+                )
+                GroupedSettingsRow(
+                    icon = Icons.Filled.Settings,
+                    title = stringResource(R.string.title_debug_settings),
+                    subtitle = stringResource(R.string.label_debug_subtitle),
+                    iconContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    iconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    endIcon = Icons.AutoMirrored.Filled.OpenInNew,
+                    onClick = onOpenDebug,
+                )
+            }
         }
     }
 

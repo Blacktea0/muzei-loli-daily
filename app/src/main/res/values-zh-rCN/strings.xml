@@ -13,8 +13,7 @@
     <string name="title_settings">每日萝莉 (๑• ‸ •๑)</string>
     <string name="section_muzei_wallpaper">MUZEI 壁纸</string>
     <string name="section_account">账户</string>
-    <string name="section_theme">主题</string>
-    <string name="section_debug">调试</string>
+    <string name="section_settings">设置</string>
     <string name="title_muzei_wallpaper">Muzei 壁纸</string>
     <string name="title_bangumi_account">Bangumi</string>
     <string name="title_theme_colors">主题与配色</string>

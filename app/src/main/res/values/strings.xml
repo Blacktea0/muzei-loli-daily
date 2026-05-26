@@ -13,8 +13,7 @@
     <string name="title_settings">Loli Daily (๑• ‸ •๑)</string>
     <string name="section_muzei_wallpaper">MUZEI WALLPAPER</string>
     <string name="section_account">ACCOUNT</string>
-    <string name="section_theme">THEME</string>
-    <string name="section_debug">DEBUG</string>
+    <string name="section_settings">SETTINGS</string>
     <string name="title_muzei_wallpaper">Muzei Wallpaper</string>
     <string name="title_bangumi_account">Bangumi</string>
     <string name="title_theme_colors">Theme &amp; Colors</string>
