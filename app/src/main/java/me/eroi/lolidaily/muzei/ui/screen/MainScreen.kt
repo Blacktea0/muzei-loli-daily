@@ -21,6 +21,8 @@ import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,7 +62,7 @@ private const val KEY_LAST_TAB = "settings_last_tab"
  * - History: all previously cached artwork
  * - Settings: tag filters, account, theme, debug
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun MainScreen(
     selectedTags: Set<String>,
@@ -99,6 +101,7 @@ fun MainScreen(
     onBadgeChanged: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
+    val windowSizeClass = calculateWindowSizeClass(context as android.app.Activity)
     val prefs = remember { context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, android.content.Context.MODE_PRIVATE) }
     var selectedTab by remember {
         mutableIntStateOf(initialTab ?: prefs.getInt(KEY_LAST_TAB, 0))
@@ -188,6 +191,7 @@ fun MainScreen(
                         refreshProgress = refreshProgress,
                         initialPage = todayPagerPage,
                         onPageChanged = { todayPagerPage = it },
+                        windowSizeClass = windowSizeClass.widthSizeClass,
                     )
                 }
 
