@@ -229,6 +229,7 @@ fun MainScreen(
                             selectedTag = bookmarkSelectedTag,
                             onSearchQueryChange = { bookmarkSearchQuery = it },
                             onTagSelected = { bookmarkSelectedTag = it },
+                            windowSizeClass = windowSizeClass.widthSizeClass,
                         )
 
                     2 ->
@@ -259,6 +260,7 @@ fun MainScreen(
                             sourceColorArgb = sourceColorArgb,
                             onOpenDebug = onOpenDebug,
                             todayArtwork = todayArtwork,
+                            windowSizeClass = windowSizeClass.widthSizeClass,
                         )
                 }
             }
@@ -355,6 +357,7 @@ fun MainScreen(
                             selectedTag = bookmarkSelectedTag,
                             onSearchQueryChange = { bookmarkSearchQuery = it },
                             onTagSelected = { bookmarkSelectedTag = it },
+                            windowSizeClass = windowSizeClass.widthSizeClass,
                         )
                     }
 
@@ -1284,6 +1287,7 @@ private fun PreferenceTab(
     sourceColorArgb: Int? = null,
     onOpenDebug: () -> Unit = {},
     todayArtwork: List<ArtworkPreview> = emptyList(),
+    windowSizeClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
 ) {
     val context = LocalContext.current
     val showBanner = (!isMuzeiInstalled || !isSourceActivated)
@@ -1303,10 +1307,13 @@ private fun PreferenceTab(
         }
     }
 
+    val isExpandedScreen = windowSizeClass == WindowWidthSizeClass.Expanded
+    val horizontalPadding = if (isExpandedScreen) 32.dp else 16.dp
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 28.dp),
+        contentPadding = PaddingValues(start = horizontalPadding, top = 12.dp, end = horizontalPadding, bottom = 28.dp),
     ) {
         if (showBanner) {
             item {
