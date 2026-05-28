@@ -5,6 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,6 +63,7 @@ fun ArtworkGallery(
     selectedTag: String? = null,
     onSearchQueryChange: (String) -> Unit = {},
     onTagSelected: (String?) -> Unit = {},
+    windowSizeClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
 ) {
     val filteredArtwork =
         remember(cachedArtwork, searchQuery, selectedTag) {
@@ -121,7 +126,7 @@ fun ArtworkGallery(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Content area \u2014 statusBarsPadding keeps content out of the status bar region
+        // Content area — statusBarsPadding keeps content out of the status bar region
         Column(
             modifier =
                 Modifier
@@ -146,49 +151,93 @@ fun ArtworkGallery(
                     )
                 }
             } else {
-                LazyColumn(
-                    state = listState,
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .nestedScroll(nestedScrollConnection),
-                    contentPadding =
-                        PaddingValues(
-                            start = 16.dp,
-                            end = 16.dp,
-                            bottom = 88.dp,
-                            top = with(density) { topPaddingPx.toDp() },
-                        ),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    items(filteredArtwork.take(visibleCount)) { preview ->
-                        ArtworkCard(
-                            preview = preview,
-                            onImageClick = { onFullscreenImage(preview) },
-                            onRemoveBookmark = onRemoveBookmark,
-                        )
-                    }
-                    if (visibleCount < filteredArtwork.size) {
-                        item {
-                            Box(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(32.dp),
-                                    strokeWidth = 3.dp,
-                                )
+                val isExpandedScreen = windowSizeClass == WindowWidthSizeClass.Expanded
+
+                if (isExpandedScreen) {
+                    // Tablet: Grid layout with 2 columns
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .nestedScroll(nestedScrollConnection),
+                        contentPadding =
+                            PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                bottom = 88.dp,
+                                top = with(density) { topPaddingPx.toDp() },
+                            ),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        items(filteredArtwork.take(visibleCount)) { preview ->
+                            ArtworkCard(
+                                preview = preview,
+                                onImageClick = { onFullscreenImage(preview) },
+                                onRemoveBookmark = onRemoveBookmark,
+                            )
+                        }
+                        if (visibleCount < filteredArtwork.size) {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(32.dp),
+                                        strokeWidth = 3.dp,
+                                    )
+                                }
                             }
                         }
-                    } else if (filteredArtwork.size > GALLERY_PAGE_SIZE) {
-                        item {
-                            Text(
-                                text = stringResource(R.string.label_end_of_gallery),
-                                textAlign = TextAlign.Center,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    }
+                } else {
+                    // Phone: Single column layout
+                    LazyColumn(
+                        state = listState,
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .nestedScroll(nestedScrollConnection),
+                        contentPadding =
+                            PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                bottom = 88.dp,
+                                top = with(density) { topPaddingPx.toDp() },
+                            ),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        items(filteredArtwork.take(visibleCount)) { preview ->
+                            ArtworkCard(
+                                preview = preview,
+                                onImageClick = { onFullscreenImage(preview) },
+                                onRemoveBookmark = onRemoveBookmark,
                             )
+                        }
+                        if (visibleCount < filteredArtwork.size) {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(32.dp),
+                                        strokeWidth = 3.dp,
+                                    )
+                                }
+                            }
+                        } else if (filteredArtwork.size > GALLERY_PAGE_SIZE) {
+                            item {
+                                Text(
+                                    text = stringResource(R.string.label_end_of_gallery),
+                                    textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                                )
+                            }
                         }
                     }
                 }

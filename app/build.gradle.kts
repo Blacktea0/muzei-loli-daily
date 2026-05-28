@@ -136,6 +136,7 @@ dependencies {
 
     // Material Design 3
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material3:material3-window-size-class")
     implementation("androidx.compose.material:material-icons-extended")
 
     // Activity & Lifecycle Compose integration
