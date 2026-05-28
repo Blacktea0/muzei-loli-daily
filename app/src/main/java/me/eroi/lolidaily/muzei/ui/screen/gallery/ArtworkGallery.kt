@@ -154,9 +154,9 @@ fun ArtworkGallery(
                 val isExpandedScreen = windowSizeClass == WindowWidthSizeClass.Expanded
 
                 if (isExpandedScreen) {
-                    // Tablet: Grid layout with 2 columns
+                    // Tablet: Grid layout with 3 columns
                     LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
+                        columns = GridCells.Fixed(3),
                         modifier =
                             Modifier
                                 .fillMaxSize()
