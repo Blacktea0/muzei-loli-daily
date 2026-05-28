@@ -9,8 +9,10 @@ build/
 *.iws
 *.ipr
 
-# Claude / AI config
+# AI / Editor config
 .claude/
+.opencode/
+*.ocx
 
 # Reference files
 .ref/
