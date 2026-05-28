@@ -140,6 +140,12 @@
     <!-- Comments -->
     <string name="label_comments">评论</string>
     <string name="msg_no_comments_today">今天还没有评论</string>
+
+    <!-- Tablet detail pane section labels -->
+    <string name="section_reactions">评分</string>
+    <string name="section_details">详情</string>
+    <string name="btn_set_wallpaper">设置壁纸</string>
+
     <string name="label_anonymous">匿名</string>
     <string name="time_just_now">刚刚</string>
     <string name="time_minutes_ago">%1$d分钟前</string>
