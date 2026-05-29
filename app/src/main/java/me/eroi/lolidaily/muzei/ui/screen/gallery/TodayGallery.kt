@@ -495,23 +495,13 @@ private fun HeroDetailContent(
             }
         }
 
-        // Title: artist name (clickable to open artist URL)
+        // Title: artist name
         Text(
             text = preview.artistName.ifBlank { stringResource(R.string.label_unknown_artist) },
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            modifier =
-                if (preview.artistUrl.isNotBlank()) {
-                    Modifier.clickable {
-                        context.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse(preview.artistUrl)),
-                        )
-                    }
-                } else {
-                    Modifier
-                },
         )
 
         // Comment (moved above reactions)
@@ -549,11 +539,21 @@ private fun HeroDetailContent(
         // ── Details Section ──
         SectionLabel(text = stringResource(R.string.section_details))
 
-        // Artist
+        // Artist (clickable to open artist URL)
         DetailMetaItem(
             icon = Icons.Default.Palette,
             label = stringResource(R.string.label_artist),
             value = preview.artistName.ifBlank { stringResource(R.string.label_unknown) },
+            onClick =
+                if (preview.artistUrl.isNotBlank()) {
+                    {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(preview.artistUrl)),
+                        )
+                    }
+                } else {
+                    null
+                },
         )
 
         // Uploader
