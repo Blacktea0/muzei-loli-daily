@@ -234,4 +234,9 @@
     <string name="cmd_view_artist">アーティストを見る</string>
     <string name="cmd_force_refresh">強制更新</string>
     <string name="cmd_force_refresh_desc">API から最新の作品を取得（キャッシュをスキップ）</string>
+
+    <!-- Battery optimization -->
+    <string name="banner_battery_title">バックグラウンド更新</string>
+    <string name="banner_battery_desc">壁紙が更新されない場合は、このアプリのバックグラウンド最適化を無効にし、最近のタスクにピン留めしてください。</string>
+    <string name="action_battery_settings">バッテリー設定</string>
 </resources>

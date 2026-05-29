@@ -236,14 +236,16 @@ fun TodayGallery(
                                 val hasReacted = preview.userEmoji != null
 
                                 Row(modifier = Modifier.fillMaxSize()) {
-                                    // Left: Image pane — fixed, fills available space
-                                    Box(
+                                    // Left: Image pane — scrollable for pull-to-refresh
+                                    Column(
                                         modifier =
                                             Modifier
                                                 .weight(1f)
                                                 .fillMaxHeight()
+                                                .verticalScroll(rememberScrollState())
                                                 .background(colorScheme.surfaceContainerLowest),
-                                        contentAlignment = Alignment.Center,
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center,
                                     ) {
                                         AsyncImage(
                                             model = ImageRequest.Builder(context).data(preview.uri).build(),
@@ -251,7 +253,7 @@ fun TodayGallery(
                                             contentScale = ContentScale.Fit,
                                             modifier =
                                                 Modifier
-                                                    .fillMaxSize()
+                                                    .fillMaxWidth()
                                                     .clickable { onFullscreenImage(preview) },
                                         )
                                     }

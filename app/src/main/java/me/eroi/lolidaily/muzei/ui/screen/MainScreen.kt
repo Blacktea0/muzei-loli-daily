@@ -1326,6 +1326,10 @@ private fun PreferenceTab(
         }
 
         item {
+            BatteryBanner()
+        }
+
+        item {
             SegmentedSettingsGroup {
                 GroupedSettingsRow(
                     icon = Icons.Filled.Photo,

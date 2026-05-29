@@ -133,13 +133,15 @@ app.get("/image", async (req, res) => {
 app.get("/api/v1/daily", (req, res) => {
   const fixture = readFixture("daily");
   if (fixture) {
-    const baseUrl = getBaseUrl(req);
+    // Use 10.0.2.2 for emulator access to host machine
+    const baseUrl = `http://10.0.2.2:${PORT}`;
+    const timestamp = Date.now();
 
-    fixture.cards.forEach(card => {
+    fixture.cards.forEach((card, index) => {
       if (card.imgUrl && card.imgUrl.includes("{{mockServer}}")) {
-        const mockId = Date.now() + "_" + Math.random().toString(36).substring(2, 10);
-        card.imgUrl = card.imgUrl.replace("{{mockServer}}", baseUrl) +
-          `&t=${encodeURIComponent(mockId)}`;
+        // Use random parameter to generate different URLs each time
+        const randomId = Math.random().toString(36).substring(2, 10);
+        card.imgUrl = `${baseUrl}/image?w=1000&h=1000&card=${index}&t=${timestamp}_${randomId}`;
       }
     });
 

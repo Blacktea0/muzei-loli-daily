@@ -17,7 +17,7 @@
     {
       "characterNames": ["Another Character", "Side Character"],
       "comment": "Second test card",
-      "imgUrl": "{{mockServer}}/image?w=1000&h=1000",
+      "imgUrl": "{{mockServer}}/image?w=800&h=1200",
       "sourceUrl": "https://example.com/source/2",
       "tags": "LC ES",
       "artistName": "Another Artist",

@@ -234,4 +234,9 @@
     <string name="cmd_view_artist">查看画师</string>
     <string name="cmd_force_refresh">强制刷新</string>
     <string name="cmd_force_refresh_desc">从 API 获取最新画作（跳过缓存）</string>
+
+    <!-- Battery optimization -->
+    <string name="banner_battery_title">后台刷新</string>
+    <string name="banner_battery_desc">如果壁纸无法正常刷新，请尝试禁用应用后台优化，并将应用固定在最近任务栏。</string>
+    <string name="action_battery_settings">电池设置</string>
 </resources>
