@@ -495,31 +495,38 @@ private fun HeroDetailContent(
             }
         }
 
-        // Title: artist name
+        // Title: artist name (clickable to open artist URL)
         Text(
             text = preview.artistName.ifBlank { stringResource(R.string.label_unknown_artist) },
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
+            modifier =
+                if (preview.artistUrl.isNotBlank()) {
+                    Modifier.clickable {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(preview.artistUrl)),
+                        )
+                    }
+                } else {
+                    Modifier
+                },
         )
 
-        // Subtitle: calendar icon + date
-        if (preview.date.isNotBlank()) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+        // Comment (moved above reactions)
+        if (preview.comment.isNotBlank()) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = colorScheme.surfaceContainerLow,
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Icon(
-                    Icons.Default.CalendarToday,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = colorScheme.onSurfaceVariant,
-                )
                 Text(
-                    text = preview.date,
+                    text = preview.comment,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(12.dp),
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -549,31 +556,12 @@ private fun HeroDetailContent(
             value = preview.artistName.ifBlank { stringResource(R.string.label_unknown) },
         )
 
-        // Date
-        if (preview.date.isNotBlank()) {
-            DetailMetaItem(
-                icon = Icons.Default.CalendarToday,
-                label = stringResource(R.string.label_date),
-                value = preview.date,
-            )
-        }
-
         // Uploader
         DetailMetaItem(
             icon = Icons.Default.Person,
             label = stringResource(R.string.label_suggested_by_title),
             value = preview.suggestedByName ?: stringResource(R.string.label_unknown),
         )
-
-        // Comment
-        if (preview.comment.isNotBlank()) {
-            DetailMetaItem(
-                icon = Icons.AutoMirrored.Filled.Comment,
-                label = stringResource(R.string.label_comment),
-                value = preview.comment,
-                maxLines = 3,
-            )
-        }
 
         // Source URL
         if (preview.sourceUrl.isNotBlank()) {
@@ -589,24 +577,9 @@ private fun HeroDetailContent(
             )
         }
 
-        // Artist URL
-        if (preview.artistUrl.isNotBlank()) {
-            DetailMetaItem(
-                icon = Icons.Default.Person,
-                label = stringResource(R.string.label_artist),
-                value = preview.artistUrl,
-                onClick = {
-                    context.startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse(preview.artistUrl)),
-                    )
-                },
-            )
-        }
-
-        HorizontalDivider(color = colorScheme.outlineVariant)
-
         // ── Characters Section ──
         if (preview.characterNames.isNotEmpty()) {
+            HorizontalDivider(color = colorScheme.outlineVariant)
             val bgmDomain = remember { SessionManager.loadDomain(context) }
             SectionLabel(text = stringResource(R.string.label_characters))
             FlowRow(
