@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -570,13 +571,33 @@ private fun HeroDetailContent(
                 color = colorScheme.surfaceContainerLow,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(
-                    text = preview.comment,
-                    style = MaterialTheme.typography.bodyMedium,
+                Row(
                     modifier = Modifier.padding(12.dp),
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FormatQuote,
+                        contentDescription = null,
+                        modifier =
+                            Modifier
+                                .size(24.dp)
+                                .graphicsLayer { rotationZ = 180f },
+                        tint = colorScheme.onSurfaceVariant,
+                    )
+                    Column {
+                        Text(
+                            text = stringResource(R.string.label_uploader_comment),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = preview.comment,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
             }
         }
 
@@ -1011,13 +1032,33 @@ private fun TabletDetailContent(
                 color = colorScheme.surfaceContainerLow,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(
-                    text = preview.comment,
-                    style = MaterialTheme.typography.bodyMedium,
+                Row(
                     modifier = Modifier.padding(12.dp),
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FormatQuote,
+                        contentDescription = null,
+                        modifier =
+                            Modifier
+                                .size(24.dp)
+                                .graphicsLayer { rotationZ = 180f },
+                        tint = colorScheme.onSurfaceVariant,
+                    )
+                    Column {
+                        Text(
+                            text = stringResource(R.string.label_uploader_comment),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = preview.comment,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
             }
         }
 

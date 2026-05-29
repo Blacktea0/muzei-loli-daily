@@ -90,6 +90,7 @@
     <string name="label_classification">分類</string>
     <string name="label_suggested_by_title">アップローダー</string>
     <string name="label_comment">コメント</string>
+    <string name="label_uploader_comment">アップローダーのコメント</string>
     <string name="msg_no_comment_available">コメントはありません</string>
 
     <!-- Source status -->

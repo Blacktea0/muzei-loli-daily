@@ -90,6 +90,7 @@
     <string name="label_classification">分类</string>
     <string name="label_suggested_by_title">上传者</string>
     <string name="label_comment">评论</string>
+    <string name="label_uploader_comment">上传者的评论</string>
     <string name="msg_no_comment_available">暂无评论</string>
 
     <!-- Source status -->

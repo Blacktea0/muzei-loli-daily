@@ -90,6 +90,7 @@
     <string name="label_classification">Classification</string>
     <string name="label_suggested_by_title">Uploader</string>
     <string name="label_comment">Comment</string>
+    <string name="label_uploader_comment">Uploader\'s comment</string>
     <string name="msg_no_comment_available">No comment available</string>
 
     <!-- Source status -->
