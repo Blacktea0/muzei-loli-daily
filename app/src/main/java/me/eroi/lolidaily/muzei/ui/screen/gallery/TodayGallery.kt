@@ -441,7 +441,7 @@ private fun HeroArtworkImage(
             modifier
                 .fillMaxWidth()
                 .aspectRatio(aspectRatio),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(0.dp),
         colors =
             CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
