@@ -27,6 +27,27 @@ object LoliApiClient {
     const val KEY_DEBUG_BANGUMI_BASE_URL = "debug_bangumi_base_url"
     const val KEY_DEBUG_BANGUMI_BASE_URL_CUSTOM = "debug_bangumi_base_url_custom"
 
+    const val KEY_DEBUG_OVERRIDE_API_TAG_ENABLED = "debug_override_api_tag_enabled"
+    const val KEY_DEBUG_OVERRIDE_API_TAG = "debug_override_api_tag"
+
+    val ALL_LC_TAGS =
+        listOf(
+            "LC0",
+            "LC ES",
+            "LC ES-PG",
+            "LC ES-NC",
+            "LC ES-NC-PG",
+            "LC ES-NC-GR",
+            "LC ES-NC-PG-GR",
+            "LC YJ",
+            "LC YJ-ES",
+            "LC YJ-ES-PG",
+            "LC YJ-ES-NC",
+            "LC YJ-ES-NC-PG",
+            "LC YJ-ES-NC-GR",
+            "LC YJ-ES-NC-PG-GR",
+        )
+
     val KNOWN_SERVERS =
         listOf(
             "https://loliconey.tsuki.ga",
@@ -53,6 +74,12 @@ object LoliApiClient {
     }
 
     private fun getBadge(context: Context): String {
+        val prefs =
+            context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_DEBUG_OVERRIDE_API_TAG_ENABLED, false)) {
+            return prefs.getString(KEY_DEBUG_OVERRIDE_API_TAG, null)?.takeIf { it.isNotBlank() }
+                ?: DEFAULT_BADGE
+        }
         return SessionManager.loadBadge(context)
     }
 

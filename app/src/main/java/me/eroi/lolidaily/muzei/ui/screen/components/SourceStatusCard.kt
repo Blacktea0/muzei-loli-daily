@@ -33,7 +33,7 @@ fun SourceStatusCard(
         icon = Icons.Default.Info
         label = stringResource(R.string.status_muzei_not_installed)
         subLabel = stringResource(R.string.label_get_play_store)
-        tint = colors.onSurfaceVariant
+        tint = colors.secondary
     } else if (isSourceActivated) {
         icon = Icons.Default.Favorite
         label = stringResource(R.string.status_muzei_enabled)
@@ -48,7 +48,12 @@ fun SourceStatusCard(
 
     Surface(
         onClick = onClick,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        color =
+            if (!isMuzeiInstalled) {
+                MaterialTheme.colorScheme.secondaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            },
         shape = RoundedCornerShape(16.dp),
     ) {
         Row(

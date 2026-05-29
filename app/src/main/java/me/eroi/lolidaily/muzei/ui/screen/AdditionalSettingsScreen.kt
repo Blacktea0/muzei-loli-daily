@@ -2,6 +2,7 @@ package me.eroi.lolidaily.muzei.ui.screen
 
 import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,6 +24,7 @@ import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,6 +43,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -227,6 +231,81 @@ private fun SettingsRow(
     }
 }
 
+@Composable
+private fun SettingsRowWithSwitchAndArrow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    onClick: (() -> Unit)? = null,
+) {
+    Surface(
+        shape = RoundedCornerShape(4.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(enabled = onClick != null) { onClick?.invoke() },
+    ) {
+        ListItem(
+            modifier = Modifier.defaultMinSize(minHeight = 76.dp),
+            headlineContent = {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+            supportingContent = {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+            leadingContent = {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(24.dp),
+                )
+            },
+            trailingContent = {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(0.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (onClick != null) {
+                        Icon(
+                            imageVector = Icons.Filled.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp),
+                        )
+                        VerticalDivider(
+                            modifier =
+                                Modifier
+                                    .height(32.dp)
+                                    .padding(horizontal = 8.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                        )
+                    }
+                    Switch(
+                        checked = checked,
+                        onCheckedChange = onCheckedChange,
+                    )
+                }
+            },
+            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        )
+    }
+}
+
 // ── API Combined Card ────────────────────────────────────────────
 
 @Composable
@@ -255,8 +334,18 @@ private fun ApiCombinedCard() {
     val bangumiUrl = remember(refreshKey) { LoliApiClient.getBangumiBaseUrl(context) }
     var skipCache by remember { mutableStateOf(prefs.getBoolean("debug_skip_cache", false)) }
 
+    var overrideApiTagEnabled by remember {
+        mutableStateOf(prefs.getBoolean(LoliApiClient.KEY_DEBUG_OVERRIDE_API_TAG_ENABLED, false))
+    }
+    var overrideApiTag by remember {
+        mutableStateOf(
+            prefs.getString(LoliApiClient.KEY_DEBUG_OVERRIDE_API_TAG, null) ?: LoliApiClient.DEFAULT_BADGE,
+        )
+    }
+
     var showApiDialog by remember { mutableStateOf(false) }
     var showBangumiDialog by remember { mutableStateOf(false) }
+    var showApiTagDialog by remember { mutableStateOf(false) }
 
     SettingsGroup {
         SettingsRow(
@@ -285,6 +374,22 @@ private fun ApiCombinedCard() {
                 )
             },
         )
+        SettingsRowWithSwitchAndArrow(
+            icon = Icons.Default.Tag,
+            title = stringResource(R.string.title_override_api_tag),
+            subtitle =
+                if (overrideApiTagEnabled) {
+                    "${stringResource(R.string.desc_override_api_tag)} · $overrideApiTag"
+                } else {
+                    stringResource(R.string.desc_override_api_tag)
+                },
+            checked = overrideApiTagEnabled,
+            onCheckedChange = { checked ->
+                overrideApiTagEnabled = checked
+                prefs.edit().putBoolean(LoliApiClient.KEY_DEBUG_OVERRIDE_API_TAG_ENABLED, checked).apply()
+            },
+            onClick = { showApiTagDialog = true },
+        )
     }
 
     if (showApiDialog) {
@@ -298,6 +403,18 @@ private fun ApiCombinedCard() {
             showBangumiDialog = false
             refreshKey++
         })
+    }
+    if (showApiTagDialog) {
+        ApiTagPickerDialog(
+            currentTag = overrideApiTag,
+            onDismiss = { showApiTagDialog = false },
+            onTagSelected = { tag ->
+                overrideApiTag = tag
+                prefs.edit().putString(LoliApiClient.KEY_DEBUG_OVERRIDE_API_TAG, tag).apply()
+                showApiTagDialog = false
+                refreshKey++
+            },
+        )
     }
 }
 
@@ -676,6 +793,43 @@ private fun BangumiApiServerPickerDialog(onDismiss: () -> Unit) {
                 if (selected == CUSTOM_OPTION) persist(customUrl)
                 onDismiss()
             }) { Text(stringResource(R.string.action_ok)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
+}
+
+// ── API Tag Picker Dialog ──────────────────────────────────────────
+
+@Composable
+private fun ApiTagPickerDialog(
+    currentTag: String,
+    onDismiss: () -> Unit,
+    onTagSelected: (String) -> Unit,
+) {
+    var selected by remember { mutableStateOf(currentTag) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.title_select_api_tag)) },
+        text = {
+            Column {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                LoliApiClient.ALL_LC_TAGS.forEach { tag ->
+                    ThemeOption(
+                        label = tag,
+                        selected = selected == tag,
+                        onClick = { selected = tag },
+                    )
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onTagSelected(selected) }) {
+                Text(stringResource(R.string.action_ok))
+            }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }

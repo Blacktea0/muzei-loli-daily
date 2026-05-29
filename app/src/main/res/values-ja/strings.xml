@@ -203,6 +203,10 @@
     <string name="status_cache_skipped">キャッシュ スキップ済み</string>
     <string name="status_cache_used">キャッシュ 使用中</string>
 
+    <string name="title_override_api_tag">APIタグを上書き</string>
+    <string name="desc_override_api_tag">APIから取得時にカスタムタグを使用</string>
+    <string name="title_select_api_tag">APIタグを選択</string>
+
     <!-- Debug: Refresh -->
     <string name="section_debug_refresh">更新スケジュール</string>
     <string name="title_refresh_time">毎日の更新時間</string>

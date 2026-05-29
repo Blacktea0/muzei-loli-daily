@@ -203,6 +203,10 @@
     <string name="status_cache_skipped">Cache SKIPPED</string>
     <string name="status_cache_used">Cache USED</string>
 
+    <string name="title_override_api_tag">Override API Tag</string>
+    <string name="desc_override_api_tag">Use a custom tag when fetching from API</string>
+    <string name="title_select_api_tag">Select API Tag</string>
+
     <!-- Debug: Refresh -->
     <string name="section_debug_refresh">Refresh Schedule</string>
     <string name="title_refresh_time">Daily Refresh Time</string>

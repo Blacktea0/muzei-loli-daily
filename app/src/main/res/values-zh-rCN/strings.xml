@@ -203,6 +203,10 @@
     <string name="status_cache_skipped">缓存已跳过</string>
     <string name="status_cache_used">使用缓存</string>
 
+    <string name="title_override_api_tag">覆盖 API 标签</string>
+    <string name="desc_override_api_tag">从 API 获取时使用自定义标签</string>
+    <string name="title_select_api_tag">选择 API 标签</string>
+
     <!-- Debug: Refresh -->
     <string name="section_debug_refresh">刷新计划</string>
     <string name="title_refresh_time">每日刷新时间</string>

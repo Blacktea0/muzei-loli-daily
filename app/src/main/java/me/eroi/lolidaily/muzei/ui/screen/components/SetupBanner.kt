@@ -58,8 +58,8 @@ fun SetupBanner(
 
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        tonalElevation = 1.dp,
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        tonalElevation = 0.dp,
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
@@ -69,7 +69,7 @@ fun SetupBanner(
                 Icon(
                     imageVector = Icons.Default.Info,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.size(24.dp),
                 )
                 Text(
@@ -81,7 +81,7 @@ fun SetupBanner(
                     Icon(
                         Icons.Default.Close,
                         contentDescription = stringResource(R.string.content_desc_dismiss),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -92,7 +92,7 @@ fun SetupBanner(
             Text(
                 text = stringResource(R.string.msg_browse_without_muzei),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
 
             Spacer(Modifier.height(16.dp))
