@@ -41,4 +41,13 @@ interface CachedArtworkDao {
     /** Get bookmark status for a single artwork, or null if not in DB. */
     @Query("SELECT bookmarked FROM cached_artworks WHERE token = :token")
     suspend fun getBookmarkedStatus(token: String): Int?
+
+    /** Get bookmark statuses for multiple artworks at once. Returns map of token -> bookmarked. */
+    @Query("SELECT token, bookmarked FROM cached_artworks WHERE token IN (:tokens)")
+    suspend fun getBookmarkedStatuses(tokens: List<String>): List<BookmarkStatus>
+
+    data class BookmarkStatus(
+        val token: String,
+        val bookmarked: Int,
+    )
 }

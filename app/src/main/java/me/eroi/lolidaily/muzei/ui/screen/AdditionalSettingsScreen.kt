@@ -262,13 +262,13 @@ private fun ApiCombinedCard() {
         SettingsRow(
             icon = Icons.Default.Dns,
             title = stringResource(R.string.title_api_server),
-            subtitle = "${stringResource(R.string.desc_api_server, LoliApiClient.KNOWN_SERVERS.first())} · $apiUrl",
+            subtitle = apiUrl,
             onClick = { showApiDialog = true },
         )
         SettingsRow(
             icon = Icons.Default.Forum,
             title = stringResource(R.string.title_bangumi_api_server),
-            subtitle = "${stringResource(R.string.desc_bangumi_api_server, LoliApiClient.KNOWN_BANGUMI_SERVERS.first())} · $bangumiUrl",
+            subtitle = bangumiUrl,
             onClick = { showBangumiDialog = true },
         )
         SettingsRow(
@@ -288,10 +288,16 @@ private fun ApiCombinedCard() {
     }
 
     if (showApiDialog) {
-        ApiServerPickerDialog(onDismiss = { showApiDialog = false })
+        ApiServerPickerDialog(onDismiss = {
+            showApiDialog = false
+            refreshKey++
+        })
     }
     if (showBangumiDialog) {
-        BangumiApiServerPickerDialog(onDismiss = { showBangumiDialog = false })
+        BangumiApiServerPickerDialog(onDismiss = {
+            showBangumiDialog = false
+            refreshKey++
+        })
     }
 }
 
@@ -319,7 +325,7 @@ private fun RefreshTimeCard() {
     SettingsRow(
         icon = Icons.Default.Schedule,
         title = stringResource(R.string.title_refresh_time),
-        subtitle = "${stringResource(R.string.desc_refresh_time)} · %02d:%02d GMT+8".format(hour, minute),
+        subtitle = "%02d:%02d GMT+8".format(hour, minute),
         onClick = { showDialog = true },
     )
 

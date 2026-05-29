@@ -175,7 +175,7 @@ class MainActivity : AppCompatActivity() {
                         removeBookmark(preview)
                     },
                     refreshProgress = refreshProgress,
-                    initialTab = if (fromMuzei) 2 else null,
+                    initialTab = if (fromMuzei) 2 else 0,
                 )
             }
         }

@@ -264,9 +264,31 @@ object ImageDownloader {
         prefs: android.content.SharedPreferences,
         dates: Map<String, String>,
     ) {
+        val dao =
+            me.eroi.lolidaily.muzei.db.DatabaseProvider.getInstance(context)
+                .cachedArtworkDao()
+
+        // Filter out bookmarked tokens - preserve them entirely
+        val bookmarkedTokens = mutableSetOf<String>()
+        val nonBookmarkedTokens = mutableListOf<String>()
+        for (token in staleTokens) {
+            val status = kotlinx.coroutines.runBlocking { dao.getBookmarkedStatus(token) }
+            if (status != null && status != 0) {
+                bookmarkedTokens.add(token)
+            } else {
+                nonBookmarkedTokens.add(token)
+            }
+        }
+
+        if (bookmarkedTokens.isNotEmpty()) {
+            Log.d(TAG, "Preserving ${bookmarkedTokens.size} bookmarked artworks from cleanup")
+        }
+
+        if (nonBookmarkedTokens.isEmpty()) return
+
         val dir = ensureArtworksDir(context)
 
-        for (token in staleTokens) {
+        for (token in nonBookmarkedTokens) {
             val prefix = "$token."
             dir.listFiles { f -> f.name.startsWith(prefix) }
                 ?.forEach { file ->
@@ -278,7 +300,7 @@ object ImageDownloader {
 
         val datesMut = dates.toMutableMap()
         var datesChanged = false
-        for (token in staleTokens) {
+        for (token in nonBookmarkedTokens) {
             if (datesMut.remove(token) != null) {
                 datesChanged = true
             }
@@ -301,11 +323,9 @@ object ImageDownloader {
 
         try {
             kotlinx.coroutines.runBlocking {
-                me.eroi.lolidaily.muzei.db.DatabaseProvider.getInstance(context)
-                    .cachedArtworkDao()
-                    .deleteByTokens(staleTokens)
+                dao.deleteByTokens(nonBookmarkedTokens)
             }
-            Log.d(TAG, "Cleaned ${staleTokens.size} stale Room rows")
+            Log.d(TAG, "Cleaned ${nonBookmarkedTokens.size} stale Room rows (preserved ${bookmarkedTokens.size} bookmarked)")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to clean stale Room rows", e)
         }

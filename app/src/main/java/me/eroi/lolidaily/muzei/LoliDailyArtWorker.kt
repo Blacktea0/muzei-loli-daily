@@ -351,16 +351,26 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         date: String,
     ) {
         try {
+            val dao = DatabaseProvider.getInstance(applicationContext).cachedArtworkDao()
+            val tokens =
+                cards.mapNotNull { card ->
+                    if (card.imgUrl.isNotBlank()) Md5.hash(card.imgUrl) else null
+                }
+            // Preserve existing bookmark statuses before upsert
+            val existingBookmarks =
+                runBlocking {
+                    dao.getBookmarkedStatuses(tokens).associate { it.token to it.bookmarked }
+                }
             val entities =
                 cards.mapNotNull { card ->
                     if (card.imgUrl.isBlank()) return@mapNotNull null
-                    EntityMapper.cardToEntity(card, Md5.hash(card.imgUrl), date)
+                    val token = Md5.hash(card.imgUrl)
+                    val bookmarked = existingBookmarks[token] ?: 0
+                    EntityMapper.cardToEntity(card, token, date, bookmarked)
                 }
             if (entities.isEmpty()) return
             runBlocking {
-                DatabaseProvider.getInstance(applicationContext)
-                    .cachedArtworkDao()
-                    .upsertAll(entities)
+                dao.upsertAll(entities)
             }
             Log.d(TAG, "Saved ${entities.size} artwork metadata rows to Room")
         } catch (e: Exception) {
