@@ -86,9 +86,12 @@ fun TodayGallery(
     }
     val scope = rememberCoroutineScope()
     val isRefreshing = refreshProgress != null
+    val context = LocalContext.current
 
     Column(modifier = Modifier.fillMaxSize()) {
         // ── Top App Bar ──
+        val currentPreview = todayArtwork.firstOrNull { it.tags == currentTag }
+
         TopAppBar(
             title = {
                 Column {
@@ -104,6 +107,71 @@ fun TodayGallery(
                             color = colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            },
+            actions = {
+                if (currentPreview != null) {
+                    val token = currentPreview.filename.substringBeforeLast('.')
+                    val hasReacted = currentPreview.userEmoji != null
+
+                    // Like button
+                    IconButton(
+                        onClick = {
+                            val emoji = currentPreview.userEmoji
+                            if (!isLoggedIn) {
+                                Toast
+                                    .makeText(
+                                        context,
+                                        context.getString(R.string.msg_login_to_react),
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                            } else if (emoji != null) {
+                                onReactionClick(token, emoji)
+                            } else {
+                                // Show reaction picker
+                            }
+                        },
+                    ) {
+                        Icon(
+                            if (hasReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = stringResource(R.string.content_desc_react),
+                            tint =
+                                if (hasReacted) {
+                                    colorScheme.primary
+                                } else {
+                                    colorScheme.onSurfaceVariant
+                                },
+                        )
+                    }
+
+                    // Bookmark button
+                    IconButton(
+                        onClick = {
+                            val newState = !currentPreview.isBookmarked
+                            onBookmarkToggle(token, currentPreview.filename, newState)
+                        },
+                    ) {
+                        Icon(
+                            if (currentPreview.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                            contentDescription = stringResource(R.string.content_desc_bookmark),
+                            tint =
+                                if (currentPreview.isBookmarked) {
+                                    colorScheme.primary
+                                } else {
+                                    colorScheme.onSurfaceVariant
+                                },
+                        )
+                    }
+
+                    // Export button
+                    IconButton(
+                        onClick = { exportArtwork(context, currentPreview) },
+                    ) {
+                        Icon(
+                            Icons.Default.Save,
+                            contentDescription = stringResource(R.string.content_desc_export_artwork),
                         )
                     }
                 }
@@ -292,17 +360,6 @@ fun TodayGallery(
                                                     commentsToShow = commentsToShow,
                                                 )
                                             }
-                                            // Fixed bottom action bar
-                                            BottomActionBar(
-                                                preview = preview,
-                                                isLoggedIn = isLoggedIn,
-                                                onReactionClick = onReactionClick,
-                                                onBookmarkToggle = onBookmarkToggle,
-                                                onExport = { exportArtwork(context, preview) },
-                                                onAddReaction = { showReactionPicker = true },
-                                                onSetWallpaper = onRefresh,
-                                                token = token,
-                                            )
                                         }
                                     }
                                 }
