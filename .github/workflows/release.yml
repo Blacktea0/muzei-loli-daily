@@ -80,9 +80,6 @@ jobs:
           echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
           echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
-
       - name: Build Release APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -93,13 +90,6 @@ jobs:
       - name: Rename APKs
         run: |
           mkdir -p artifacts
-          # Debug APK
-          if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
-            cp app/build/outputs/apk/debug/app-debug.apk artifacts/muzei-loli-daily-debug-${VERSION_NAME:-dev}.apk
-            echo "✓ Debug APK copied"
-          else
-            echo "✗ Debug APK not found"
-          fi
           # Release APK - try multiple possible locations
           if [ -f app/build/outputs/apk/release/app-release.apk ]; then
             cp app/build/outputs/apk/release/app-release.apk artifacts/muzei-loli-daily-release-${VERSION_NAME:-dev}.apk
