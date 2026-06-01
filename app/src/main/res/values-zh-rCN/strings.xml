@@ -195,7 +195,6 @@
     <!-- Debug: Refresh -->
     <string name="section_debug_refresh">刷新计划</string>
     <string name="title_refresh_time">每日刷新时间</string>
-    <string name="desc_refresh_time">每日定时 API 获取（GMT+8）。默认 07:21。</string>
     <string name="title_refresh_time_gmt">刷新时间（GMT+8）</string>
     <string name="action_ok">确定</string>
 

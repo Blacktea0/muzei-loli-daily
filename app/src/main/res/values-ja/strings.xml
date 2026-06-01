@@ -195,7 +195,6 @@
     <!-- Debug: Refresh -->
     <string name="section_debug_refresh">更新スケジュール</string>
     <string name="title_refresh_time">毎日の更新時間</string>
-    <string name="desc_refresh_time">毎日の API 取得スケジュール（GMT+8）。デフォルトは 07:21。</string>
     <string name="title_refresh_time_gmt">更新時間（GMT+8）</string>
     <string name="action_ok">OK</string>
 

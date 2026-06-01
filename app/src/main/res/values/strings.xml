@@ -74,7 +74,7 @@
     <string name="content_desc_bookmark">Bookmark</string>
     <string name="content_desc_add_reaction">Add reaction</string>
     <string name="label_comment_by">%1$s\'s comment</string>
-    <string name="label_anonymous_comment">" Anonymous lolicon's comment"</string>
+    <string name="label_anonymous_comment">"Anonymous lolicon's comment"</string>
 
     <!-- Artwork detail bottom sheet -->
     <string name="title_artwork_details">Artwork Details</string>
@@ -195,7 +195,6 @@
     <!-- Debug: Refresh -->
     <string name="section_debug_refresh">Refresh Schedule</string>
     <string name="title_refresh_time">Daily Refresh Time</string>
-    <string name="desc_refresh_time">Scheduled daily API fetch (GMT+8). Default is 07:21.</string>
     <string name="title_refresh_time_gmt">Refresh Time (GMT+8)</string>
     <string name="action_ok">OK</string>
 
