@@ -557,6 +557,7 @@ class MainActivity : AppCompatActivity() {
                         userEmoji = userReactionsMap[token],
                         isBookmarked = roomFields?.bookmarked?.let { it != 0 } ?: false,
                         suggestedByName = card?.suggestedBy?.nickname ?: roomFields?.suggestedByNickname,
+                        suggestedByUsername = card?.suggestedBy?.username ?: roomFields?.suggestedByUsername,
                         discussionId = discussionsMap[token]?.id,
                         discussionCount = discussionsMap[token]?.count ?: 0,
                     )
