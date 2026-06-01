@@ -93,6 +93,7 @@ fun MainScreen(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChanged: (ThemeMode) -> Unit = {},
     onOpenDebug: () -> Unit = {},
+    onOpenAbout: () -> Unit = {},
     onBookmarkToggle: (token: String, fileName: String, bookmarked: Boolean) -> Unit = { _, _, _ -> },
     onRemoveBookmark: (ArtworkPreview) -> Unit = {},
     refreshProgress: Float? = null,
@@ -259,6 +260,7 @@ fun MainScreen(
                             onManualColorChanged = onManualColorChanged,
                             sourceColorArgb = sourceColorArgb,
                             onOpenDebug = onOpenDebug,
+                            onOpenAbout = onOpenAbout,
                             todayArtwork = todayArtwork,
                             windowSizeClass = windowSizeClass.widthSizeClass,
                         )
@@ -385,6 +387,7 @@ fun MainScreen(
                             onManualColorChanged = onManualColorChanged,
                             sourceColorArgb = sourceColorArgb,
                             onOpenDebug = onOpenDebug,
+                            onOpenAbout = onOpenAbout,
                             todayArtwork = todayArtwork,
                         )
                     }
@@ -1287,6 +1290,7 @@ private fun PreferenceTab(
     onManualColorChanged: (Int) -> Unit = {},
     sourceColorArgb: Int? = null,
     onOpenDebug: () -> Unit = {},
+    onOpenAbout: () -> Unit = {},
     todayArtwork: List<ArtworkPreview> = emptyList(),
     windowSizeClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
 ) {
@@ -1417,6 +1421,19 @@ private fun PreferenceTab(
                     iconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     endIcon = Icons.AutoMirrored.Filled.OpenInNew,
                     onClick = onOpenDebug,
+                )
+            }
+        }
+
+        item {
+            SegmentedSettingsGroup {
+                GroupedSettingsRow(
+                    icon = Icons.Filled.Info,
+                    title = stringResource(R.string.title_about),
+                    subtitle = stringResource(R.string.about_official_site),
+                    iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    iconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    onClick = onOpenAbout,
                 )
             }
         }

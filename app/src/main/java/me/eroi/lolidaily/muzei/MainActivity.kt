@@ -170,6 +170,11 @@ class MainActivity : AppCompatActivity() {
                             Intent(this@MainActivity, AdditionalSettingsActivity::class.java),
                         )
                     },
+                    onOpenAbout = {
+                        startActivity(
+                            Intent(this@MainActivity, AboutActivity::class.java),
+                        )
+                    },
                     onBookmarkToggle = { token, fileName, bookmarked ->
                         toggleBookmark(token, fileName, bookmarked)
                     },

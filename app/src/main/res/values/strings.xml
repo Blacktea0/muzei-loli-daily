@@ -218,4 +218,21 @@
     <string name="banner_battery_title">Background Refresh</string>
     <string name="banner_battery_desc">If wallpaper fails to refresh, try disabling background optimization for this app and pin it to recent tasks.</string>
     <string name="action_battery_settings">Battery Settings</string>
+
+    <!-- About -->
+    <string name="title_about">About</string>
+    <string name="about_hero_title">Loli Commons</string>
+    <string name="about_hero_subtitle">Is an international nonprofit organization\naimed at promoting the circulation of lolicon works\nand facilitating exchange among lolicons</string>
+    <string name="about_hero_tagline">The world needs more lolis &lt;3</string>
+    <string name="about_version">Version</string>
+    <string name="about_official_site">Official Website</string>
+    <string name="about_source_code">Source Code</string>
+    <string name="about_faq_title">FAQ</string>
+    <string name="about_faq_q1">Q: Are there any lolis here?</string>
+    <string name="about_faq_a1">A: There are no lolis here, only lolicons.</string>
+    <string name="about_faq_q2">Q: Why so many white hair, red eyes, cat ears, fangs, and sailor uniforms?</string>
+    <string name="about_faq_a2">A: Because of China-specific attack. Don\'t ask, it\'s just personal preference.</string>
+    <string name="about_faq_q3">Q: But why catgirls?</string>
+    <string name="about_faq_a3">A: A 12-year-old loli would cause a large language model psychological distress, but a 12-year-old catgirl won\'t.</string>
+    <string name="about_copyright">\u00A9 2025 Loli Commons — CC0 aka no rights reserved</string>
 </resources>

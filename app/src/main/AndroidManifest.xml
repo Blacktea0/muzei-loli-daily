@@ -35,6 +35,12 @@
             android:exported="false"
             android:label="Additional Settings" />
 
+        <!-- About — app info, links, and FAQ -->
+        <activity
+            android:name="me.eroi.lolidaily.muzei.AboutActivity"
+            android:exported="false"
+            android:label="About" />
+
 
         <!-- BroadcastReceiver for force-refresh command from Muzei -->
         <receiver
