@@ -205,7 +205,6 @@ fun MainScreen(
                         TodayGallery(
                             todayArtwork = todayArtwork,
                             isLoggedIn = isLoggedIn,
-                            onLogin = onLogin,
                             onFullscreenImage = { fullscreenPreview = it },
                             onReactionClick = onReactionClick,
                             onRefresh = onRefresh,
@@ -332,7 +331,6 @@ fun MainScreen(
                         TodayGallery(
                             todayArtwork = todayArtwork,
                             isLoggedIn = isLoggedIn,
-                            onLogin = onLogin,
                             onFullscreenImage = { fullscreenPreview = it },
                             onReactionClick = onReactionClick,
                             onRefresh = onRefresh,

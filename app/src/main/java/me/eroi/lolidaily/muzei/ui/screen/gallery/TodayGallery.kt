@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -37,7 +38,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.ReactionService
 import me.eroi.lolidaily.muzei.api.SessionManager
@@ -46,6 +49,7 @@ import me.eroi.lolidaily.muzei.model.BangumiReply
 import me.eroi.lolidaily.muzei.model.BangumiSubReply
 import me.eroi.lolidaily.muzei.model.ReactionCount
 import me.eroi.lolidaily.muzei.ui.screen.components.*
+import me.eroi.lolidaily.muzei.util.ArtworkColorExtractor
 import me.eroi.lolidaily.muzei.util.exportArtwork
 import me.eroi.lolidaily.muzei.worker.EmojiMap
 import java.time.LocalDate
@@ -57,7 +61,6 @@ import java.time.format.FormatStyle
 fun TodayGallery(
     todayArtwork: List<ArtworkPreview>,
     isLoggedIn: Boolean,
-    onLogin: () -> Unit,
     onFullscreenImage: (ArtworkPreview) -> Unit,
     onReactionClick: (String, Int) -> Unit,
     onRefresh: () -> Unit,
@@ -308,7 +311,6 @@ fun TodayGallery(
                                 // Tablet/foldable landscape: two-pane layout
                                 var showReactionPicker by remember { mutableStateOf(false) }
                                 val token = preview.filename.substringBeforeLast('.')
-                                val hasReacted = preview.userEmoji != null
 
                                 Row(modifier = Modifier.fillMaxSize()) {
                                     // Left: Image pane — scrollable for pull-to-refresh
@@ -392,7 +394,6 @@ fun TodayGallery(
                                             isLoggedIn = isLoggedIn,
                                             onFullscreenImage = onFullscreenImage,
                                             onReactionClick = onReactionClick,
-                                            onBookmarkToggle = onBookmarkToggle,
                                             modifier = Modifier.fillMaxWidth(),
                                         )
                                     }
@@ -541,7 +542,6 @@ private fun HeroDetailContent(
     preview: ArtworkPreview,
     isLoggedIn: Boolean,
     onReactionClick: (String, Int) -> Unit,
-    onBookmarkToggle: (token: String, fileName: String, bookmarked: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -574,14 +574,8 @@ private fun HeroDetailContent(
             }
         }
 
-        // Title: artist name
-        Text(
-            text = preview.artistName.ifBlank { stringResource(R.string.label_unknown_artist) },
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
+        // Title: artist name with palette icon
+        ArtistTitleRow(preview = preview)
 
         // Comment (moved above reactions)
         if (preview.comment.isNotBlank()) {
@@ -595,7 +589,7 @@ private fun HeroDetailContent(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Default.FormatQuote,
+                        imageVector = Icons.Filled.FormatQuote,
                         contentDescription = null,
                         modifier =
                             Modifier
@@ -726,7 +720,6 @@ fun HeroArtwork(
     isLoggedIn: Boolean,
     onFullscreenImage: (ArtworkPreview) -> Unit,
     onReactionClick: (String, Int) -> Unit,
-    onBookmarkToggle: (token: String, fileName: String, bookmarked: Boolean) -> Unit = { _, _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -738,7 +731,6 @@ fun HeroArtwork(
             preview = preview,
             isLoggedIn = isLoggedIn,
             onReactionClick = onReactionClick,
-            onBookmarkToggle = onBookmarkToggle,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
         )
     }
@@ -958,14 +950,8 @@ private fun TabletDetailContent(
             }
         }
 
-        // Title: artist name
-        Text(
-            text = preview.artistName.ifBlank { stringResource(R.string.label_unknown_artist) },
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
+        // Title: artist name with palette icon
+        ArtistTitleRow(preview = preview)
 
         // Comment (moved above reactions)
         if (preview.comment.isNotBlank()) {
@@ -1301,5 +1287,44 @@ private fun BottomActionBar(
                 )
             }
         }
+    }
+}
+
+// ── Artist Title Row (shared between portrait and tablet) ────────
+
+@Composable
+private fun ArtistTitleRow(
+    preview: ArtworkPreview,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val fallbackColor = MaterialTheme.colorScheme.primary
+    var iconTint by remember(preview.filename) { mutableStateOf(fallbackColor) }
+
+    LaunchedEffect(preview.filename) {
+        iconTint =
+            withContext(Dispatchers.IO) {
+                Color(ArtworkColorExtractor.extract(context, preview.filename, fallbackColor.hashCode()))
+            }
+    }
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            Icons.Default.Palette,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = iconTint,
+        )
+        Text(
+            text = preview.artistName.ifBlank { stringResource(R.string.label_unknown_artist) },
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
