@@ -1185,12 +1185,12 @@ private fun ChoiceRowWithBadge(
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        RadioButton(selected = selected, onClick = null)
         AsyncImage(
             model = "file:///android_asset/$badgeAsset",
             contentDescription = null,
             modifier = Modifier.height(36.dp).weight(1f),
         )
-        RadioButton(selected = selected, onClick = null)
     }
 }
 
