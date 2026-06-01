@@ -45,6 +45,8 @@ android {
             if (storeFilePath != null) {
                 signingConfig = signingConfigs.getByName("release")
             }
+            // If no keystore is configured, the release build will use debug signing
+            // This allows CI to build release APKs without signing configuration
         }
     }
 
@@ -137,12 +139,10 @@ android {
     kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
 
     lint {
-        // Don't abort build on lint errors - allow CI to proceed
-        abortOnError = false
-        // Treat all warnings as warnings, not errors
-        warningsAsErrors = false
-        // Disable specific problematic rules
-        disable += "LocalContextGetResourceValueCall"
+        // Abort build on lint errors
+        abortOnError = true
+        // Treat all warnings as errors
+        warningsAsErrors = true
     }
 }
 
@@ -165,21 +165,21 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
 
     // Activity & Lifecycle Compose integration
-    implementation("androidx.activity:activity-compose:1.9.3")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation("androidx.activity:activity-compose:1.13.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
 
     // Coil — image loading in Compose
-    implementation("io.coil-kt.coil3:coil-compose:3.0.4")
-    implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")
-    implementation("io.coil-kt.coil3:coil-gif:3.0.4")
-    implementation("io.coil-kt.coil3:coil-svg:3.0.4")
+    implementation("io.coil-kt.coil3:coil-compose:3.4.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.4.0")
+    implementation("io.coil-kt.coil3:coil-gif:3.4.0")
+    implementation("io.coil-kt.coil3:coil-svg:3.4.0")
 
     // Zoomable — pinch-to-zoom with snap-back
-    implementation("net.engawapg.lib:zoomable:2.11.1")
+    implementation("net.engawapg.lib:zoomable:2.12.0")
 
     // AndroidX
-    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.core:core-ktx:1.18.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
 
     // Muzei API — wallpaper plugin framework
@@ -189,13 +189,13 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // Kotlin Serialization for JSON parsing
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
     // WorkManager for background image loading
-    implementation("androidx.work:work-runtime-ktx:2.10.0")
+    implementation("androidx.work:work-runtime-ktx:2.11.2")
 
     // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
     // Material Color Utilities — M3 color scheme generation from source color
     implementation("me.tatarka.google.material:material-color-utilities:0.1.2")
@@ -204,7 +204,7 @@ dependencies {
     implementation("androidx.palette:palette-ktx:1.0.0")
 
     // Room — local database for artwork metadata persistence
-    val roomVersion = "2.7.1"
+    val roomVersion = "2.8.4"
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
     ksp("androidx.room:room-compiler:$roomVersion")

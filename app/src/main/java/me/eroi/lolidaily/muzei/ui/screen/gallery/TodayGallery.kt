@@ -2,7 +2,6 @@ package me.eroi.lolidaily.muzei.ui.screen.gallery
 
 import android.content.Intent
 import android.graphics.BitmapFactory
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -35,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import kotlinx.coroutines.launch
@@ -92,6 +92,7 @@ fun TodayGallery(
     val scope = rememberCoroutineScope()
     val isRefreshing = refreshProgress != null
     val context = LocalContext.current
+    val msgLoginToReact = stringResource(R.string.msg_login_to_react)
     var showReactionPicker by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -130,7 +131,7 @@ fun TodayGallery(
                                 Toast
                                     .makeText(
                                         context,
-                                        context.getString(R.string.msg_login_to_react),
+                                        msgLoginToReact,
                                         Toast.LENGTH_SHORT,
                                     ).show()
                             } else if (emoji != null) {
@@ -640,7 +641,7 @@ private fun HeroDetailContent(
                 if (preview.artistUrl.isNotBlank()) {
                     {
                         context.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse(preview.artistUrl)),
+                            Intent(Intent.ACTION_VIEW, preview.artistUrl.toUri()),
                         )
                     }
                 } else {
@@ -656,7 +657,7 @@ private fun HeroDetailContent(
                 value = preview.sourceUrl,
                 onClick = {
                     context.startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse(preview.sourceUrl)),
+                        Intent(Intent.ACTION_VIEW, preview.sourceUrl.toUri()),
                     )
                 },
             )
@@ -678,7 +679,7 @@ private fun HeroDetailContent(
                             if (characterId != null) {
                                 val url = "https://$bgmDomain/character/$characterId"
                                 context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, Uri.parse(url)),
+                                    Intent(Intent.ACTION_VIEW, url.toUri()),
                                 )
                             }
                         },
@@ -704,7 +705,7 @@ private fun HeroDetailContent(
                     {
                         val bgmDomain = SessionManager.loadDomain(context)
                         context.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse("https://$bgmDomain/user/$username")),
+                            Intent(Intent.ACTION_VIEW, "https://$bgmDomain/user/$username".toUri()),
                         )
                     }
                 },
@@ -834,6 +835,7 @@ private fun TabletReactionRow(
 ) {
     val valid = reactions.mapNotNull { r -> EmojiMap.emojiResId(r.emojiValue)?.let { r to it } }
     val context = LocalContext.current
+    val msgLoginToReact = stringResource(R.string.msg_login_to_react)
     val colorScheme = MaterialTheme.colorScheme
 
     FlowRow(
@@ -851,7 +853,7 @@ private fun TabletReactionRow(
                         Toast
                             .makeText(
                                 context,
-                                context.getString(R.string.msg_login_to_react),
+                                msgLoginToReact,
                                 Toast.LENGTH_SHORT,
                             ).show()
                     }
@@ -893,7 +895,7 @@ private fun TabletReactionRow(
                     Toast
                         .makeText(
                             context,
-                            context.getString(R.string.msg_login_to_react),
+                            msgLoginToReact,
                             Toast.LENGTH_SHORT,
                         ).show()
                 }
@@ -1030,7 +1032,7 @@ private fun TabletDetailContent(
                 if (preview.artistUrl.isNotBlank()) {
                     {
                         context.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse(preview.artistUrl)),
+                            Intent(Intent.ACTION_VIEW, preview.artistUrl.toUri()),
                         )
                     }
                 } else {
@@ -1046,7 +1048,7 @@ private fun TabletDetailContent(
                 value = preview.sourceUrl,
                 onClick = {
                     context.startActivity(
-                        Intent(Intent.ACTION_VIEW, Uri.parse(preview.sourceUrl)),
+                        Intent(Intent.ACTION_VIEW, preview.sourceUrl.toUri()),
                     )
                 },
             )
@@ -1068,7 +1070,7 @@ private fun TabletDetailContent(
                             if (characterId != null) {
                                 val url = "https://$bgmDomain/character/$characterId"
                                 context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, Uri.parse(url)),
+                                    Intent(Intent.ACTION_VIEW, url.toUri()),
                                 )
                             }
                         },
@@ -1094,7 +1096,7 @@ private fun TabletDetailContent(
                     {
                         val bgmDomain = SessionManager.loadDomain(context)
                         context.startActivity(
-                            Intent(Intent.ACTION_VIEW, Uri.parse("https://$bgmDomain/user/$username")),
+                            Intent(Intent.ACTION_VIEW, "https://$bgmDomain/user/$username".toUri()),
                         )
                     }
                 },
@@ -1187,6 +1189,7 @@ private fun BottomActionBar(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val msgLoginToReact = stringResource(R.string.msg_login_to_react)
     val hasReacted = preview.userEmoji != null
     val colorScheme = MaterialTheme.colorScheme
 
@@ -1247,7 +1250,7 @@ private fun BottomActionBar(
                         Toast
                             .makeText(
                                 context,
-                                context.getString(R.string.msg_login_to_react),
+                                msgLoginToReact,
                                 Toast.LENGTH_SHORT,
                             ).show()
                     } else if (emoji != null) {

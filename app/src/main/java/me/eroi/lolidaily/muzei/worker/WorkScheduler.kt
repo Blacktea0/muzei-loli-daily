@@ -2,6 +2,7 @@ package me.eroi.lolidaily.muzei.worker
 
 import android.content.Context
 import android.util.Log
+import androidx.core.content.edit
 import androidx.work.*
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import java.util.UUID
@@ -39,7 +40,7 @@ object WorkScheduler {
         var nextRefreshTs = prefs.getLong(KEY_NEXT_DAILY_REFRESH_TS, 0L)
         if (nextRefreshTs == 0L) {
             nextRefreshTs = computeNextRefreshTime(context)
-            prefs.edit().putLong(KEY_NEXT_DAILY_REFRESH_TS, nextRefreshTs).apply()
+            prefs.edit { putLong(KEY_NEXT_DAILY_REFRESH_TS, nextRefreshTs) }
         }
 
         val shouldDailyRefresh = !forceRefresh && System.currentTimeMillis() > nextRefreshTs

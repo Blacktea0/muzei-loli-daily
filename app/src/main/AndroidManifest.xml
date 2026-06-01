@@ -16,8 +16,7 @@
         <!-- Main activity — launched from Muzei's source config and app drawer -->
         <activity
             android:name="me.eroi.lolidaily.muzei.MainActivity"
-            android:exported="true"
-            android:label="@string/app_name">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

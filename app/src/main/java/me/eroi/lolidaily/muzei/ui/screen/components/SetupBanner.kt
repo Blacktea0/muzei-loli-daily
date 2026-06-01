@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.R
 
@@ -43,7 +44,7 @@ fun SetupBanner(
     if (dismissed) return
 
     val dismissBanner = {
-        prefs.edit().putString(KEY_BANNER_DISMISSED, currentStatus).apply()
+        prefs.edit { putString(KEY_BANNER_DISMISSED, currentStatus) }
         dismissed = true
     }
 

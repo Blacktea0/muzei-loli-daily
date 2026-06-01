@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.core.content.edit
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
@@ -120,7 +121,7 @@ fun MainScreen(
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(selectedTab) {
-        prefs.edit().putInt(KEY_LAST_TAB, selectedTab).apply()
+        prefs.edit { putInt(KEY_LAST_TAB, selectedTab) }
     }
 
     // NavigationRail item definitions (shared between rail and bar)
@@ -1296,7 +1297,7 @@ private fun PreferenceTab(
         if (
             stored != null && stored != "installed=$isMuzeiInstalled,activated=$isSourceActivated"
         ) {
-            prefs.edit().remove(KEY_BANNER_DISMISSED).apply()
+            prefs.edit { remove(KEY_BANNER_DISMISSED) }
         }
     }
 

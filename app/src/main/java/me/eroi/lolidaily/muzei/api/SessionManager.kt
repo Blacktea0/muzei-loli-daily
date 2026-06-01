@@ -2,6 +2,7 @@ package me.eroi.lolidaily.muzei.api
 
 import android.content.Context
 import android.util.Base64
+import androidx.core.content.edit
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
@@ -43,20 +44,20 @@ object SessionManager {
         val prefs =
             context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
         val raw = json.encodeToString(Session.serializer(), session)
-        prefs.edit().putString(KEY_LC_SESSION, raw).apply()
+        prefs.edit { putString(KEY_LC_SESSION, raw) }
     }
 
     fun clearSession(context: Context) {
         context
             .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .remove(KEY_LC_SESSION)
-            .remove(KEY_BGM_USERNAME)
-            .remove(KEY_BGM_NICKNAME)
-            .remove(KEY_BGM_AVATAR_URL)
-            .remove(KEY_LC_BADGE)
-            .remove("user_reactions")
-            .commit()
+            .edit {
+                remove(KEY_LC_SESSION)
+                remove(KEY_BGM_USERNAME)
+                remove(KEY_BGM_NICKNAME)
+                remove(KEY_BGM_AVATAR_URL)
+                remove(KEY_LC_BADGE)
+                remove("user_reactions")
+            }
     }
 
     fun saveUsername(
@@ -65,9 +66,9 @@ object SessionManager {
     ) {
         context
             .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_BGM_USERNAME, username)
-            .apply()
+            .edit {
+                putString(KEY_BGM_USERNAME, username)
+            }
     }
 
     fun loadUsername(context: Context): String? {
@@ -84,11 +85,11 @@ object SessionManager {
     ) {
         context
             .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_BGM_USERNAME, username)
-            .putString(KEY_BGM_NICKNAME, nickname.orEmpty())
-            .putString(KEY_BGM_AVATAR_URL, avatarUrl.orEmpty())
-            .apply()
+            .edit {
+                putString(KEY_BGM_USERNAME, username)
+                putString(KEY_BGM_NICKNAME, nickname.orEmpty())
+                putString(KEY_BGM_AVATAR_URL, avatarUrl.orEmpty())
+            }
     }
 
     fun loadNickname(context: Context): String? {
@@ -111,9 +112,9 @@ object SessionManager {
     ) {
         context
             .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_BGM_DOMAIN, domain)
-            .apply()
+            .edit {
+                putString(KEY_BGM_DOMAIN, domain)
+            }
     }
 
     fun loadDomain(context: Context): String {
@@ -128,9 +129,9 @@ object SessionManager {
     ) {
         context
             .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_LC_BADGE, badge)
-            .apply()
+            .edit {
+                putString(KEY_LC_BADGE, badge)
+            }
     }
 
     fun loadBadge(context: Context): String {

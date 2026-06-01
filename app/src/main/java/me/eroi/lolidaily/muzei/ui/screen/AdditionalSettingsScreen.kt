@@ -65,6 +65,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -372,7 +373,7 @@ private fun ApiCombinedCard() {
                     checked = skipCache,
                     onCheckedChange = { checked ->
                         skipCache = checked
-                        prefs.edit().putBoolean("debug_skip_cache", checked).apply()
+                        prefs.edit { putBoolean("debug_skip_cache", checked) }
                     },
                 )
             },
@@ -389,7 +390,7 @@ private fun ApiCombinedCard() {
             checked = overrideApiTagEnabled,
             onCheckedChange = { checked ->
                 overrideApiTagEnabled = checked
-                prefs.edit().putBoolean(LoliApiClient.KEY_DEBUG_OVERRIDE_API_TAG_ENABLED, checked).apply()
+                prefs.edit { putBoolean(LoliApiClient.KEY_DEBUG_OVERRIDE_API_TAG_ENABLED, checked) }
             },
             onClick = { showApiTagDialog = true },
         )
@@ -413,7 +414,7 @@ private fun ApiCombinedCard() {
             onDismiss = { showApiTagDialog = false },
             onTagSelected = { tag ->
                 overrideApiTag = tag
-                prefs.edit().putString(LoliApiClient.KEY_DEBUG_OVERRIDE_API_TAG, tag).apply()
+                prefs.edit { putString(LoliApiClient.KEY_DEBUG_OVERRIDE_API_TAG, tag) }
                 showApiTagDialog = false
                 refreshKey++
             },
@@ -435,10 +436,10 @@ private fun RefreshTimeCard() {
         }
 
     var hour by remember {
-        mutableStateOf(prefs.getInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_HOUR, 7))
+        mutableIntStateOf(prefs.getInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_HOUR, 7))
     }
     var minute by remember {
-        mutableStateOf(prefs.getInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_MINUTE, 21))
+        mutableIntStateOf(prefs.getInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_MINUTE, 21))
     }
     var showDialog by remember { mutableStateOf(false) }
 
@@ -459,10 +460,10 @@ private fun RefreshTimeCard() {
                 hour = h
                 minute = m
                 prefs
-                    .edit()
-                    .putInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_HOUR, h)
-                    .putInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_MINUTE, m)
-                    .apply()
+                    .edit {
+                        putInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_HOUR, h)
+                        putInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_MINUTE, m)
+                    }
                 val newDayChangeDate = LoliDailyArtWorker.computeDayChangeDate(context, System.currentTimeMillis())
                 if (oldDayChangeDate != newDayChangeDate) {
                     Log.d(
@@ -506,7 +507,7 @@ private fun HideRecentsCard() {
                 checked = hideRecents,
                 onCheckedChange = { checked ->
                     hideRecents = checked
-                    prefs.edit().putBoolean(KEY_HIDE_RECENTS_CONTENT, checked).apply()
+                    prefs.edit { putBoolean(KEY_HIDE_RECENTS_CONTENT, checked) }
                 },
             )
         },
@@ -658,7 +659,7 @@ private fun ApiServerPickerDialog(onDismiss: () -> Unit) {
     var customUrl by remember { mutableStateOf(if (initialSelection == CUSTOM_OPTION) savedUrl ?: "" else savedCustom) }
 
     fun persist(url: String) {
-        prefs.edit().putString(LoliApiClient.KEY_DEBUG_API_BASE_URL, url).apply()
+        prefs.edit { putString(LoliApiClient.KEY_DEBUG_API_BASE_URL, url) }
     }
 
     AlertDialog(
@@ -689,7 +690,7 @@ private fun ApiServerPickerDialog(onDismiss: () -> Unit) {
                         value = customUrl,
                         onValueChange = {
                             customUrl = it
-                            prefs.edit().putString(LoliApiClient.KEY_DEBUG_API_BASE_URL_CUSTOM, it).apply()
+                            prefs.edit { putString(LoliApiClient.KEY_DEBUG_API_BASE_URL_CUSTOM, it) }
                         },
                         modifier =
                             Modifier.fillMaxWidth()
@@ -747,7 +748,7 @@ private fun BangumiApiServerPickerDialog(onDismiss: () -> Unit) {
     var customUrl by remember { mutableStateOf(if (initialSelection == CUSTOM_OPTION) savedUrl ?: "" else savedCustom) }
 
     fun persist(url: String) {
-        prefs.edit().putString(LoliApiClient.KEY_DEBUG_BANGUMI_BASE_URL, url).apply()
+        prefs.edit { putString(LoliApiClient.KEY_DEBUG_BANGUMI_BASE_URL, url) }
     }
 
     AlertDialog(
@@ -778,7 +779,7 @@ private fun BangumiApiServerPickerDialog(onDismiss: () -> Unit) {
                         value = customUrl,
                         onValueChange = {
                             customUrl = it
-                            prefs.edit().putString(LoliApiClient.KEY_DEBUG_BANGUMI_BASE_URL_CUSTOM, it).apply()
+                            prefs.edit { putString(LoliApiClient.KEY_DEBUG_BANGUMI_BASE_URL_CUSTOM, it) }
                         },
                         modifier =
                             Modifier.fillMaxWidth()

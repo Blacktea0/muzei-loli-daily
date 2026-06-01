@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import androidx.core.content.edit
 import me.eroi.lolidaily.muzei.DailyRefreshReceiver
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import java.time.LocalTime
@@ -36,9 +37,9 @@ object DailyRefreshScheduler {
         val targetTs = computeNextRefreshTime(context)
         context
             .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putLong(WorkScheduler.KEY_NEXT_DAILY_REFRESH_TS, targetTs)
-            .apply()
+            .edit {
+                putLong(WorkScheduler.KEY_NEXT_DAILY_REFRESH_TS, targetTs)
+            }
         schedule(context, targetTs)
         return targetTs
     }

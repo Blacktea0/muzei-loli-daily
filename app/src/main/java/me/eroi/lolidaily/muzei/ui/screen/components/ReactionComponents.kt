@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -37,10 +38,10 @@ import kotlin.math.roundToInt
 
 @Composable
 fun rememberPixelBitmap(resId: Int): ImageBitmap {
-    val context = LocalContext.current
+    val resources = LocalResources.current
     return remember(resId) {
         val opts = BitmapFactory.Options().apply { inScaled = false }
-        val bitmap = BitmapFactory.decodeResource(context.resources, resId, opts)
+        val bitmap = BitmapFactory.decodeResource(resources, resId, opts)
         bitmap.asImageBitmap()
     }
 }
@@ -74,6 +75,7 @@ fun ReactionRow(
     val valid = reactions.mapNotNull { r -> EmojiMap.emojiResId(r.emojiValue)?.let { r to it } }
 
     val context = LocalContext.current
+    val msgLoginToReact = stringResource(R.string.msg_login_to_react)
     var activeTooltipIndex by remember { mutableStateOf<Pair<Int, Int>?>(null) }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -114,7 +116,7 @@ fun ReactionRow(
                                                     Toast
                                                         .makeText(
                                                             context,
-                                                            context.getString(R.string.msg_login_to_react),
+                                                            msgLoginToReact,
                                                             Toast.LENGTH_SHORT,
                                                         ).show()
                                                 }
@@ -192,6 +194,7 @@ private fun AddReactionButton(
     onAddReaction: () -> Unit,
 ) {
     val context = LocalContext.current
+    val msgLoginToReact = stringResource(R.string.msg_login_to_react)
     Surface(
         onClick = {
             if (isLoggedIn) {
@@ -200,7 +203,7 @@ private fun AddReactionButton(
                 Toast
                     .makeText(
                         context,
-                        context.getString(R.string.msg_login_to_react),
+                        msgLoginToReact,
                         Toast.LENGTH_SHORT,
                     ).show()
             }

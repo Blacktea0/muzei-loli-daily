@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <!-- Reaction GIFs are intentional animated emojis used with coil-gif -->
+    <issue id="GifUsage" severity="ignore" />
+    <issue id="IconLocation">
+        <ignore path="**/reaction_*.gif" />
+    </issue>
+
+    <!-- OkHttp 5.x is a major version change with breaking API changes -->
+    <issue id="NewerVersionAvailable">
+        <ignore regexp="com\.squareup\.okhttp3:okhttp" />
+    </issue>
+
+    <!-- Debug build allows cleartext for mock server -->
+    <issue id="InsecureBaseConfiguration">
+        <ignore path="src/debug/**" />
+    </issue>
+</lint>

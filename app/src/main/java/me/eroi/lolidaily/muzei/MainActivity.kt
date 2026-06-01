@@ -3,7 +3,6 @@ package me.eroi.lolidaily.muzei
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -11,9 +10,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.FileProvider
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
@@ -65,7 +67,7 @@ class MainActivity : AppCompatActivity() {
     private var themeMode by mutableStateOf(ThemeMode.SYSTEM)
     private var colorSource by mutableStateOf(ColorSource.DEFAULT)
     private var colorStyle by mutableStateOf(ColorStyle.NEUTRAL)
-    private var manualColorArgb by mutableStateOf(0xFFF09199.toInt())
+    private var manualColorArgb by mutableIntStateOf(0xFFF09199.toInt())
     private var extractedArgb by mutableStateOf<Int?>(null)
     private var refreshProgress by mutableStateOf<Float?>(null)
 
@@ -262,7 +264,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveState() {
-        prefs.edit().putStringSet(LoliDailyArtWorker.KEY_ENABLED_TAGS, selectedTags).apply()
+        prefs.edit { putStringSet(LoliDailyArtWorker.KEY_ENABLED_TAGS, selectedTags) }
         LoliDailyArtWorker.enqueueRefilter(this)
     }
 
@@ -356,7 +358,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveThemeMode(mode: ThemeMode) {
-        prefs.edit().putString(KEY_THEME_MODE, mode.name).apply()
+        prefs.edit { putString(KEY_THEME_MODE, mode.name) }
     }
 
     private fun loadColorSource(): ColorSource {
@@ -369,7 +371,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveColorSource(source: ColorSource) {
-        prefs.edit().putString(KEY_COLOR_SOURCE, source.name).apply()
+        prefs.edit { putString(KEY_COLOR_SOURCE, source.name) }
     }
 
     private fun loadColorStyle(): ColorStyle {
@@ -382,7 +384,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveColorStyle(style: ColorStyle) {
-        prefs.edit().putString(KEY_COLOR_STYLE, style.name).apply()
+        prefs.edit { putString(KEY_COLOR_STYLE, style.name) }
     }
 
     private fun loadManualColor(): Int {
@@ -390,7 +392,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveManualColor(argb: Int) {
-        prefs.edit().putInt(KEY_MANUAL_COLOR, argb).apply()
+        prefs.edit { putInt(KEY_MANUAL_COLOR, argb) }
     }
 
     private fun resolveSourceColor() {
@@ -408,7 +410,7 @@ class MainActivity : AppCompatActivity() {
                         val argb = ArtworkColorExtractor.extract(this, filename, manualColorArgb)
                         runOnUiThread {
                             extractedArgb = argb
-                            prefs.edit().putInt(KEY_EXTRACTED_COLOR, argb).apply()
+                            prefs.edit { putInt(KEY_EXTRACTED_COLOR, argb) }
                         }
                     }.start()
                 }
@@ -448,9 +450,7 @@ class MainActivity : AppCompatActivity() {
                     startActivity(
                         Intent(
                             Intent.ACTION_VIEW,
-                            Uri.parse(
-                                "https://play.google.com/store/apps/details?id=$MUZEI_PACKAGE",
-                            ),
+                            "https://play.google.com/store/apps/details?id=$MUZEI_PACKAGE".toUri(),
                         ),
                     )
                 } catch (_: Exception) {
@@ -458,7 +458,7 @@ class MainActivity : AppCompatActivity() {
                         startActivity(
                             Intent(
                                 Intent.ACTION_VIEW,
-                                Uri.parse("market://details?id=$MUZEI_PACKAGE"),
+                                "market://details?id=$MUZEI_PACKAGE".toUri(),
                             ),
                         )
                     } catch (_: Exception) {
@@ -499,9 +499,9 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             LoliDailyArtWorker.fetchAndCacheReactions(this@MainActivity)
-            prefs.edit()
-                .putLong(LoliDailyArtWorker.KEY_LAST_REACTION_FETCH, System.currentTimeMillis())
-                .apply()
+            prefs.edit {
+                putLong(LoliDailyArtWorker.KEY_LAST_REACTION_FETCH, System.currentTimeMillis())
+            }
             runOnUiThread { buildPreviews() }
         }
             .start()

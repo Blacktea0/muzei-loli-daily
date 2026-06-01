@@ -73,7 +73,7 @@
     <string name="content_desc_react">React</string>
     <string name="content_desc_bookmark">Bookmark</string>
     <string name="content_desc_add_reaction">Add reaction</string>
-    <string name="label_comment_by">%1$s\'s comment</string>
+
     <string name="label_anonymous_comment">"Anonymous lolicon's comment"</string>
 
     <!-- Artwork detail bottom sheet -->
@@ -176,13 +176,9 @@
     <!-- Debug: API -->
     <string name="section_debug_api">API</string>
     <string name="title_api_server">Loli Commons Server</string>
-    <string name="desc_api_server">Select the API server to use</string>
     <string name="label_custom">Custom</string>
     <string name="label_server_url">Server URL</string>
-    <string name="action_apply">Apply</string>
-
     <string name="title_bangumi_api_server">Bangumi API Server</string>
-    <string name="desc_bangumi_api_server">Server for fetching topic comments</string>
     <string name="label_bangumi_server_url">Bangumi Server URL</string>
 
     <string name="title_skip_cache">Skip API Cache</string>

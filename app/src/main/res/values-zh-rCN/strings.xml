@@ -73,7 +73,6 @@
     <string name="content_desc_react">贴贴</string>
     <string name="content_desc_bookmark">收藏</string>
     <string name="content_desc_add_reaction">添加贴贴</string>
-    <string name="label_comment_by">%1$s 的评论</string>
     <string name="label_anonymous_comment">某不愿意透露名字的萝莉控的评论</string>
 
     <!-- Artwork detail bottom sheet -->
@@ -176,13 +175,10 @@
     <!-- Debug: API -->
     <string name="section_debug_api">API</string>
     <string name="title_api_server">Loli Commons 服务器</string>
-    <string name="desc_api_server">选择要使用的 API 服务器</string>
     <string name="label_custom">自定义</string>
     <string name="label_server_url">服务器 URL</string>
-    <string name="action_apply">应用</string>
 
     <string name="title_bangumi_api_server">Bangumi API 服务器</string>
-    <string name="desc_bangumi_api_server">用于获取话题评论的服务器</string>
     <string name="label_bangumi_server_url">Bangumi 服务器 URL</string>
 
     <string name="title_skip_cache">跳过 API 缓存</string>

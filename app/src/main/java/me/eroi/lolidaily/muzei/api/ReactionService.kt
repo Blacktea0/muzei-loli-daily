@@ -2,6 +2,7 @@ package me.eroi.lolidaily.muzei.api
 
 import android.content.Context
 import android.util.Log
+import androidx.core.content.edit
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
@@ -71,7 +72,7 @@ object ReactionService {
                 context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
             val serialized =
                 json.encodeToString(serializer<Map<String, List<ReactionCount>>>(), tokenReactions)
-            prefs.edit().putString(KEY_REACTIONS, serialized).apply()
+            prefs.edit { putString(KEY_REACTIONS, serialized) }
 
             val username = SessionManager.loadUsername(context)
             Log.d(TAG, "loadUsername = $username")
@@ -90,12 +91,12 @@ object ReactionService {
                 }
                 Log.d(TAG, "userReactions map = $userReactions")
                 prefs
-                    .edit()
-                    .putString(
-                        KEY_USER_REACTIONS,
-                        json.encodeToString(serializer<Map<String, Int>>(), userReactions),
-                    )
-                    .apply()
+                    .edit {
+                        putString(
+                            KEY_USER_REACTIONS,
+                            json.encodeToString(serializer<Map<String, Int>>(), userReactions),
+                        )
+                    }
             }
 
             // Cache discussions mapped to tokens
@@ -106,12 +107,12 @@ object ReactionService {
                 tokenDiscussions[token] = discussion
             }
             prefs
-                .edit()
-                .putString(
-                    KEY_DISCUSSIONS,
-                    json.encodeToString(serializer<Map<String, Discussion>>(), tokenDiscussions),
-                )
-                .apply()
+                .edit {
+                    putString(
+                        KEY_DISCUSSIONS,
+                        json.encodeToString(serializer<Map<String, Discussion>>(), tokenDiscussions),
+                    )
+                }
 
             // Fetch and cache topic floors per discussion ID
             val topicFloors = mutableMapOf<String, BangumiReply?>()
@@ -145,15 +146,15 @@ object ReactionService {
                 }
             }
             prefs
-                .edit()
-                .putString(
-                    KEY_TOPIC_FLOORS,
-                    json.encodeToString(
-                        serializer<Map<String, BangumiReply?>>(),
-                        topicFloors,
-                    ),
-                )
-                .apply()
+                .edit {
+                    putString(
+                        KEY_TOPIC_FLOORS,
+                        json.encodeToString(
+                            serializer<Map<String, BangumiReply?>>(),
+                            topicFloors,
+                        ),
+                    )
+                }
 
             Log.d(TAG, "Cached reactions for ${tokenReactions.size} cards")
         } catch (e: Exception) {
@@ -268,12 +269,12 @@ object ReactionService {
                 val token = Md5.hash(daily.cards[cardIndex].imgUrl)
                 map[token] = emojiValue
                 prefs
-                    .edit()
-                    .putString(
-                        KEY_USER_REACTIONS,
-                        json.encodeToString(serializer<Map<String, Int>>(), map),
-                    )
-                    .apply()
+                    .edit {
+                        putString(
+                            KEY_USER_REACTIONS,
+                            json.encodeToString(serializer<Map<String, Int>>(), map),
+                        )
+                    }
             } else {
                 Log.w(TAG, "Reaction PATCH returned ${response.code}")
             }

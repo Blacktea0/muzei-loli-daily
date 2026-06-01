@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.core.content.FileProvider
+import androidx.core.content.edit
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import okhttp3.Request
@@ -307,18 +308,18 @@ object ImageDownloader {
         }
         if (datesChanged) {
             prefs
-                .edit()
-                .putString(
-                    LoliDailyArtWorker.KEY_IMAGE_DATES,
-                    LoliApiClient.json.encodeToString(
-                        kotlinx.serialization.builtins.MapSerializer(
-                            kotlinx.serialization.serializer<String>(),
-                            kotlinx.serialization.serializer<String>(),
+                .edit {
+                    putString(
+                        LoliDailyArtWorker.KEY_IMAGE_DATES,
+                        LoliApiClient.json.encodeToString(
+                            kotlinx.serialization.builtins.MapSerializer(
+                                kotlinx.serialization.serializer<String>(),
+                                kotlinx.serialization.serializer<String>(),
+                            ),
+                            datesMut,
                         ),
-                        datesMut,
-                    ),
-                )
-                .apply()
+                    )
+                }
         }
 
         try {

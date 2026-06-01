@@ -73,7 +73,6 @@
     <string name="content_desc_react">リアクション</string>
     <string name="content_desc_bookmark">ブックマーク</string>
     <string name="content_desc_add_reaction">リアクションを追加</string>
-    <string name="label_comment_by">%1$s のコメント</string>
     <string name="label_anonymous_comment">名無しロリコンのコメント</string>
 
     <!-- Artwork detail bottom sheet -->
@@ -176,13 +175,10 @@
     <!-- Debug: API -->
     <string name="section_debug_api">API</string>
     <string name="title_api_server">Loli Commons サーバー</string>
-    <string name="desc_api_server">使用する API サーバーを選択</string>
     <string name="label_custom">カスタム</string>
     <string name="label_server_url">サーバー URL</string>
-    <string name="action_apply">適用</string>
 
     <string name="title_bangumi_api_server">Bangumi API サーバー</string>
-    <string name="desc_bangumi_api_server">トピックコメントの取得用サーバー</string>
     <string name="label_bangumi_server_url">Bangumi サーバー URL</string>
 
     <string name="title_skip_cache">API キャッシュをスキップ</string>

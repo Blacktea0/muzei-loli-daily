@@ -652,7 +652,7 @@ private val avatarGradients =
         listOf(Color(0xFFF7971E), Color(0xFFFFD200)),
         listOf(Color(0xFF4FACFE), Color(0xFF00F2FE)),
         listOf(Color(0xFFA8EDEA), Color(0xFFFED6E3)),
-        listOf(Color(0xFFFDD92), Color(0xFFD1FDFF)),
+        listOf(Color(0xFFFFDD92), Color(0xFFD1FDFF)),
         listOf(Color(0xFF30CFD0), Color(0xFF5B86E5)),
         listOf(Color(0xFFFF9A9E), Color(0xFFFECFEF)),
         listOf(Color(0xFFA1C4FD), Color(0xFFC2E9FB)),

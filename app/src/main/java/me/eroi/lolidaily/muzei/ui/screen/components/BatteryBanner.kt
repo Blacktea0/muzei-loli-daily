@@ -1,7 +1,6 @@
 package me.eroi.lolidaily.muzei.ui.screen.components
 
 import android.content.Intent
-import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.R
 
@@ -40,7 +41,7 @@ fun BatteryBanner() {
     if (dismissed) return
 
     val dismissBanner = {
-        prefs.edit().putBoolean(KEY_BATTERY_BANNER_DISMISSED, true).apply()
+        prefs.edit { putBoolean(KEY_BATTERY_BANNER_DISMISSED, true) }
         dismissed = true
     }
 
@@ -102,7 +103,7 @@ fun BatteryBanner() {
                             // Fallback to app details settings
                             val intent =
                                 Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                    data = Uri.parse("package:${context.packageName}")
+                                    data = "package:${context.packageName}".toUri()
                                 }
                             context.startActivity(intent)
                         }

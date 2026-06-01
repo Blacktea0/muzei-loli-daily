@@ -1,7 +1,6 @@
 package me.eroi.lolidaily.muzei.ui.screen.gallery
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -16,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.SessionManager
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
@@ -105,7 +105,7 @@ fun ArtworkDetailBottomSheet(
                                 if (characterId != null) {
                                     val url = "https://$bgmDomain/character/$characterId"
                                     context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, Uri.parse(url)),
+                                        Intent(Intent.ACTION_VIEW, url.toUri()),
                                     )
                                 }
                             },
@@ -156,7 +156,7 @@ fun ArtworkDetailBottomSheet(
                     FilledTonalButton(
                         onClick = {
                             context.startActivity(
-                                Intent(Intent.ACTION_VIEW, Uri.parse(preview.sourceUrl)),
+                                Intent(Intent.ACTION_VIEW, preview.sourceUrl.toUri()),
                             )
                         },
                     ) {
@@ -173,7 +173,7 @@ fun ArtworkDetailBottomSheet(
                     FilledTonalButton(
                         onClick = {
                             context.startActivity(
-                                Intent(Intent.ACTION_VIEW, Uri.parse(preview.artistUrl)),
+                                Intent(Intent.ACTION_VIEW, preview.artistUrl.toUri()),
                             )
                         },
                     ) {

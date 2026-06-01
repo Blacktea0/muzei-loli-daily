@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.util.Log
+import androidx.core.content.edit
 import androidx.work.*
 import com.google.android.apps.muzei.api.provider.ProviderContract
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -92,7 +93,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                         }
                         saveCardsMetadata(cards, fetchedDate)
                         recordImageDates(cards, fetchedDate)
-                        prefs.edit().putString(KEY_LAST_API_DATE, fetchedDate).apply()
+                        prefs.edit { putString(KEY_LAST_API_DATE, fetchedDate) }
 
                         val newTokens =
                             cards
@@ -268,17 +269,17 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
     }
 
     private fun markFetchTime() {
-        prefs.edit().putLong(KEY_LAST_FETCH_TIME, System.currentTimeMillis()).apply()
+        prefs.edit { putLong(KEY_LAST_FETCH_TIME, System.currentTimeMillis()) }
     }
 
     private fun markWorkCompleted() {
-        prefs.edit().putLong(KEY_LAST_WORK_COMPLETED, System.currentTimeMillis()).apply()
+        prefs.edit { putLong(KEY_LAST_WORK_COMPLETED, System.currentTimeMillis()) }
     }
 
     private fun saveDayChangeDate() {
         val date = computeDayChangeDate(applicationContext, System.currentTimeMillis())
         Log.d(TAG, "Saving day-change date: $date")
-        prefs.edit().putString(KEY_LAST_FETCH_DAY_CHANGE_DATE, date).apply()
+        prefs.edit { putString(KEY_LAST_FETCH_DAY_CHANGE_DATE, date) }
     }
 
     // ── Card data cache (filesystem) ──────────────────────────────
@@ -323,15 +324,15 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
             }
         }
         prefs
-            .edit()
-            .putString(
-                KEY_IMAGE_DATES,
-                LoliApiClient.json.encodeToString(
-                    MapSerializer(serializer<String>(), serializer<String>()),
-                    current,
-                ),
-            )
-            .apply()
+            .edit {
+                putString(
+                    KEY_IMAGE_DATES,
+                    LoliApiClient.json.encodeToString(
+                        MapSerializer(serializer<String>(), serializer<String>()),
+                        current,
+                    ),
+                )
+            }
     }
 
     private fun loadImageDatesInternal(): Map<String, String> {

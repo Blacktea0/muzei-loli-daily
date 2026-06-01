@@ -2,10 +2,10 @@ package me.eroi.lolidaily.muzei
 
 import android.app.PendingIntent
 import android.content.Intent
-import android.net.Uri
 import android.util.Log
 import androidx.core.app.RemoteActionCompat
 import androidx.core.graphics.drawable.IconCompat
+import androidx.core.net.toUri
 import com.google.android.apps.muzei.api.provider.Artwork
 import com.google.android.apps.muzei.api.provider.MuzeiArtProvider
 import kotlinx.serialization.json.Json
@@ -56,7 +56,7 @@ class LoliDailyArtProvider : MuzeiArtProvider() {
         if (card?.sourceUrl?.isNotBlank() == true) {
             val sourceIntent =
                 Intent.createChooser(
-                    Intent(Intent.ACTION_VIEW, Uri.parse(card.sourceUrl)).apply {
+                    Intent(Intent.ACTION_VIEW, card.sourceUrl.toUri()).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     },
                     null,
@@ -82,7 +82,7 @@ class LoliDailyArtProvider : MuzeiArtProvider() {
         if (card?.artistUrl?.isNotBlank() == true) {
             val artistIntent =
                 Intent.createChooser(
-                    Intent(Intent.ACTION_VIEW, Uri.parse(card.artistUrl)).apply {
+                    Intent(Intent.ACTION_VIEW, card.artistUrl.toUri()).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     },
                     null,
