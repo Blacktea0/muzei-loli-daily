@@ -26,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -38,9 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.ReactionService
 import me.eroi.lolidaily.muzei.api.SessionManager
@@ -49,7 +46,6 @@ import me.eroi.lolidaily.muzei.model.BangumiReply
 import me.eroi.lolidaily.muzei.model.BangumiSubReply
 import me.eroi.lolidaily.muzei.model.ReactionCount
 import me.eroi.lolidaily.muzei.ui.screen.components.*
-import me.eroi.lolidaily.muzei.util.ArtworkColorExtractor
 import me.eroi.lolidaily.muzei.util.exportArtwork
 import me.eroi.lolidaily.muzei.worker.EmojiMap
 import java.time.LocalDate
@@ -1325,17 +1321,6 @@ private fun ArtistTitleRow(
     preview: ArtworkPreview,
     modifier: Modifier = Modifier,
 ) {
-    val context = LocalContext.current
-    val fallbackColor = MaterialTheme.colorScheme.primary
-    var iconTint by remember(preview.filename) { mutableStateOf(fallbackColor) }
-
-    LaunchedEffect(preview.filename) {
-        iconTint =
-            withContext(Dispatchers.IO) {
-                Color(ArtworkColorExtractor.extract(context, preview.filename, fallbackColor.hashCode()))
-            }
-    }
-
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -1345,7 +1330,7 @@ private fun ArtistTitleRow(
             Icons.Default.Palette,
             contentDescription = null,
             modifier = Modifier.size(24.dp),
-            tint = iconTint,
+            tint = MaterialTheme.colorScheme.onSurface,
         )
         Text(
             text = preview.artistName.ifBlank { stringResource(R.string.label_unknown_artist) },
