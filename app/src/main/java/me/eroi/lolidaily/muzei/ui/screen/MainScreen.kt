@@ -1331,6 +1331,10 @@ private fun PreferenceTab(
         }
 
         item {
+            UpdateBanner()
+        }
+
+        item {
             BatteryBanner()
         }
 
