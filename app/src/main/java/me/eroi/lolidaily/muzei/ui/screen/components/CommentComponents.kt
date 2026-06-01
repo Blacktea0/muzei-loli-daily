@@ -108,10 +108,17 @@ fun CommentHeader(count: Int) {
 
 @Composable
 fun EmptyComments() {
-    Box(
+    Column(
         modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-        contentAlignment = Alignment.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        Icon(
+            Icons.AutoMirrored.Filled.Comment,
+            contentDescription = null,
+            modifier = Modifier.size(40.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Text(
             text = stringResource(R.string.msg_no_comments_today),
             style = MaterialTheme.typography.bodyMedium,
