@@ -94,6 +94,7 @@ fun TodayGallery(
     val scope = rememberCoroutineScope()
     val isRefreshing = refreshProgress != null
     val context = LocalContext.current
+    var showReactionPicker by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         // ── Top App Bar ──
@@ -137,7 +138,7 @@ fun TodayGallery(
                             } else if (emoji != null) {
                                 onReactionClick(token, emoji)
                             } else {
-                                // Show reaction picker
+                                showReactionPicker = true
                             }
                         },
                     ) {
@@ -460,6 +461,19 @@ fun TodayGallery(
             }
         }
     }
+
+    // Reaction picker dialog (TopAppBar like button)
+    val currentPreviewForDialog = todayArtwork.firstOrNull { it.tags == tags.getOrNull(pagerState.currentPage) }
+    if (showReactionPicker && isLoggedIn && currentPreviewForDialog != null) {
+        val tokenForDialog = currentPreviewForDialog.filename.substringBeforeLast('.')
+        ReactionPickerDialog(
+            onDismiss = { showReactionPicker = false },
+            onEmojiSelected = { value ->
+                onReactionClick(tokenForDialog, value)
+                showReactionPicker = false
+            },
+        )
+    }
 }
 
 @Composable
@@ -690,86 +704,6 @@ private fun HeroDetailContent(
                         modifier = Modifier.height(32.dp),
                     )
                 }
-            }
-        }
-
-        HorizontalDivider(color = colorScheme.outlineVariant)
-
-        // ── Action Buttons ──
-        val hasReacted = preview.userEmoji != null
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            IconButton(onClick = { exportArtwork(context, preview) }) {
-                Icon(
-                    Icons.Default.Save,
-                    contentDescription = stringResource(R.string.content_desc_export_artwork),
-                    tint = colorScheme.onSurfaceVariant,
-                )
-            }
-
-            IconButton(
-                onClick = {
-                    if (!isLoggedIn) {
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.msg_login_to_react),
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                    } else if (hasReacted) {
-                        onReactionClick(token, preview.userEmoji)
-                    } else {
-                        showReactionPicker = true
-                    }
-                },
-                colors =
-                    IconButtonDefaults.iconButtonColors(
-                        contentColor =
-                            if (hasReacted) {
-                                colorScheme.error
-                            } else {
-                                colorScheme.onSurfaceVariant
-                            },
-                    ),
-            ) {
-                Icon(
-                    if (hasReacted) {
-                        Icons.Default.Favorite
-                    } else {
-                        Icons.Default.FavoriteBorder
-                    },
-                    contentDescription = stringResource(R.string.content_desc_react),
-                )
-            }
-
-            IconButton(
-                onClick = {
-                    val newState = !preview.isBookmarked
-                    onBookmarkToggle(token, preview.filename, newState)
-                },
-                colors =
-                    IconButtonDefaults.iconButtonColors(
-                        contentColor =
-                            if (preview.isBookmarked) {
-                                colorScheme.primary
-                            } else {
-                                colorScheme.onSurfaceVariant
-                            },
-                    ),
-            ) {
-                Icon(
-                    if (preview.isBookmarked) {
-                        Icons.Default.Bookmark
-                    } else {
-                        Icons.Default.BookmarkBorder
-                    },
-                    contentDescription = stringResource(R.string.content_desc_bookmark),
-                )
             }
         }
     }
