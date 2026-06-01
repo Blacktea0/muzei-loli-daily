@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.HorizontalPager
@@ -26,14 +27,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -837,52 +843,92 @@ private fun TabletReactionRow(
     val context = LocalContext.current
     val msgLoginToReact = stringResource(R.string.msg_login_to_react)
     val colorScheme = MaterialTheme.colorScheme
+    var activeTooltipIndex by remember { mutableStateOf<Int?>(null) }
 
     FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        for ((reaction, resId) in valid) {
+        for ((index, reactionResId) in valid.withIndex()) {
+            val (reaction, resId) = reactionResId
             val selected = reaction.emojiValue == userEmoji
-            Surface(
-                onClick = {
-                    if (isLoggedIn) {
-                        onReactionClick(token, reaction.emojiValue)
-                    } else {
-                        Toast
-                            .makeText(
-                                context,
-                                msgLoginToReact,
-                                Toast.LENGTH_SHORT,
-                            ).show()
-                    }
-                },
-                shape = RoundedCornerShape(50),
-                color =
-                    if (selected) {
-                        colorScheme.primaryContainer
-                    } else {
-                        colorScheme.surfaceContainerHigh
+            val isActive = activeTooltipIndex == index
+
+            Box {
+                Surface(
+                    onClick = {
+                        if (isLoggedIn) {
+                            onReactionClick(token, reaction.emojiValue)
+                        } else {
+                            Toast
+                                .makeText(
+                                    context,
+                                    msgLoginToReact,
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                        }
                     },
-                modifier = Modifier.height(32.dp),
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    PixelEmoji(resId = resId, modifier = Modifier.size(20.dp))
-                    Text(
-                        text = "${reaction.count}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color =
-                            if (selected) {
-                                colorScheme.onPrimaryContainer
-                            } else {
-                                colorScheme.onSurfaceVariant
+                    shape = RoundedCornerShape(50),
+                    color =
+                        if (selected) {
+                            colorScheme.primaryContainer
+                        } else {
+                            colorScheme.surfaceContainerHigh
+                        },
+                    modifier =
+                        Modifier
+                            .height(32.dp)
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onLongPress = {
+                                        if (reaction.users.isNotEmpty()) {
+                                            activeTooltipIndex = index
+                                        }
+                                    },
+                                )
                             },
-                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        PixelEmoji(resId = resId, modifier = Modifier.size(20.dp))
+                        Text(
+                            text = "${reaction.count}",
+                            style = MaterialTheme.typography.labelMedium,
+                            color =
+                                if (selected) {
+                                    colorScheme.onPrimaryContainer
+                                } else {
+                                    colorScheme.onSurfaceVariant
+                                },
+                        )
+                    }
+                }
+
+                if (isActive && reaction.users.isNotEmpty()) {
+                    val density = LocalDensity.current
+                    Popup(
+                        alignment = Alignment.BottomCenter,
+                        offset = IntOffset(0, with(density) { -8.dp.roundToPx() }),
+                        onDismissRequest = { activeTooltipIndex = null },
+                        properties = PopupProperties(focusable = true),
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = colorScheme.inverseSurface,
+                            tonalElevation = 6.dp,
+                        ) {
+                            Text(
+                                text = formatUserList(reaction.users),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colorScheme.inverseOnSurface,
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1343,4 +1389,11 @@ private fun ArtistTitleRow(
             overflow = TextOverflow.Ellipsis,
         )
     }
+}
+
+private fun formatUserList(users: List<String>): String {
+    if (users.isEmpty()) return ""
+    val locale = java.util.Locale.getDefault()
+    val separator = if (locale.language == "zh" || locale.language == "ja") "、" else ", "
+    return users.joinToString(separator)
 }
