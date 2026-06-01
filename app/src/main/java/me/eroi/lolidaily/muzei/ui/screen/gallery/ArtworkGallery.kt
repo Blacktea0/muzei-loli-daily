@@ -452,10 +452,6 @@ fun ArtworkCard(
 
                 FilledTonalIconButton(
                     onClick = { showRemoveDialog = true },
-                    colors =
-                        IconButtonDefaults.filledTonalIconButtonColors(
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
                 ) {
                     Icon(
                         Icons.Default.BookmarkRemove,
