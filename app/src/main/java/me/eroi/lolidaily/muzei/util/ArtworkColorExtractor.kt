@@ -33,6 +33,4 @@ object ArtworkColorExtractor {
         cache[filename] = color
         return color
     }
-
-    fun clear() = cache.clear()
 }

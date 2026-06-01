@@ -17,18 +17,4 @@ object EmojiMap {
             85 -> R.drawable.reaction_46
             else -> null
         }
-
-    @Deprecated("Use emojiResId() with local drawable resources instead")
-    val EMOJI_URL_MAP =
-        mapOf(
-            0 to "https://bgm.tv/img/smiles/tv/44.gif",
-            104 to "https://bgm.tv/img/smiles/tv/65.gif",
-            54 to "https://bgm.tv/img/smiles/tv/15.gif",
-            140 to "https://bgm.tv/img/smiles/tv/101.gif",
-            122 to "https://bgm.tv/img/smiles/tv/83.gif",
-            90 to "https://bgm.tv/img/smiles/tv/51.gif",
-            88 to "https://bgm.tv/img/smiles/tv/49.gif",
-            80 to "https://bgm.tv/img/smiles/tv/41.gif",
-            85 to "https://bgm.tv/img/smiles/tv/46.gif",
-        )
 }

@@ -21,7 +21,6 @@ import me.eroi.lolidaily.muzei.model.DailyResponse
 import me.eroi.lolidaily.muzei.util.Md5
 import me.eroi.lolidaily.muzei.worker.ArtworkBuilder
 import me.eroi.lolidaily.muzei.worker.DailyRefreshScheduler
-import me.eroi.lolidaily.muzei.worker.EmojiMap
 import me.eroi.lolidaily.muzei.worker.ImageDownloader
 import me.eroi.lolidaily.muzei.worker.WorkScheduler
 import java.io.File
@@ -506,21 +505,11 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         const val KEY_DEBUG_REFRESH_HOUR = "debug_refresh_hour"
         const val KEY_DEBUG_REFRESH_MINUTE = "debug_refresh_minute"
 
-        const val DEFAULT_BGM_DOMAIN = "chii.in"
-
         const val PROVIDER_AUTHORITY = "me.eroi.lolidaily.muzei.provider"
 
         val refreshProgress = MutableStateFlow<Float?>(null)
 
         // ── Delegation wrappers (implementation moved to api/ + worker/) ──
-
-        fun md5(input: String): String = Md5.hash(input)
-
-        fun emojiResId(value: Int): Int? = EmojiMap.emojiResId(value)
-
-        @Deprecated("Use emojiResId() with local drawable resources instead")
-        val EMOJI_URL_MAP
-            get() = EmojiMap.EMOJI_URL_MAP
 
         fun enqueueLoad(
             context: Context,
@@ -534,13 +523,11 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
         fun ensureDailyRefreshScheduled(context: Context) = WorkScheduler.ensureDailyRefreshScheduled(context)
 
-        fun getRefreshTimeFromPreference(context: Context): Pair<Int, Int> = WorkScheduler.getRefreshTimeFromPreference(context)
-
         fun computeDayChangeDate(
             context: Context,
             epochMillis: Long,
         ): String {
-            val (hour, minute) = getRefreshTimeFromPreference(context)
+            val (hour, minute) = WorkScheduler.getRefreshTimeFromPreference(context)
             val zone = ZoneId.of("GMT+8")
             val date =
                 ZonedDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), zone)
@@ -582,8 +569,6 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         fun loadUserReactions(context: Context) = ReactionService.loadUserReactions(context)
 
         fun loadDiscussions(context: Context) = ReactionService.loadDiscussions(context)
-
-        fun loadTopicFloors(context: Context) = ReactionService.loadTopicFloors(context)
 
         fun getCardIndex(
             context: Context,

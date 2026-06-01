@@ -17,12 +17,6 @@
     <string name="status_enabled_short">有効</string>
     <string name="status_not_enabled_short">無効</string>
 
-    <!-- Tag filters -->
-    <string name="section_tag_filter">タグフィルター</string>
-    <string name="label_tag_lc0_lc_yj">LC0 / LC YJ</string>
-    <string name="label_tag_lc0">LC0</string>
-    <string name="label_tag_lc_es">LC ES</string>
-
     <!-- Theme -->
     <string name="label_appearance_mode">外観モード</string>
     <string name="label_theme_system">システム</string>
@@ -57,7 +51,6 @@
     <string name="msg_no_artwork">作品はまだありません。</string>
     <string name="label_end_of_gallery">— ギャラリーの終わり —</string>
     <string name="label_unknown_artist">不明なアーティスト</string>
-    <string name="label_no_comment">コメントなし</string>
     <string name="content_desc_export_artwork">作品をエクスポート</string>
     <string name="content_desc_artwork_details">作品の詳細</string>
     <string name="content_desc_remove_bookmark">ブックマークから削除</string>
@@ -153,12 +146,6 @@
     <string name="time_hours_ago">%1$d時間前</string>
     <string name="time_days_ago">%1$d日前</string>
 
-    <!-- Cached artwork -->
-    <string name="section_cached_artwork">キャッシュされた作品</string>
-    <string name="hint_no_cache">キャッシュされた画像はまだありません。\nMuzei でこのソースを有効化して作品を取得してください。</string>
-    <string name="btn_refresh_now">今すぐ更新</string>
-    <string name="toast_refresh_enqueued">更新キューに追加 — 現在のタグフィルターに従います</string>
-
     <!-- Login -->
     <string name="msg_already_logged_in">ログイン済みです</string>
     <string name="msg_logged_in">ログインしました</string>
@@ -176,7 +163,6 @@
 
     <!-- Toast messages -->
     <string name="msg_logged_out">ログアウトしました</string>
-    <string name="msg_refresh_enqueued">更新キューに追加しました</string>
     <string name="msg_reaction_failed">リアクションに失敗 — セッションが期限切れの可能性があります</string>
     <string name="msg_muzei_not_installed_opening">Muzei が未インストール — Play Store を開きます</string>
     <string name="msg_no_app_store">利用可能なアプリストアがありません</string>
@@ -201,8 +187,6 @@
 
     <string name="title_skip_cache">API キャッシュをスキップ</string>
     <string name="desc_skip_cache">キャッシュレスポンスを使用せずに常に API から取得</string>
-    <string name="status_cache_skipped">キャッシュ スキップ済み</string>
-    <string name="status_cache_used">キャッシュ 使用中</string>
 
     <string name="title_override_api_tag">APIタグを上書き</string>
     <string name="desc_override_api_tag">APIから取得時にカスタムタグを使用</string>
@@ -212,7 +196,6 @@
     <string name="section_debug_refresh">更新スケジュール</string>
     <string name="title_refresh_time">毎日の更新時間</string>
     <string name="desc_refresh_time">毎日の API 取得スケジュール（GMT+8）。デフォルトは 07:21。</string>
-    <string name="action_edit">編集</string>
     <string name="title_refresh_time_gmt">更新時間（GMT+8）</string>
     <string name="action_ok">OK</string>
 

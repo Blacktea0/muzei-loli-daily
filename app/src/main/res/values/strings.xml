@@ -17,12 +17,6 @@
     <string name="status_enabled_short">Enabled</string>
     <string name="status_not_enabled_short">Off</string>
 
-    <!-- Tag filters -->
-    <string name="section_tag_filter">Tag Filters</string>
-    <string name="label_tag_lc0_lc_yj">LC0 / LC YJ</string>
-    <string name="label_tag_lc0">LC0</string>
-    <string name="label_tag_lc_es">LC ES</string>
-
     <!-- Theme -->
     <string name="label_appearance_mode">Appearance mode</string>
     <string name="label_theme_system">System</string>
@@ -57,7 +51,6 @@
     <string name="msg_no_artwork">No artwork yet.</string>
     <string name="label_end_of_gallery">— End of gallery —</string>
     <string name="label_unknown_artist">Unknown Artist</string>
-    <string name="label_no_comment">No comment</string>
     <string name="content_desc_export_artwork">Export artwork</string>
     <string name="content_desc_artwork_details">Artwork details</string>
     <string name="content_desc_remove_bookmark">Remove from Bookmarks</string>
@@ -153,12 +146,6 @@
     <string name="time_hours_ago">%1$dh ago</string>
     <string name="time_days_ago">%1$dd ago</string>
 
-    <!-- Cached artwork -->
-    <string name="section_cached_artwork">Cached Artwork</string>
-    <string name="hint_no_cache">No cached images yet.\nActivate this source in Muzei to fetch artwork.</string>
-    <string name="btn_refresh_now">Refresh Now</string>
-    <string name="toast_refresh_enqueued">Refresh enqueued — respecting current tag filter</string>
-
     <!-- Login -->
     <string name="msg_already_logged_in">Already logged in</string>
     <string name="msg_logged_in">Logged in</string>
@@ -176,7 +163,6 @@
 
     <!-- Toast messages -->
     <string name="msg_logged_out">Logged out</string>
-    <string name="msg_refresh_enqueued">Refresh enqueued</string>
     <string name="msg_reaction_failed">Reaction failed — session may have expired</string>
     <string name="msg_muzei_not_installed_opening">Muzei not installed — opening Play Store</string>
     <string name="msg_no_app_store">No app store available</string>
@@ -201,8 +187,6 @@
 
     <string name="title_skip_cache">Skip API Cache</string>
     <string name="desc_skip_cache">Always fetch from API instead of using cached response</string>
-    <string name="status_cache_skipped">Cache SKIPPED</string>
-    <string name="status_cache_used">Cache USED</string>
 
     <string name="title_override_api_tag">Override API Tag</string>
     <string name="desc_override_api_tag">Use a custom tag when fetching from API</string>
@@ -212,7 +196,6 @@
     <string name="section_debug_refresh">Refresh Schedule</string>
     <string name="title_refresh_time">Daily Refresh Time</string>
     <string name="desc_refresh_time">Scheduled daily API fetch (GMT+8). Default is 07:21.</string>
-    <string name="action_edit">Edit</string>
     <string name="title_refresh_time_gmt">Refresh Time (GMT+8)</string>
     <string name="action_ok">OK</string>
 

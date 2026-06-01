@@ -72,15 +72,6 @@ object BangumiApiClient {
         return topicId to replyId
     }
 
-    /** Traverses topic.replies to find the top-level reply with matching [replyId]. */
-    fun findTargetReply(
-        topic: BangumiTopic,
-        replyId: Int?,
-    ): BangumiReply? {
-        if (replyId == null) return null
-        return topic.replies.firstOrNull { it.id == replyId }
-    }
-
     /**
      * Finds today's "floor" reply by matching content that starts with [date] and contains [tag].
      * Floor format: "2026-05-12清晨至次日凌晨 LC0 / LC YJ"
