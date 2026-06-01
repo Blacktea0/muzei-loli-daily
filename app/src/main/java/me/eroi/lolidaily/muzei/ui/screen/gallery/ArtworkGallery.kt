@@ -154,40 +154,50 @@ fun ArtworkGallery(
                 val isExpandedScreen = windowSizeClass == WindowWidthSizeClass.Expanded
 
                 if (isExpandedScreen) {
-                    // Tablet: Grid layout with 3 columns
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .nestedScroll(nestedScrollConnection),
-                        contentPadding =
-                            PaddingValues(
-                                start = 16.dp,
-                                end = 16.dp,
-                                bottom = 88.dp,
-                                top = with(density) { topPaddingPx.toDp() },
-                            ),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    // Use BoxWithConstraints to get actual available space
+                    // and determine columns based on aspect ratio
+                    BoxWithConstraints(
+                        modifier = Modifier.fillMaxSize(),
                     ) {
-                        items(filteredArtwork.take(visibleCount)) { preview ->
-                            ArtworkCard(
-                                preview = preview,
-                                onImageClick = { onFullscreenImage(preview) },
-                                onRemoveBookmark = onRemoveBookmark,
-                            )
-                        }
-                        if (visibleCount < filteredArtwork.size) {
-                            item {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(32.dp),
-                                        strokeWidth = 3.dp,
-                                    )
+                        val aspectRatio = maxWidth / maxHeight
+                        // Tablet (landscape-like, wider): aspectRatio > 1.3 → 3 columns
+                        // Foldable (portrait-like, taller): aspectRatio <= 1.3 → 2 columns
+                        val gridColumns = if (aspectRatio > 1.3f) 3 else 2
+
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(gridColumns),
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .nestedScroll(nestedScrollConnection),
+                            contentPadding =
+                                PaddingValues(
+                                    start = 16.dp,
+                                    end = 16.dp,
+                                    bottom = 88.dp,
+                                    top = with(density) { topPaddingPx.toDp() },
+                                ),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            items(filteredArtwork.take(visibleCount)) { preview ->
+                                ArtworkCard(
+                                    preview = preview,
+                                    onImageClick = { onFullscreenImage(preview) },
+                                    onRemoveBookmark = onRemoveBookmark,
+                                )
+                            }
+                            if (visibleCount < filteredArtwork.size) {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(32.dp),
+                                            strokeWidth = 3.dp,
+                                        )
+                                    }
                                 }
                             }
                         }
