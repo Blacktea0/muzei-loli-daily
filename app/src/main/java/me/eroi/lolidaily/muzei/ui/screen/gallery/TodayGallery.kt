@@ -586,7 +586,10 @@ private fun HeroDetailContent(
                     )
                     Column {
                         Text(
-                            text = stringResource(R.string.label_uploader_comment),
+                            text =
+                                preview.suggestedByName?.let {
+                                    stringResource(R.string.label_uploader_comment, it)
+                                } ?: stringResource(R.string.label_anonymous_comment),
                             style = MaterialTheme.typography.labelSmall,
                             color = colorScheme.onSurfaceVariant,
                         )
@@ -1047,7 +1050,10 @@ private fun TabletDetailContent(
                     )
                     Column {
                         Text(
-                            text = stringResource(R.string.label_uploader_comment),
+                            text =
+                                preview.suggestedByName?.let {
+                                    stringResource(R.string.label_uploader_comment, it)
+                                } ?: stringResource(R.string.label_anonymous_comment),
                             style = MaterialTheme.typography.labelSmall,
                             color = colorScheme.onSurfaceVariant,
                         )

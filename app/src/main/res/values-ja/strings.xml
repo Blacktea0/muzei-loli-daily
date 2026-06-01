@@ -88,9 +88,9 @@
     <string name="label_date">日付</string>
     <string name="label_unknown">不明</string>
     <string name="label_classification">分類</string>
-    <string name="label_suggested_by_title">アップローダー</string>
+    <string name="label_suggested_by_title">レコメンダー</string>
     <string name="label_comment">コメント</string>
-    <string name="label_uploader_comment">アップローダーのコメント</string>
+    <string name="label_uploader_comment">%1$sのコメント</string>
     <string name="msg_no_comment_available">コメントはありません</string>
 
     <!-- Source status -->

@@ -88,9 +88,9 @@
     <string name="label_date">日期</string>
     <string name="label_unknown">未知</string>
     <string name="label_classification">分类</string>
-    <string name="label_suggested_by_title">上传者</string>
+    <string name="label_suggested_by_title">推荐人</string>
     <string name="label_comment">评论</string>
-    <string name="label_uploader_comment">上传者的评论</string>
+    <string name="label_uploader_comment">%1$s的评论</string>
     <string name="msg_no_comment_available">暂无评论</string>
 
     <!-- Source status -->
