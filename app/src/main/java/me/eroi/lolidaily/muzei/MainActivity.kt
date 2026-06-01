@@ -176,6 +176,7 @@ class MainActivity : AppCompatActivity() {
                     },
                     refreshProgress = refreshProgress,
                     initialTab = if (fromMuzei) 2 else 0,
+                    onTodayPageOpened = { loadPreview() },
                 )
             }
         }

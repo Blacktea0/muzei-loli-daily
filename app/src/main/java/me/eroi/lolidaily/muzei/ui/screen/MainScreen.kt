@@ -102,6 +102,7 @@ fun MainScreen(
     onManualColorChanged: (Int) -> Unit = {},
     sourceColorArgb: Int? = null,
     onBadgeChanged: (String) -> Unit = {},
+    onTodayPageOpened: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val windowSizeClass = calculateWindowSizeClass(context as android.app.Activity)
@@ -213,6 +214,7 @@ fun MainScreen(
                             initialPage = todayPagerPage,
                             onPageChanged = { todayPagerPage = it },
                             windowSizeClass = windowSizeClass.widthSizeClass,
+                            onPageOpened = onTodayPageOpened,
                         )
 
                     1 ->
@@ -339,6 +341,7 @@ fun MainScreen(
                             initialPage = todayPagerPage,
                             onPageChanged = { todayPagerPage = it },
                             windowSizeClass = windowSizeClass.widthSizeClass,
+                            onPageOpened = onTodayPageOpened,
                         )
                     }
 

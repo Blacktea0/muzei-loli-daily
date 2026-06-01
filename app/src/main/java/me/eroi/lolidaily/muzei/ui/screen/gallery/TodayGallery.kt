@@ -67,6 +67,7 @@ fun TodayGallery(
     initialPage: Int = 0,
     onPageChanged: (Int) -> Unit = {},
     windowSizeClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
+    onPageOpened: () -> Unit = {},
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val currentDate =
@@ -81,6 +82,11 @@ fun TodayGallery(
             pageCount = { tags.size },
         )
     val currentTag = tags.getOrNull(pagerState.currentPage)
+
+    // Trigger refresh when page is first displayed
+    LaunchedEffect(Unit) {
+        onPageOpened()
+    }
 
     LaunchedEffect(pagerState.currentPage) {
         onPageChanged(pagerState.currentPage)
