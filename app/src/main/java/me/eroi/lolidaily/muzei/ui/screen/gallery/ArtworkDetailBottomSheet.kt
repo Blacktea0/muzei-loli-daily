@@ -178,7 +178,7 @@ fun ArtworkDetailBottomSheet(
                         },
                     ) {
                         Icon(
-                            Icons.Default.Person,
+                            Icons.Default.Palette,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
                         )

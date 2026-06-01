@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -22,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -53,12 +53,8 @@ private const val GALLERY_PAGE_SIZE = 5
 fun ArtworkGallery(
     cachedArtwork: List<ArtworkPreview>,
     onFullscreenImage: (ArtworkPreview) -> Unit = {},
-    isLoggedIn: Boolean = false,
-    onLogin: () -> Unit = {},
-    onReactionClick: (token: String, emojiValue: Int) -> Unit = { _, _ -> },
     onRemoveBookmark: (ArtworkPreview) -> Unit = {},
     emptyMessage: String = "",
-    isToday: Boolean = true,
     searchQuery: String = "",
     selectedTag: String? = null,
     onSearchQueryChange: (String) -> Unit = {},
@@ -420,9 +416,11 @@ fun ArtworkCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Icon(
-                        Icons.AutoMirrored.Filled.Comment,
+                        Icons.Default.FormatQuote,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+                        modifier =
+                            Modifier.size(16.dp)
+                                .rotate(180f),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
