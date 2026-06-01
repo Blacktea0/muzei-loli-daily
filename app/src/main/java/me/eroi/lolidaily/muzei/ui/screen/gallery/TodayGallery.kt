@@ -43,6 +43,8 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import ir.mahozad.multiplatform.wavyslider.WaveDirection
+import ir.mahozad.multiplatform.wavyslider.material3.WavySlider
 import kotlinx.coroutines.launch
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.ReactionService
@@ -485,14 +487,15 @@ private fun RefreshProgressBar(
     modifier: Modifier = Modifier,
 ) {
     if (progress == null) return
-    if (progress <= 0f) {
-        LinearProgressIndicator(modifier = modifier.fillMaxWidth())
-    } else {
-        LinearProgressIndicator(
-            progress = { progress },
-            modifier = modifier.fillMaxWidth(),
-        )
-    }
+    WavySlider(
+        value = if (progress <= 0f) 0.01f else progress,
+        onValueChange = {},
+        enabled = false,
+        modifier = modifier.fillMaxWidth(),
+        waveLength = 16.dp,
+        waveHeight = 8.dp,
+        waveVelocity = 12.dp to WaveDirection.HEAD,
+    )
 }
 
 @Composable
