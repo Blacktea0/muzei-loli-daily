@@ -95,11 +95,23 @@ jobs:
       - name: Rename APKs
         run: |
           mkdir -p artifacts
+          # Debug APK
           if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
             cp app/build/outputs/apk/debug/app-debug.apk artifacts/muzei-loli-daily-debug-${VERSION_NAME:-dev}.apk
+            echo "✓ Debug APK copied"
+          else
+            echo "✗ Debug APK not found"
           fi
+          # Release APK - try multiple possible locations
           if [ -f app/build/outputs/apk/release/app-release.apk ]; then
             cp app/build/outputs/apk/release/app-release.apk artifacts/muzei-loli-daily-release-${VERSION_NAME:-dev}.apk
+            echo "✓ Release APK copied from app-release.apk"
+          elif [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            cp app/build/outputs/apk/release/app-release-unsigned.apk artifacts/muzei-loli-daily-release-${VERSION_NAME:-dev}.apk
+            echo "✓ Release APK copied from app-release-unsigned.apk"
+          else
+            echo "✗ Release APK not found, listing directory:"
+            ls -la app/build/outputs/apk/release/ 2>/dev/null || echo "Directory does not exist"
           fi
 
       - name: Upload APKs
