@@ -1,5 +1,6 @@
 package me.eroi.lolidaily.muzei.ui.screen
 
+import android.content.Context
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -45,6 +46,7 @@ import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.R
+import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.ui.screen.components.*
 import me.eroi.lolidaily.muzei.ui.screen.gallery.*
@@ -611,8 +613,13 @@ private fun WallpaperSheet(
     isLoggedIn: Boolean = false,
     lcBadge: String? = null,
 ) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE) }
+    val overrideApiTagEnabled = remember { prefs.getBoolean(LoliApiClient.KEY_DEBUG_OVERRIDE_API_TAG_ENABLED, false) }
+    val overrideApiTag = remember { prefs.getString(LoliApiClient.KEY_DEBUG_OVERRIDE_API_TAG, null) ?: "" }
     val hasEsBadge = lcBadge?.contains("ES") == true
-    val showTagSelector = isLoggedIn && !lcBadge.isNullOrBlank() && hasEsBadge
+    val isNonDefaultTagOverride = overrideApiTagEnabled && overrideApiTag.isNotBlank() && overrideApiTag !in listOf("LC0", "LC YJ")
+    val showTagSelector = (isLoggedIn && !lcBadge.isNullOrBlank() && hasEsBadge) || isNonDefaultTagOverride
 
     SheetTitle(Icons.Filled.Photo, stringResource(R.string.title_muzei_wallpaper))
     if (showTagSelector) {
