@@ -1,11 +1,9 @@
 name: Build & Release
 
 on:
+  workflow_dispatch:  # Manual trigger
   push:
-    branches: [main]
-    tags: ['v*']
-  pull_request:
-    branches: [main]
+    tags: ['v*']      # Only on tag push
 
 env:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true"
