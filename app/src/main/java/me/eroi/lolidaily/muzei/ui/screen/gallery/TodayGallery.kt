@@ -652,13 +652,6 @@ private fun HeroDetailContent(
                 },
         )
 
-        // Uploader
-        DetailMetaItem(
-            icon = Icons.Default.Person,
-            label = stringResource(R.string.label_suggested_by_title),
-            value = preview.suggestedByName ?: stringResource(R.string.label_unknown),
-        )
-
         // Source URL
         if (preview.sourceUrl.isNotBlank()) {
             DetailMetaItem(
@@ -699,6 +692,14 @@ private fun HeroDetailContent(
                 }
             }
         }
+
+        // Uploader (placed last)
+        HorizontalDivider(color = colorScheme.outlineVariant)
+        DetailMetaItem(
+            icon = Icons.Default.Person,
+            label = stringResource(R.string.label_suggested_by_title),
+            value = preview.suggestedByName ?: stringResource(R.string.label_unknown),
+        )
     }
 
     // ── Reaction picker dialog (managed internally) ──
@@ -1028,13 +1029,6 @@ private fun TabletDetailContent(
                 },
         )
 
-        // Uploader
-        DetailMetaItem(
-            icon = Icons.Default.Person,
-            label = stringResource(R.string.label_suggested_by_title),
-            value = preview.suggestedByName ?: stringResource(R.string.label_unknown),
-        )
-
         // Source URL
         if (preview.sourceUrl.isNotBlank()) {
             DetailMetaItem(
@@ -1075,6 +1069,14 @@ private fun TabletDetailContent(
                 }
             }
         }
+
+        // Uploader (placed last)
+        HorizontalDivider(color = colorScheme.outlineVariant)
+        DetailMetaItem(
+            icon = Icons.Default.Person,
+            label = stringResource(R.string.label_suggested_by_title),
+            value = preview.suggestedByName ?: stringResource(R.string.label_unknown),
+        )
 
         HorizontalDivider(color = colorScheme.outlineVariant)
 

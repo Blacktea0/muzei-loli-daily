@@ -576,7 +576,7 @@ private fun BookmarkSearchField(
     TextField(
         value = query,
         onValueChange = onQueryChange,
-        modifier = Modifier.fillMaxWidth().height(48.dp),
+        modifier = Modifier.fillMaxWidth(),
         placeholder = {
             Text(stringResource(R.string.hint_search_bookmarks), style = MaterialTheme.typography.bodyMedium)
         },
