@@ -670,6 +670,27 @@ private fun HeroDetailContent(
             )
         }
 
+        // Uploader (placed last)
+        val suggestedByDisplay =
+            buildString {
+                append(preview.suggestedByName ?: stringResource(R.string.label_unknown))
+                preview.suggestedByUsername?.let { append(" @$it") }
+            }
+        DetailMetaItem(
+            icon = Icons.Default.Person,
+            label = stringResource(R.string.label_suggested_by_title),
+            value = suggestedByDisplay,
+            onClick =
+                preview.suggestedByUsername?.let { username ->
+                    {
+                        val bgmDomain = SessionManager.loadDomain(context)
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, "https://$bgmDomain/user/$username".toUri()),
+                        )
+                    }
+                },
+        )
+
         // ── Characters Section ──
         if (preview.characterNames.isNotEmpty()) {
             HorizontalDivider(color = colorScheme.outlineVariant)
@@ -696,27 +717,6 @@ private fun HeroDetailContent(
                 }
             }
         }
-
-        // Uploader (placed last)
-        val suggestedByDisplay =
-            buildString {
-                append(preview.suggestedByName ?: stringResource(R.string.label_unknown))
-                preview.suggestedByUsername?.let { append(" @$it") }
-            }
-        DetailMetaItem(
-            icon = Icons.Default.Person,
-            label = stringResource(R.string.label_suggested_by_title),
-            value = suggestedByDisplay,
-            onClick =
-                preview.suggestedByUsername?.let { username ->
-                    {
-                        val bgmDomain = SessionManager.loadDomain(context)
-                        context.startActivity(
-                            Intent(Intent.ACTION_VIEW, "https://$bgmDomain/user/$username".toUri()),
-                        )
-                    }
-                },
-        )
     }
 
     // ── Reaction picker dialog (managed internally) ──
@@ -1101,6 +1101,27 @@ private fun TabletDetailContent(
             )
         }
 
+        // Uploader (placed last)
+        val suggestedByDisplay =
+            buildString {
+                append(preview.suggestedByName ?: stringResource(R.string.label_unknown))
+                preview.suggestedByUsername?.let { append(" @$it") }
+            }
+        DetailMetaItem(
+            icon = Icons.Default.Person,
+            label = stringResource(R.string.label_suggested_by_title),
+            value = suggestedByDisplay,
+            onClick =
+                preview.suggestedByUsername?.let { username ->
+                    {
+                        val bgmDomain = SessionManager.loadDomain(context)
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, "https://$bgmDomain/user/$username".toUri()),
+                        )
+                    }
+                },
+        )
+
         // ── Characters Section ──
         if (preview.characterNames.isNotEmpty()) {
             HorizontalDivider(color = colorScheme.outlineVariant)
@@ -1127,27 +1148,6 @@ private fun TabletDetailContent(
                 }
             }
         }
-
-        // Uploader (placed last)
-        val suggestedByDisplay =
-            buildString {
-                append(preview.suggestedByName ?: stringResource(R.string.label_unknown))
-                preview.suggestedByUsername?.let { append(" @$it") }
-            }
-        DetailMetaItem(
-            icon = Icons.Default.Person,
-            label = stringResource(R.string.label_suggested_by_title),
-            value = suggestedByDisplay,
-            onClick =
-                preview.suggestedByUsername?.let { username ->
-                    {
-                        val bgmDomain = SessionManager.loadDomain(context)
-                        context.startActivity(
-                            Intent(Intent.ACTION_VIEW, "https://$bgmDomain/user/$username".toUri()),
-                        )
-                    }
-                },
-        )
 
         HorizontalDivider(color = colorScheme.outlineVariant)
 
