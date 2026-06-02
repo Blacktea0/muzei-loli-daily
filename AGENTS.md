@@ -4,22 +4,32 @@ Quick orientation for AI coding agents working in this repo.
 
 ## Project overview
 
-Android app (Kotlin + Jetpack Compose + Material 3) that acts as a [Muzei Live Wallpaper](https://muzei.co/) art source, pulling daily artwork from the Loli Commons API (`loliconey.tsuki.ga`). Users can react to artwork via Bangumi (bgm.tv) OAuth.
+Android app (Kotlin + Jetpack Compose + Material 3) that acts as a [Muzei Live Wallpaper](https://muzei.co/) art source, pulling daily artwork from the [Loli Commons API](https://loliconey.tsuki.ga/). Users can react to artwork via [Bangumi](https://bgm.tv/) OAuth.
 
 - Package: `me.eroi.lolidaily.muzei`
-- Min SDK 28, Target/Compile SDK 36, JVM 17, Kotlin 2.3.21
+- Min SDK 28, Target/Compile SDK 37, JVM 17, Kotlin 2.3.21
 - Single module: `:app`
-- Detailed reference: `AGENTS.md`
 
 ## Build & run
 
 ```bash
-./gradlew assembleDebug         # build APK
-./gradlew installDebug          # build + install to connected device
-./gradlew ktlintFormat          # format all Kotlin sources (4-space indent, ktlint_official)
-./gradlew ktlintCheck           # check formatting (dry-run, CI)
-./gradlew lint                  # static analysis (includes ktlintCheck)
-./gradlew build                 # full build
+# Build APK
+./gradlew assembleDebug
+
+# Build + install to connected device
+./gradlew installDebug
+
+# Format all Kotlin sources (4-space indent, ktlint_official)
+./gradlew ktlintFormat
+
+# Check formatting (dry-run, CI)
+./gradlew ktlintCheck
+
+# Static analysis (includes ktlintCheck)
+./gradlew lint
+
+# Full build
+./gradlew build
 ```
 
 A git pre-commit hook runs `ktlintFormat` automatically. There are no tests defined yet.
@@ -29,12 +39,35 @@ A git pre-commit hook runs `ktlintFormat` automatically. There are no tests defi
 ## Mock server
 
 ```bash
-./gradlew startMockServer       # starts Node.js Express mock at 0.0.0.0:50303
-./gradlew stopMockServer        # kills the background server
-./gradlew mockLogs              # prints server.log
+# Starts Node.js Express mock at 0.0.0.0:50303
+./gradlew startMockServer
+
+# Kills the background server
+./gradlew stopMockServer
+
+# Prints server.log
+./gradlew mockLogs
 ```
 
 The API server URL is configured at runtime via Debug Settings → API Server. Users can select from known servers (`loliconey.tsuki.ga`, `lc-coney.deno.dev`, `next.bgm.tv`) or enter a custom URL. The default is `https://loliconey.tsuki.ga`. The value is stored in SharedPreferences key `debug_api_base_url`.
+
+## Scripts
+
+```bash
+# Generate release keystore and encode to Base64
+./scripts/setup-keystore.sh
+```
+
+The setup-keystore script generates a release keystore, encodes it to Base64, and prints instructions for configuring GitHub Secrets.
+
+## CI/CD
+
+GitHub Actions workflow (`.github/workflows/release.yml`) automates build and release:
+
+- **Trigger**: manual dispatch or tag push (`v*`)
+- **Lint job**: runs `ktlintCheck` and `lint`
+- **Build job**: decodes keystore from secrets, builds release APK, uploads as artifact
+- **Release job**: creates GitHub Release with APK (only on tag push)
 
 ## Architecture
 

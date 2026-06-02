@@ -1,27 +1,27 @@
 #!/bin/bash
-# 生成 release keystore 并编码为 Base64
-# 用法: ./scripts/setup-keystore.sh
+# Generate release keystore and encode to Base64
+# Usage: ./scripts/setup-keystore.sh
 
 set -e
 
 KEYSTORE_FILE="release.keystore"
 KEY_ALIAS="release"
 
-echo "=== 生成 Release Keystore ==="
+echo "=== Generating Release Keystore ==="
 echo ""
 
-# 检查是否已存在
+# Check if file already exists
 if [ -f "$KEYSTORE_FILE" ]; then
-    echo "警告: $KEYSTORE_FILE 已存在"
-    read -p "是否覆盖? (y/N): " -n 1 -r
+    echo "Warning: $KEYSTORE_FILE already exists"
+    read -p "Overwrite? (y/N): " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo "已取消"
+        echo "Cancelled"
         exit 0
     fi
 fi
 
-# 生成 keystore
+# Generate keystore
 keytool -genkey -v \
     -keystore "$KEYSTORE_FILE" \
     -alias "$KEY_ALIAS" \
@@ -30,13 +30,13 @@ keytool -genkey -v \
     -validity 10000
 
 echo ""
-echo "=== Keystore 生成完成 ==="
+echo "=== Keystore Generated Successfully ==="
 echo ""
 
-# 编码为 Base64
-echo "=== Base64 编码 ==="
+# Encode to Base64
+echo "=== Base64 Encoding ==="
 echo ""
-echo "请将以下内容添加到 GitHub Secrets:"
+echo "Add the following to GitHub Secrets:"
 echo ""
 echo "KEYSTORE_BASE64:"
 echo "----------------------------------------"
@@ -44,9 +44,9 @@ base64 -i "$KEYSTORE_FILE" | tr -d '\n'
 echo ""
 echo "----------------------------------------"
 echo ""
-echo "其他需要添加的 Secrets:"
-echo "  KEYSTORE_PASSWORD: 你设置的 keystore 密码"
+echo "Other Secrets to add:"
+echo "  KEYSTORE_PASSWORD: Your keystore password"
 echo "  KEY_ALIAS: $KEY_ALIAS"
-echo "  KEY_PASSWORD: 你设置的 key 密码"
+echo "  KEY_PASSWORD: Your key password"
 echo ""
-echo "配置位置: 仓库 Settings → Secrets and variables → Actions"
+echo "Configure at: Repository Settings → Secrets and variables → Actions"
