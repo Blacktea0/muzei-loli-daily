@@ -55,7 +55,7 @@
     <string name="content_desc_artwork_details">Artwork details</string>
     <string name="content_desc_remove_bookmark">Remove from Bookmarks</string>
     <string name="title_remove_bookmark">Remove from Bookmarks</string>
-    <string name="msg_remove_bookmark_confirm">Remove this artwork from your bookmarks? The cached image will also be deleted.</string>
+    <string name="msg_remove_bookmark_confirm">Are you sure you want to remove the artwork from bookmarks? This action is irreversible.</string>
     <string name="action_remove">Remove</string>
     <string name="action_cancel">Cancel</string>
     <string name="hint_search_bookmarks">Search bookmarks…</string>

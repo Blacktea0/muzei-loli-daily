@@ -55,7 +55,7 @@
     <string name="content_desc_artwork_details">画作详情</string>
     <string name="content_desc_remove_bookmark">从收藏中移除</string>
     <string name="title_remove_bookmark">从收藏中移除</string>
-    <string name="msg_remove_bookmark_confirm">确定要从收藏中移除此画作吗？缓存的图片也将被删除。</string>
+    <string name="msg_remove_bookmark_confirm">确认是否要从收藏中删除画作？此操作不可逆。</string>
     <string name="action_remove">移除</string>
     <string name="action_cancel">取消</string>
     <string name="hint_search_bookmarks">搜索收藏…</string>

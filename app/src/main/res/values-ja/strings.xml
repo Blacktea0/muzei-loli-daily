@@ -55,7 +55,7 @@
     <string name="content_desc_artwork_details">作品の詳細</string>
     <string name="content_desc_remove_bookmark">ブックマークから削除</string>
     <string name="title_remove_bookmark">ブックマークから削除</string>
-    <string name="msg_remove_bookmark_confirm">この作品をブックマークから削除しますか？キャッシュされた画像も削除されます。</string>
+    <string name="msg_remove_bookmark_confirm">ブックマークから作品を削除してもよろしいですか？この操作は元に戻せません。</string>
     <string name="action_remove">削除</string>
     <string name="action_cancel">キャンセル</string>
     <string name="hint_search_bookmarks">ブックマークを検索…</string>
