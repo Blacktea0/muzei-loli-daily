@@ -1,23 +1,31 @@
 package me.eroi.lolidaily.muzei.ui.screen
 
 import android.content.Intent
+import android.widget.ImageView
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,19 +38,39 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
-import me.eroi.lolidaily.muzei.BuildConfig
 import me.eroi.lolidaily.muzei.R
 
-private const val GITHUB_URL = "https://github.com/eroi/muzei-loli-daily"
+private const val GITHUB_URL = "https://github.com/Blacktea0/muzei-loli-daily"
 private const val OFFICIAL_SITE_URL = "https://lolicommons.tsuki.ga/"
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -86,12 +114,26 @@ fun AboutScreen(onBack: () -> Unit) {
                             .padding(vertical = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Info,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
+                    Box(
+                        modifier =
+                            Modifier
+                                .size(96.dp)
+                                .clip(CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Image(
+                            painter = painterResource(R.mipmap.ic_launcher_background),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                        )
+                        Image(
+                            painter = painterResource(R.mipmap.ic_launcher_foreground),
+                            contentDescription = null,
+                            modifier = Modifier.requiredSize(144.dp),
+                            contentScale = ContentScale.Crop,
+                        )
+                    }
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = stringResource(R.string.about_hero_title),
@@ -99,11 +141,12 @@ fun AboutScreen(onBack: () -> Unit) {
                         fontWeight = FontWeight.Bold,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(R.string.about_hero_subtitle),
+                    StrikethroughText(
+                        text = buildStyledHeroSubtitle(),
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        strikethroughColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
@@ -115,118 +158,29 @@ fun AboutScreen(onBack: () -> Unit) {
                 }
             }
 
-            // ── App info card ──
+            // ── App info ──
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        ),
-                ) {
-                    Column {
-                        ListItem(
-                            headlineContent = {
-                                Text(
-                                    text = stringResource(R.string.about_version),
-                                    style = MaterialTheme.typography.titleSmall,
-                                )
-                            },
-                            supportingContent = {
-                                Text(BuildConfig.VERSION_NAME)
-                            },
-                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        )
-                        Surface(
-                            onClick = {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, OFFICIAL_SITE_URL.toUri()),
-                                )
-                            },
-                            color = Color.Transparent,
-                        ) {
-                            ListItem(
-                                headlineContent = {
-                                    Text(
-                                        text = stringResource(R.string.about_official_site),
-                                        style = MaterialTheme.typography.titleSmall,
-                                    )
-                                },
-                                supportingContent = { Text(OFFICIAL_SITE_URL) },
-                                trailingContent = {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.OpenInNew,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                },
-                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                SegmentedSettingsGroup {
+                    GroupedSettingsRow(
+                        icon = Icons.Default.Language,
+                        title = stringResource(R.string.about_official_site),
+                        subtitle = OFFICIAL_SITE_URL,
+                        onClick = {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, OFFICIAL_SITE_URL.toUri()),
                             )
-                        }
-                        Surface(
-                            onClick = {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, GITHUB_URL.toUri()),
-                                )
-                            },
-                            color = Color.Transparent,
-                        ) {
-                            ListItem(
-                                headlineContent = {
-                                    Text(
-                                        text = stringResource(R.string.about_source_code),
-                                        style = MaterialTheme.typography.titleSmall,
-                                    )
-                                },
-                                supportingContent = { Text(GITHUB_URL) },
-                                trailingContent = {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.OpenInNew,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                },
-                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        },
+                    )
+                    GroupedSettingsRow(
+                        icon = Icons.Default.Code,
+                        title = stringResource(R.string.about_source_code),
+                        subtitle = GITHUB_URL,
+                        onClick = {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, GITHUB_URL.toUri()),
                             )
-                        }
-                    }
-                }
-            }
-
-            // ── FAQ section ──
-            item {
-                Text(
-                    text = stringResource(R.string.about_faq_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors =
-                        CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        ),
-                ) {
-                    Column {
-                        FaqItem(
-                            question = stringResource(R.string.about_faq_q1),
-                            answer = stringResource(R.string.about_faq_a1),
-                        )
-                        FaqItem(
-                            question = stringResource(R.string.about_faq_q2),
-                            answer = stringResource(R.string.about_faq_a2),
-                        )
-                        FaqItem(
-                            question = stringResource(R.string.about_faq_q3),
-                            answer = stringResource(R.string.about_faq_a3),
-                        )
-                    }
+                        },
+                    )
                 }
             }
 
@@ -248,24 +202,207 @@ fun AboutScreen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun FaqItem(
-    question: String,
-    answer: String,
+private fun buildStyledHeroSubtitle(): androidx.compose.ui.text.AnnotatedString {
+    val fullText = stringResource(R.string.about_hero_subtitle)
+    val nonprofit = stringResource(R.string.about_highlight_nonprofit)
+    val appName = stringResource(R.string.about_hero_title)
+    val primaryColor = MaterialTheme.colorScheme.primary
+
+    return buildAnnotatedString {
+        append(fullText)
+
+        // Style "nonprofit" / "非盈利" with strikethrough (drawn by StrikethroughText)
+        val nonprofitIndex = fullText.indexOf(nonprofit, ignoreCase = true)
+        if (nonprofitIndex >= 0) {
+            addStyle(
+                style =
+                    SpanStyle(
+                        textDecoration = TextDecoration.LineThrough,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    ),
+                start = nonprofitIndex,
+                end = nonprofitIndex + nonprofit.length,
+            )
+            // Add a tag to mark strikethrough range for custom drawing
+            addStringAnnotation(
+                tag = "STRIKETHROUGH",
+                annotation = "",
+                start = nonprofitIndex,
+                end = nonprofitIndex + nonprofit.length,
+            )
+        }
+
+        // Style "Loli Commons" / "萝莉共享" with bold + primary color
+        val appNameIndex = fullText.indexOf(appName, ignoreCase = true)
+        if (appNameIndex >= 0) {
+            addStyle(
+                style =
+                    SpanStyle(
+                        fontWeight = FontWeight.Bold,
+                        color = primaryColor,
+                    ),
+                start = appNameIndex,
+                end = appNameIndex + appName.length,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SegmentedSettingsGroup(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp)),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        content = content,
+    )
+}
+
+@Composable
+private fun GroupedSettingsRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    iconContainerColor: Color = MaterialTheme.colorScheme.secondaryContainer,
+    iconContentColor: Color = MaterialTheme.colorScheme.onSecondaryContainer,
+    leadingContent: (@Composable () -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+    endIcon: ImageVector = Icons.Filled.ChevronRight,
+) {
+    Surface(
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = RoundedCornerShape(4.dp),
+        modifier = modifier.fillMaxWidth(),
     ) {
-        Text(
-            text = question,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = answer,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        ListItem(
+            modifier = Modifier.defaultMinSize(minHeight = 76.dp),
+            headlineContent = {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+            supportingContent = {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            },
+            leadingContent =
+                if (leadingContent != null) {
+                    { leadingContent() }
+                } else {
+                    {
+                        SettingsIconContainer(
+                            icon = icon,
+                            containerColor = iconContainerColor,
+                            contentColor = iconContentColor,
+                        )
+                    }
+                },
+            trailingContent = {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    trailing?.invoke()
+                    Icon(
+                        imageVector = endIcon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            },
+            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         )
     }
+}
+
+@Composable
+private fun SettingsIconContainer(
+    icon: ImageVector,
+    containerColor: Color,
+    contentColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        shape = CircleShape,
+        color = containerColor,
+        contentColor = contentColor,
+        modifier = modifier.size(44.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun StrikethroughText(
+    text: androidx.compose.ui.text.AnnotatedString,
+    modifier: Modifier = Modifier,
+    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyLarge,
+    textAlign: TextAlign? = null,
+    color: Color = Color.Unspecified,
+    strikethroughColor: Color = Color.Gray,
+    strikethroughWidth: Float = 10f,
+) {
+    var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+
+    Text(
+        text = text,
+        modifier =
+            modifier.drawBehind {
+                textLayoutResult?.let { layoutResult ->
+                    // Find strikethrough annotations
+                    val annotations = text.getStringAnnotations("STRIKETHROUGH", 0, text.length)
+                    annotations.forEach { annotation ->
+                        val start = annotation.start
+                        val end = annotation.end
+                        val startLine = layoutResult.getLineForOffset(start)
+                        val endLine = layoutResult.getLineForOffset(end)
+
+                        for (line in startLine..endLine) {
+                            val lineStart = if (line == startLine) start else layoutResult.getLineStart(line)
+                            val lineEnd = if (line == endLine) end else layoutResult.getLineEnd(line, visibleEnd = true)
+
+                            val startOffset = layoutResult.getBoundingBox(lineStart).left
+                            val endOffset = layoutResult.getBoundingBox(lineEnd - 1).right
+                            val lineTop = layoutResult.getLineTop(line)
+                            val lineBottom = layoutResult.getLineBottom(line)
+                            val y = (lineTop + lineBottom) / 2
+
+                            drawLine(
+                                color = strikethroughColor,
+                                start = Offset(startOffset, y),
+                                end = Offset(endOffset, y),
+                                strokeWidth = strikethroughWidth,
+                            )
+                        }
+                    }
+                }
+            },
+        style = style,
+        textAlign = textAlign,
+        color = color,
+        onTextLayout = { textLayoutResult = it },
+    )
 }

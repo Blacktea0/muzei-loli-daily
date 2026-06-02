@@ -44,6 +44,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.core.content.edit
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
+import me.eroi.lolidaily.muzei.BuildConfig
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.LoliApiClient
@@ -1434,7 +1435,7 @@ private fun PreferenceTab(
                 GroupedSettingsRow(
                     icon = Icons.Filled.Info,
                     title = stringResource(R.string.title_about),
-                    subtitle = stringResource(R.string.about_official_site),
+                    subtitle = stringResource(R.string.about_version_info, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
                     iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     iconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     onClick = onOpenAbout,

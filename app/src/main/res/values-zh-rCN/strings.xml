@@ -221,18 +221,13 @@
 
     <!-- About -->
     <string name="title_about">关于</string>
+    <string name="about_version_info">当前版本 %1$s (%2$d)</string>
     <string name="about_hero_title">萝莉共享</string>
     <string name="about_hero_subtitle">是一个国际非盈利组织，\n旨在促进萝莉控作品的流通\n与萝莉控之间的交流</string>
     <string name="about_hero_tagline">世界 需要更多萝莉 &lt;3</string>
+    <string name="about_highlight_nonprofit">国际非盈利</string>
     <string name="about_version">版本</string>
     <string name="about_official_site">官方网站</string>
     <string name="about_source_code">源代码</string>
-    <string name="about_faq_title">常见问题</string>
-    <string name="about_faq_q1">Q: 有萝莉吗？</string>
-    <string name="about_faq_a1">A: 这哪有萝莉，都是萝莉控</string>
-    <string name="about_faq_q2">Q: 为什么辣么多白毛红瞳猫耳八重齿水手服？</string>
-    <string name="about_faq_a2">A: 因为冲国特攻 别问，问就是个人喜好</string>
-    <string name="about_faq_q3">Q: 但是，为什么是猫娘？</string>
-    <string name="about_faq_a3">A: 12岁的萝莉会让大型语言模型产生心理负担，但是12岁的猫娘不会</string>
     <string name="about_copyright">\u00A9 2025 萝莉共享 — CC0 aka no rights reserved</string>
 </resources>
