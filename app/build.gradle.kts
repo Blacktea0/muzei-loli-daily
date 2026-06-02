@@ -1,6 +1,5 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
@@ -10,7 +9,7 @@ plugins {
 android {
     namespace = "me.eroi.lolidaily.muzei"
 
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "me.eroi.lolidaily.muzei"
@@ -72,10 +71,11 @@ android {
 
             if (!mockDir.resolve("node_modules").exists()) {
                 println("[mock] Installing dependencies first...")
-                exec {
-                    workingDir = mockDir
-                    commandLine("npm", "install")
-                }
+                ProcessBuilder("npm", "install")
+                    .directory(mockDir)
+                    .inheritIO()
+                    .start()
+                    .waitFor()
             }
 
             val logFile = mockDir.resolve("server.log")
@@ -159,9 +159,9 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
-    // Material Design 3
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material3:material3-window-size-class")
+    // Material Design 3 (override BOM for LinearWavyProgressIndicator)
+    implementation("androidx.compose.material3:material3:1.5.0-alpha20")
+    implementation("androidx.compose.material3:material3-window-size-class:1.5.0-alpha20")
     implementation("androidx.compose.material:material-icons-extended")
 
     // Activity & Lifecycle Compose integration

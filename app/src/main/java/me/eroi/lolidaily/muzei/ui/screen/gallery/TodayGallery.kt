@@ -43,8 +43,8 @@ import androidx.compose.ui.window.PopupProperties
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
-import ir.mahozad.multiplatform.wavyslider.WaveDirection
-import ir.mahozad.multiplatform.wavyslider.material3.WavySlider
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LinearWavyProgressIndicator
 import kotlinx.coroutines.launch
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.ReactionService
@@ -206,39 +206,41 @@ fun TodayGallery(
                 },
         )
 
-        // ── Tag Tabs ──
-        if (showTabs) {
-            PrimaryTabRow(
-                selectedTabIndex = pagerState.currentPage,
-                modifier =
-                    Modifier.drawBehind {
-                        drawLine(
-                            color = colorScheme.outlineVariant,
-                            start = Offset(0f, size.height),
-                            end = Offset(size.width, size.height),
-                            strokeWidth = 1.dp.toPx(),
+        // ── Tag Tabs + Refresh Progress (overlay) ──
+        Box {
+            if (showTabs) {
+                PrimaryTabRow(
+                    selectedTabIndex = pagerState.currentPage,
+                    modifier =
+                        Modifier.drawBehind {
+                            drawLine(
+                                color = colorScheme.outlineVariant,
+                                start = Offset(0f, size.height),
+                                end = Offset(size.width, size.height),
+                                strokeWidth = 1.dp.toPx(),
+                            )
+                        },
+                ) {
+                    tags.forEachIndexed { index, tag ->
+                        Tab(
+                            selected = pagerState.currentPage == index,
+                            onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                            text = { Text(tag) },
                         )
-                    },
-            ) {
-                tags.forEachIndexed { index, tag ->
-                    Tab(
-                        selected = pagerState.currentPage == index,
-                        onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                        text = { Text(tag) },
-                    )
+                    }
                 }
             }
-        }
-
-        // ── Refresh Progress ──
-        if (tags.isNotEmpty()) {
-            RefreshProgressBar(refreshProgress)
+            // Progress bar overlaid at top (below AppBar), doesn't take space
+            RefreshProgressBar(
+                progress = refreshProgress,
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
         }
 
         // ── Content ──
         if (tags.isEmpty()) {
             PullToRefreshBox(
-                isRefreshing = false,
+                isRefreshing = isRefreshing,
                 onRefresh = onRefresh,
                 modifier = Modifier.weight(1f).fillMaxSize(),
             ) {
@@ -481,20 +483,16 @@ fun TodayGallery(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun RefreshProgressBar(
     progress: Float?,
     modifier: Modifier = Modifier,
 ) {
     if (progress == null) return
-    WavySlider(
-        value = if (progress <= 0f) 0.01f else progress,
-        onValueChange = {},
-        enabled = false,
+    LinearWavyProgressIndicator(
+        progress = { if (progress <= 0f) 0.01f else progress },
         modifier = modifier.fillMaxWidth(),
-        waveLength = 16.dp,
-        waveHeight = 8.dp,
-        waveVelocity = 12.dp to WaveDirection.HEAD,
     )
 }
 

@@ -195,6 +195,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startRefresh() {
+        refreshProgress = 0f // Immediately show refresh indicator in PullToRefreshBox
         val workId = LoliDailyArtWorker.enqueueLoad(this, forceRefresh = true)
         if (workId != null) {
             lifecycleScope.launch {
