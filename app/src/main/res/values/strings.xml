@@ -190,7 +190,6 @@
     <string name="desc_skip_cache">Always fetch from API, skip cache</string>
 
     <string name="title_override_api_tag">Override API Tag</string>
-    <string name="desc_override_api_tag">Use custom tag for API requests</string>
     <string name="title_select_api_tag">Select API Tag</string>
 
     <!-- Debug: Refresh -->
@@ -202,7 +201,6 @@
     <!-- Debug: Language -->
     <string name="section_language">Language</string>
     <string name="title_language">Language</string>
-    <string name="desc_language">Change the app display language</string>
     <string name="label_language_system">Follow system</string>
     <string name="label_language_en">English</string>
     <string name="label_language_zh">中文</string>
@@ -211,7 +209,6 @@
     <!-- Debug: Privacy -->
     <string name="section_privacy">Privacy</string>
     <string name="title_hide_recents">Hide content in Recents</string>
-    <string name="desc_hide_recents">Hide app content from recent tasks</string>
 
     <!-- Muzei commands -->
     <string name="cmd_view_source">View Source</string>
@@ -231,7 +228,6 @@
     <string name="about_hero_subtitle">Is an international nonprofit organization\naimed at promoting the circulation of lolicon works\nand facilitating exchange among lolicons</string>
     <string name="about_hero_tagline">The world needs more lolis &lt;3</string>
     <string name="about_highlight_nonprofit">international nonprofit</string>
-    <string name="about_version">Version</string>
     <string name="about_official_site">Official Website</string>
     <string name="about_source_code">Source Code</string>
     <string name="about_copyright">\u00A9 2025 Loli Commons — CC0 aka no rights reserved</string>

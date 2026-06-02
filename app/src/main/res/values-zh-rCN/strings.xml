@@ -102,6 +102,11 @@
     <string name="action_open_muzei">打开 Muzei</string>
     <string name="action_dismiss">关闭</string>
 
+    <!-- Update banner -->
+    <string name="banner_update_available">有可用更新</string>
+    <string name="banner_update_description">新版本（%1$s）已可用。更新以获取最新功能和修复。</string>
+    <string name="action_download_update">下载更新</string>
+
     <!-- Account -->
     <string name="status_logged_in">已登录 Bangumi</string>
     <string name="status_not_logged_in">未登录</string>
@@ -185,7 +190,6 @@
     <string name="desc_skip_cache">始终从 API 获取，跳过缓存</string>
 
     <string name="title_override_api_tag">覆盖 API 标签</string>
-    <string name="desc_override_api_tag">API 请求使用自定义标签</string>
     <string name="title_select_api_tag">选择 API 标签</string>
 
     <!-- Debug: Refresh -->
@@ -197,7 +201,6 @@
     <!-- Debug: Language -->
     <string name="section_language">语言</string>
     <string name="title_language">语言</string>
-    <string name="desc_language">更改应用显示语言</string>
     <string name="label_language_system">跟随系统</string>
     <string name="label_language_en">English</string>
     <string name="label_language_zh">中文</string>
@@ -206,7 +209,6 @@
     <!-- Debug: Privacy -->
     <string name="section_privacy">隐私</string>
     <string name="title_hide_recents">在最近任务中隐藏内容</string>
-    <string name="desc_hide_recents">在最近任务中隐藏应用内容</string>
 
     <!-- Muzei commands -->
     <string name="cmd_view_source">查看来源</string>
@@ -226,7 +228,6 @@
     <string name="about_hero_subtitle">是一个国际非盈利组织，\n旨在促进萝莉控作品的流通\n与萝莉控之间的交流</string>
     <string name="about_hero_tagline">世界 需要更多萝莉 &lt;3</string>
     <string name="about_highlight_nonprofit">国际非盈利</string>
-    <string name="about_version">版本</string>
     <string name="about_official_site">官方网站</string>
     <string name="about_source_code">源代码</string>
     <string name="about_copyright">\u00A9 2025 萝莉共享 — CC0 aka no rights reserved</string>

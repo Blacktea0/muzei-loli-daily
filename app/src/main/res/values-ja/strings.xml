@@ -102,6 +102,11 @@
     <string name="action_open_muzei">Muzei を開く</string>
     <string name="action_dismiss">閉じる</string>
 
+    <!-- Update banner -->
+    <string name="banner_update_available">アップデートがあります</string>
+    <string name="banner_update_description">新しいバージョン（%1$s）が利用可能です。最新の機能と修正を入手するにはアップデートしてください。</string>
+    <string name="action_download_update">アップデートをダウンロード</string>
+
     <!-- Account -->
     <string name="status_logged_in">Bangumi にログイン済み</string>
     <string name="status_not_logged_in">未ログイン</string>
@@ -185,7 +190,6 @@
     <string name="desc_skip_cache">常に API から取得、キャッシュをスキップ</string>
 
     <string name="title_override_api_tag">APIタグを上書き</string>
-    <string name="desc_override_api_tag">API リクエストにカスタムタグを使用</string>
     <string name="title_select_api_tag">APIタグを選択</string>
 
     <!-- Debug: Refresh -->
@@ -197,7 +201,6 @@
     <!-- Debug: Language -->
     <string name="section_language">言語</string>
     <string name="title_language">言語</string>
-    <string name="desc_language">アプリの表示言語を変更</string>
     <string name="label_language_system">システムに従う</string>
     <string name="label_language_en">English</string>
     <string name="label_language_zh">中文</string>
@@ -206,7 +209,6 @@
     <!-- Debug: Privacy -->
     <string name="section_privacy">プライバシー</string>
     <string name="title_hide_recents">最近のタスクでコンテンツを非表示</string>
-    <string name="desc_hide_recents">最近のタスクにアプリコンテンツを表示しない</string>
 
     <!-- Muzei commands -->
     <string name="cmd_view_source">ソースを見る</string>
@@ -218,4 +220,15 @@
     <string name="banner_battery_title">バックグラウンド更新</string>
     <string name="banner_battery_desc">壁紙が更新されない場合は、このアプリのバックグラウンド最適化を無効にし、最近のタスクにピン留めしてください。</string>
     <string name="action_battery_settings">バッテリー設定</string>
+
+    <!-- About -->
+    <string name="title_about">について</string>
+    <string name="about_version_info">現在のバージョン %1$s (%2$d)</string>
+    <string name="about_hero_title">Loli Commons</string>
+    <string name="about_hero_subtitle">は国際非営利団体です。\nロリコン作品の流通促進と\nロリコン間の交流を目的としています</string>
+    <string name="about_hero_tagline">世界にはもっとロリが必要 &lt;3</string>
+    <string name="about_highlight_nonprofit">国際非営利</string>
+    <string name="about_official_site">公式サイト</string>
+    <string name="about_source_code">ソースコード</string>
+    <string name="about_copyright">\u00A9 2025 Loli Commons — CC0 aka no rights reserved</string>
 </resources>

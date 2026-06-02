@@ -1,5 +1,6 @@
 package me.eroi.lolidaily.muzei.ui.screen.gallery
 
+import android.os.Build
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -75,7 +76,7 @@ fun ArtworkGallery(
             }
         }
 
-    var visibleCount by remember { mutableStateOf(GALLERY_PAGE_SIZE) }
+    var visibleCount by remember { mutableIntStateOf(GALLERY_PAGE_SIZE) }
     val listState = rememberLazyListState()
     val density = LocalDensity.current
     var searchContentHeightPx by remember { mutableFloatStateOf(0f) }
@@ -523,12 +524,24 @@ fun FullscreenImageOverlay(
         DisposableEffect(Unit) {
             val parentView = dialogView.parent as? android.view.View
             val dialogWindow = (parentView as? androidx.compose.ui.window.DialogWindowProvider)?.window
-            val controller = dialogWindow?.insetsController
-            controller?.hide(android.view.WindowInsets.Type.statusBars())
-            controller?.systemBarsBehavior =
-                android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            onDispose {
-                controller?.show(android.view.WindowInsets.Type.statusBars())
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val controller = dialogWindow?.insetsController
+                controller?.hide(android.view.WindowInsets.Type.statusBars())
+                controller?.systemBarsBehavior =
+                    android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                onDispose {
+                    controller?.show(android.view.WindowInsets.Type.statusBars())
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                dialogWindow?.setFlags(
+                    android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                    android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                )
+                onDispose {
+                    @Suppress("DEPRECATION")
+                    dialogWindow?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN)
+                }
             }
         }
 

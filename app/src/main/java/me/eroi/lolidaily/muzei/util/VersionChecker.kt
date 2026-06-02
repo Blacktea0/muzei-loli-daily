@@ -1,7 +1,9 @@
 package me.eroi.lolidaily.muzei.util
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
+import androidx.core.content.edit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -104,11 +106,11 @@ object VersionChecker {
                     val versionName = tagName.removePrefix("v")
                     val downloadUrl = release.html_url ?: GITHUB_RELEASES_URL
 
-                    prefs.edit()
-                        .putString(CACHE_KEY_LATEST_VERSION, versionName)
-                        .putString(CACHE_KEY_LATEST_URL, downloadUrl)
-                        .putLong(CACHE_KEY_TIMESTAMP, now)
-                        .apply()
+                    prefs.edit {
+                        putString(CACHE_KEY_LATEST_VERSION, versionName)
+                        putString(CACHE_KEY_LATEST_URL, downloadUrl)
+                        putLong(CACHE_KEY_TIMESTAMP, now)
+                    }
 
                     UpdateCheckResult(
                         hasUpdate = isNewerVersion(versionName, BuildConfig.VERSION_NAME),
