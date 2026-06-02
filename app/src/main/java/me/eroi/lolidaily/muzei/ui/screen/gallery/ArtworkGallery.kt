@@ -32,6 +32,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -517,6 +518,20 @@ fun FullscreenImageOverlay(
                 decorFitsSystemWindows = false,
             ),
     ) {
+        // Get the dialog's window via DialogWindowProvider to hide status bar
+        val dialogView = LocalView.current
+        DisposableEffect(Unit) {
+            val parentView = dialogView.parent as? android.view.View
+            val dialogWindow = (parentView as? androidx.compose.ui.window.DialogWindowProvider)?.window
+            val controller = dialogWindow?.insetsController
+            controller?.hide(android.view.WindowInsets.Type.statusBars())
+            controller?.systemBarsBehavior =
+                android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            onDispose {
+                controller?.show(android.view.WindowInsets.Type.statusBars())
+            }
+        }
+
         Box(
             modifier = Modifier.fillMaxSize().background(Color.Black),
             contentAlignment = Alignment.Center,
