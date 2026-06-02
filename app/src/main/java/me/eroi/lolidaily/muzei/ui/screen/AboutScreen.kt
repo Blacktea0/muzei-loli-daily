@@ -61,6 +61,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -72,6 +74,8 @@ import me.eroi.lolidaily.muzei.R
 
 private const val GITHUB_URL = "https://github.com/Blacktea0/muzei-loli-daily"
 private const val OFFICIAL_SITE_URL = "https://lolicommons.tsuki.ga/"
+
+private val LoliSCFont = FontFamily(Font(R.font.lolisc_light))
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -138,12 +142,14 @@ fun AboutScreen(onBack: () -> Unit) {
                     Text(
                         text = stringResource(R.string.about_hero_title),
                         style = MaterialTheme.typography.headlineMedium,
+                        fontFamily = LoliSCFont,
                         fontWeight = FontWeight.Bold,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     StrikethroughText(
                         text = buildStyledHeroSubtitle(),
                         style = MaterialTheme.typography.bodyLarge,
+                        fontFamily = LoliSCFont,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         strikethroughColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
@@ -152,6 +158,7 @@ fun AboutScreen(onBack: () -> Unit) {
                     Text(
                         text = stringResource(R.string.about_hero_tagline),
                         style = MaterialTheme.typography.titleMedium,
+                        fontFamily = LoliSCFont,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -182,20 +189,6 @@ fun AboutScreen(onBack: () -> Unit) {
                         },
                     )
                 }
-            }
-
-            // ── Copyright ──
-            item {
-                Text(
-                    text = stringResource(R.string.about_copyright),
-                    style = MaterialTheme.typography.bodySmall,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 24.dp),
-                )
             }
         }
     }
@@ -360,6 +353,7 @@ private fun StrikethroughText(
     text: androidx.compose.ui.text.AnnotatedString,
     modifier: Modifier = Modifier,
     style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyLarge,
+    fontFamily: FontFamily? = null,
     textAlign: TextAlign? = null,
     color: Color = Color.Unspecified,
     strikethroughColor: Color = Color.Gray,
@@ -401,6 +395,7 @@ private fun StrikethroughText(
                 }
             },
         style = style,
+        fontFamily = fontFamily,
         textAlign = textAlign,
         color = color,
         onTextLayout = { textLayoutResult = it },
