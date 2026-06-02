@@ -182,10 +182,10 @@
     <string name="label_bangumi_server_url">Bangumi 服务器 URL</string>
 
     <string name="title_skip_cache">跳过 API 缓存</string>
-    <string name="desc_skip_cache">始终从 API 获取，不使用缓存响应</string>
+    <string name="desc_skip_cache">始终从 API 获取，跳过缓存</string>
 
     <string name="title_override_api_tag">覆盖 API 标签</string>
-    <string name="desc_override_api_tag">从 API 获取时使用自定义标签</string>
+    <string name="desc_override_api_tag">API 请求使用自定义标签</string>
     <string name="title_select_api_tag">选择 API 标签</string>
 
     <!-- Debug: Refresh -->
@@ -206,7 +206,7 @@
     <!-- Debug: Privacy -->
     <string name="section_privacy">隐私</string>
     <string name="title_hide_recents">在最近任务中隐藏内容</string>
-    <string name="desc_hide_recents">防止应用内容在最近任务概览中显示</string>
+    <string name="desc_hide_recents">在最近任务中隐藏应用内容</string>
 
     <!-- Muzei commands -->
     <string name="cmd_view_source">查看来源</string>

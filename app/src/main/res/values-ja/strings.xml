@@ -182,10 +182,10 @@
     <string name="label_bangumi_server_url">Bangumi サーバー URL</string>
 
     <string name="title_skip_cache">API キャッシュをスキップ</string>
-    <string name="desc_skip_cache">キャッシュレスポンスを使用せずに常に API から取得</string>
+    <string name="desc_skip_cache">常に API から取得、キャッシュをスキップ</string>
 
     <string name="title_override_api_tag">APIタグを上書き</string>
-    <string name="desc_override_api_tag">APIから取得時にカスタムタグを使用</string>
+    <string name="desc_override_api_tag">API リクエストにカスタムタグを使用</string>
     <string name="title_select_api_tag">APIタグを選択</string>
 
     <!-- Debug: Refresh -->
@@ -206,7 +206,7 @@
     <!-- Debug: Privacy -->
     <string name="section_privacy">プライバシー</string>
     <string name="title_hide_recents">最近のタスクでコンテンツを非表示</string>
-    <string name="desc_hide_recents">最近のタスク概要にアプリのコンテンツを表示しない</string>
+    <string name="desc_hide_recents">最近のタスクにアプリコンテンツを表示しない</string>
 
     <!-- Muzei commands -->
     <string name="cmd_view_source">ソースを見る</string>

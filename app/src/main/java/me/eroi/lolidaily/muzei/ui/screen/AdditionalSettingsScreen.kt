@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -101,7 +102,9 @@ fun AdditionalSettingsScreen(onBack: () -> Unit) {
         },
     ) { padding ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
             contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -156,7 +159,7 @@ private fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
 private fun SettingsRow(
     icon: ImageVector,
     title: String,
-    subtitle: String,
+    subtitle: String?,
     onClick: (() -> Unit)? = null,
     leadingContent: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
@@ -173,26 +176,30 @@ private fun SettingsRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             },
-            supportingContent = {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            supportingContent = subtitle?.takeIf { it.isNotEmpty() }?.let { text ->
+                {
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             },
             leadingContent =
                 if (leadingContent != null) {
                     { leadingContent() }
                 } else {
                     {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.size(24.dp),
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
                     }
                 },
             trailingContent = {
@@ -239,7 +246,7 @@ private fun SettingsRow(
 private fun SettingsRowWithSwitchAndArrow(
     icon: ImageVector,
     title: String,
-    subtitle: String,
+    subtitle: String?,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     onClick: (() -> Unit)? = null,
@@ -262,22 +269,26 @@ private fun SettingsRowWithSwitchAndArrow(
                     overflow = TextOverflow.Ellipsis,
                 )
             },
-            supportingContent = {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            supportingContent = subtitle?.takeIf { it.isNotEmpty() }?.let { text ->
+                {
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             },
             leadingContent = {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.size(24.dp),
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
             },
             trailingContent = {
                 Row(
@@ -343,7 +354,8 @@ private fun ApiCombinedCard() {
     }
     var overrideApiTag by remember {
         mutableStateOf(
-            prefs.getString(LoliApiClient.KEY_DEBUG_OVERRIDE_API_TAG, null) ?: LoliApiClient.DEFAULT_BADGE,
+            prefs.getString(LoliApiClient.KEY_DEBUG_OVERRIDE_API_TAG, null)
+                ?: LoliApiClient.DEFAULT_BADGE,
         )
     }
 
@@ -381,12 +393,7 @@ private fun ApiCombinedCard() {
         SettingsRowWithSwitchAndArrow(
             icon = Icons.Default.Tag,
             title = stringResource(R.string.title_override_api_tag),
-            subtitle =
-                if (overrideApiTagEnabled) {
-                    "${stringResource(R.string.desc_override_api_tag)} · $overrideApiTag"
-                } else {
-                    stringResource(R.string.desc_override_api_tag)
-                },
+            subtitle = overrideApiTag,
             checked = overrideApiTagEnabled,
             onCheckedChange = { checked ->
                 overrideApiTagEnabled = checked
@@ -456,7 +463,8 @@ private fun RefreshTimeCard() {
             initialMinute = minute,
             onDismiss = { showDialog = false },
             onConfirm = { h, m ->
-                val oldDayChangeDate = LoliDailyArtWorker.computeDayChangeDate(context, System.currentTimeMillis())
+                val oldDayChangeDate =
+                    LoliDailyArtWorker.computeDayChangeDate(context, System.currentTimeMillis())
                 hour = h
                 minute = m
                 prefs
@@ -464,7 +472,8 @@ private fun RefreshTimeCard() {
                         putInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_HOUR, h)
                         putInt(LoliDailyArtWorker.KEY_DEBUG_REFRESH_MINUTE, m)
                     }
-                val newDayChangeDate = LoliDailyArtWorker.computeDayChangeDate(context, System.currentTimeMillis())
+                val newDayChangeDate =
+                    LoliDailyArtWorker.computeDayChangeDate(context, System.currentTimeMillis())
                 if (oldDayChangeDate != newDayChangeDate) {
                     Log.d(
                         "DebugSettings",
@@ -472,7 +481,10 @@ private fun RefreshTimeCard() {
                     )
                     LoliDailyArtWorker.enqueueLoad(context, forceRefresh = true)
                 } else {
-                    Log.d("DebugSettings", "Refresh time changed: day-change date unchanged ($newDayChangeDate), no force refresh needed")
+                    Log.d(
+                        "DebugSettings",
+                        "Refresh time changed: day-change date unchanged ($newDayChangeDate), no force refresh needed"
+                    )
                 }
                 LoliDailyArtWorker.resetDailyRefreshState(context)
                 showDialog = false
@@ -501,7 +513,7 @@ private fun HideRecentsCard() {
     SettingsRow(
         icon = Icons.Default.VisibilityOff,
         title = stringResource(R.string.title_hide_recents),
-        subtitle = stringResource(R.string.desc_hide_recents),
+        subtitle = null,
         trailing = {
             Switch(
                 checked = hideRecents,
@@ -536,7 +548,12 @@ private fun RefreshTimeDialog(
         title = { Text(stringResource(R.string.title_refresh_time_gmt)) },
         text = { TimePicker(state = state) },
         confirmButton = {
-            TextButton(onClick = { onConfirm(state.hour, state.minute) }) { Text(stringResource(R.string.action_ok)) }
+            TextButton(onClick = {
+                onConfirm(
+                    state.hour,
+                    state.minute
+                )
+            }) { Text(stringResource(R.string.action_ok)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
@@ -561,7 +578,7 @@ private fun LanguageCard() {
     SettingsRow(
         icon = Icons.Default.Language,
         title = stringResource(R.string.title_language),
-        subtitle = "${stringResource(R.string.desc_language)} · $currentLabel",
+        subtitle = currentLabel,
         onClick = { showDialog = true },
     )
 
@@ -656,7 +673,11 @@ private fun ApiServerPickerDialog(onDismiss: () -> Unit) {
         remember {
             prefs.getString(LoliApiClient.KEY_DEBUG_API_BASE_URL_CUSTOM, null) ?: ""
         }
-    var customUrl by remember { mutableStateOf(if (initialSelection == CUSTOM_OPTION) savedUrl ?: "" else savedCustom) }
+    var customUrl by remember {
+        mutableStateOf(
+            if (initialSelection == CUSTOM_OPTION) savedUrl ?: "" else savedCustom
+        )
+    }
 
     fun persist(url: String) {
         prefs.edit { putString(LoliApiClient.KEY_DEBUG_API_BASE_URL, url) }
@@ -690,10 +711,16 @@ private fun ApiServerPickerDialog(onDismiss: () -> Unit) {
                         value = customUrl,
                         onValueChange = {
                             customUrl = it
-                            prefs.edit { putString(LoliApiClient.KEY_DEBUG_API_BASE_URL_CUSTOM, it) }
+                            prefs.edit {
+                                putString(
+                                    LoliApiClient.KEY_DEBUG_API_BASE_URL_CUSTOM,
+                                    it
+                                )
+                            }
                         },
                         modifier =
-                            Modifier.fillMaxWidth()
+                            Modifier
+                                .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 4.dp),
                         placeholder = { Text("https://example.com") },
                         singleLine = true,
@@ -745,7 +772,11 @@ private fun BangumiApiServerPickerDialog(onDismiss: () -> Unit) {
         remember {
             prefs.getString(LoliApiClient.KEY_DEBUG_BANGUMI_BASE_URL_CUSTOM, null) ?: ""
         }
-    var customUrl by remember { mutableStateOf(if (initialSelection == CUSTOM_OPTION) savedUrl ?: "" else savedCustom) }
+    var customUrl by remember {
+        mutableStateOf(
+            if (initialSelection == CUSTOM_OPTION) savedUrl ?: "" else savedCustom
+        )
+    }
 
     fun persist(url: String) {
         prefs.edit { putString(LoliApiClient.KEY_DEBUG_BANGUMI_BASE_URL, url) }
@@ -779,10 +810,16 @@ private fun BangumiApiServerPickerDialog(onDismiss: () -> Unit) {
                         value = customUrl,
                         onValueChange = {
                             customUrl = it
-                            prefs.edit { putString(LoliApiClient.KEY_DEBUG_BANGUMI_BASE_URL_CUSTOM, it) }
+                            prefs.edit {
+                                putString(
+                                    LoliApiClient.KEY_DEBUG_BANGUMI_BASE_URL_CUSTOM,
+                                    it
+                                )
+                            }
                         },
                         modifier =
-                            Modifier.fillMaxWidth()
+                            Modifier
+                                .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 4.dp),
                         placeholder = { Text("https://bgm.tv") },
                         singleLine = true,

@@ -187,10 +187,10 @@
     <string name="label_bangumi_server_url">Bangumi Server URL</string>
 
     <string name="title_skip_cache">Skip API Cache</string>
-    <string name="desc_skip_cache">Always fetch from API instead of using cached response</string>
+    <string name="desc_skip_cache">Always fetch from API, skip cache</string>
 
     <string name="title_override_api_tag">Override API Tag</string>
-    <string name="desc_override_api_tag">Use a custom tag when fetching from API</string>
+    <string name="desc_override_api_tag">Use custom tag for API requests</string>
     <string name="title_select_api_tag">Select API Tag</string>
 
     <!-- Debug: Refresh -->
@@ -211,7 +211,7 @@
     <!-- Debug: Privacy -->
     <string name="section_privacy">Privacy</string>
     <string name="title_hide_recents">Hide content in Recents</string>
-    <string name="desc_hide_recents">Prevent app content from showing in recent tasks overview</string>
+    <string name="desc_hide_recents">Hide app content from recent tasks</string>
 
     <!-- Muzei commands -->
     <string name="cmd_view_source">View Source</string>
