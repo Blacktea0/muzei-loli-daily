@@ -10,14 +10,18 @@ plugins {
 
 // Load .env file if it exists
 val envFile = rootProject.file(".env")
-val envProps = if (envFile.exists()) {
-    Properties().apply { load(envFile.inputStream()) }
-} else {
-    Properties()
-}
+val envProps =
+    if (envFile.exists()) {
+        Properties().apply { load(envFile.inputStream()) }
+    } else {
+        Properties()
+    }
 
 // Helper to get value from environment variable or .env file
-fun envOrProp(envKey: String, propKey: String = envKey): String? {
+fun envOrProp(
+    envKey: String,
+    propKey: String = envKey,
+): String? {
     return System.getenv(envKey) ?: envProps.getProperty(propKey)
 }
 
@@ -58,11 +62,12 @@ android {
 
     buildTypes {
         debug {
-            signingConfig = if (releaseKeystoreExists) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            signingConfig =
+                if (releaseKeystoreExists) {
+                    signingConfigs.getByName("release")
+                } else {
+                    signingConfigs.getByName("debug")
+                }
         }
         release {
             isMinifyEnabled = true
@@ -71,11 +76,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "consumer-proguard-rules.pro",
             )
-            signingConfig = if (releaseKeystoreExists) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            signingConfig =
+                if (releaseKeystoreExists) {
+                    signingConfigs.getByName("release")
+                } else {
+                    signingConfigs.getByName("debug")
+                }
         }
     }
 
