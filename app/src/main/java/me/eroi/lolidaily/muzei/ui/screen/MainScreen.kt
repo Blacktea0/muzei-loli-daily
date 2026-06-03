@@ -980,7 +980,7 @@ private fun BadgePickerDialog(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ThemeSheet(
     themeMode: ThemeMode,
@@ -1005,13 +1005,30 @@ private fun ThemeSheet(
     SheetTitle(Icons.Filled.Palette, stringResource(R.string.title_theme_colors))
 
     SettingsSubhead(stringResource(R.string.label_appearance_mode))
-    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+    FlowRow(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
         ThemeMode.entries.forEachIndexed { index, mode ->
-            SegmentedButton(
-                selected = themeMode == mode,
-                onClick = { onThemeModeChanged(mode) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = ThemeMode.entries.size),
+            ToggleButton(
+                checked = themeMode == mode,
+                onCheckedChange = { onThemeModeChanged(mode) },
+                modifier = Modifier.weight(1f),
+                shapes =
+                    when (index) {
+                        0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                        ThemeMode.entries.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                        else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                    },
+                colors = ToggleButtonDefaults.tonalToggleButtonColors(),
             ) {
+                Icon(
+                    themeModeIcon(mode),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.size(ToggleButtonDefaults.IconSpacing))
                 Text(themeModeLabel(mode), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
@@ -1019,19 +1036,31 @@ private fun ThemeSheet(
 
     SettingsSubhead(stringResource(R.string.section_color_source))
     FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        ColorSource.entries.forEach { source ->
-            FilterChip(
-                selected = colorSource == source,
-                onClick = { onColorSourceChanged(source) },
-                leadingIcon = {
-                    Icon(colorSourceIcon(source), contentDescription = null, modifier = Modifier.size(18.dp))
-                },
-                label = { Text(colorSourceLabel(source)) },
-            )
+        ColorSource.entries.forEachIndexed { index, source ->
+            ToggleButton(
+                checked = colorSource == source,
+                onCheckedChange = { onColorSourceChanged(source) },
+                modifier = Modifier.weight(1f),
+                shapes =
+                    when (index) {
+                        0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                        ColorSource.entries.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                        else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                    },
+                colors = ToggleButtonDefaults.tonalToggleButtonColors(),
+            ) {
+                Icon(
+                    colorSourceIcon(source),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.size(ToggleButtonDefaults.IconSpacing))
+                Text(colorSourceLabel(source))
+            }
         }
     }
 
@@ -1214,6 +1243,14 @@ private fun themeModeLabel(mode: ThemeMode): String {
         ThemeMode.SYSTEM -> stringResource(R.string.label_theme_system)
         ThemeMode.LIGHT -> stringResource(R.string.label_theme_light)
         ThemeMode.DARK -> stringResource(R.string.label_theme_dark)
+    }
+}
+
+private fun themeModeIcon(mode: ThemeMode): ImageVector {
+    return when (mode) {
+        ThemeMode.SYSTEM -> Icons.Filled.BrightnessAuto
+        ThemeMode.LIGHT -> Icons.Filled.LightMode
+        ThemeMode.DARK -> Icons.Filled.DarkMode
     }
 }
 
