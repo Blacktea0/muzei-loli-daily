@@ -104,137 +104,136 @@ fun TodayGallery(
     var showReactionPicker by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // ── Top App Bar ──
+        // ── Top App Bar + Refresh Progress (overlay at bottom) ──
         val currentPreview = todayArtwork.firstOrNull { it.tags == currentTag }
 
-        TopAppBar(
-            title = {
-                Column {
-                    Text(
-                        text = currentDate,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    currentTag?.let { tag ->
+        Box {
+            TopAppBar(
+                title = {
+                    Column {
                         Text(
-                            text = tag,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = colorScheme.onSurfaceVariant,
+                            text = currentDate,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                    }
-                }
-            },
-            actions = {
-                if (currentPreview != null) {
-                    val token = currentPreview.filename.substringBeforeLast('.')
-                    val hasReacted = currentPreview.userEmoji != null
-
-                    // Like button
-                    IconButton(
-                        onClick = {
-                            val emoji = currentPreview.userEmoji
-                            if (!isLoggedIn) {
-                                Toast
-                                    .makeText(
-                                        context,
-                                        msgLoginToReact,
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
-                            } else if (emoji != null) {
-                                onReactionClick(token, emoji)
-                            } else {
-                                showReactionPicker = true
-                            }
-                        },
-                    ) {
-                        Icon(
-                            if (hasReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = stringResource(R.string.content_desc_react),
-                            tint =
-                                if (hasReacted) {
-                                    colorScheme.primary
-                                } else {
-                                    colorScheme.onSurfaceVariant
-                                },
-                        )
-                    }
-
-                    // Bookmark button
-                    IconButton(
-                        onClick = {
-                            val newState = !currentPreview.isBookmarked
-                            onBookmarkToggle(token, currentPreview.filename, newState)
-                        },
-                    ) {
-                        Icon(
-                            if (currentPreview.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                            contentDescription = stringResource(R.string.content_desc_bookmark),
-                            tint =
-                                if (currentPreview.isBookmarked) {
-                                    colorScheme.primary
-                                } else {
-                                    colorScheme.onSurfaceVariant
-                                },
-                        )
-                    }
-
-                    // Export button
-                    IconButton(
-                        onClick = { exportArtwork(context, currentPreview) },
-                    ) {
-                        Icon(
-                            Icons.Default.Save,
-                            contentDescription = stringResource(R.string.content_desc_export_artwork),
-                        )
-                    }
-                }
-            },
-            colors =
-                TopAppBarDefaults.topAppBarColors(
-                    containerColor = colorScheme.surface,
-                ),
-            modifier =
-                Modifier.drawBehind {
-                    drawLine(
-                        color = colorScheme.outlineVariant,
-                        start = Offset(0f, size.height),
-                        end = Offset(size.width, size.height),
-                        strokeWidth = 1.dp.toPx(),
-                    )
-                },
-        )
-
-        // ── Tag Tabs + Refresh Progress (overlay) ──
-        Box {
-            if (showTabs) {
-                PrimaryTabRow(
-                    selectedTabIndex = pagerState.currentPage,
-                    modifier =
-                        Modifier.drawBehind {
-                            drawLine(
-                                color = colorScheme.outlineVariant,
-                                start = Offset(0f, size.height),
-                                end = Offset(size.width, size.height),
-                                strokeWidth = 1.dp.toPx(),
+                        currentTag?.let { tag ->
+                            Text(
+                                text = tag,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
-                        },
-                ) {
-                    tags.forEachIndexed { index, tag ->
-                        Tab(
-                            selected = pagerState.currentPage == index,
-                            onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                            text = { Text(tag) },
-                        )
+                        }
                     }
-                }
-            }
-            // Progress bar overlaid at top (below AppBar), doesn't take space
+                },
+                actions = {
+                    if (currentPreview != null) {
+                        val token = currentPreview.filename.substringBeforeLast('.')
+                        val hasReacted = currentPreview.userEmoji != null
+
+                        // Like button
+                        IconButton(
+                            onClick = {
+                                val emoji = currentPreview.userEmoji
+                                if (!isLoggedIn) {
+                                    Toast
+                                        .makeText(
+                                            context,
+                                            msgLoginToReact,
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
+                                } else if (emoji != null) {
+                                    onReactionClick(token, emoji)
+                                } else {
+                                    showReactionPicker = true
+                                }
+                            },
+                        ) {
+                            Icon(
+                                if (hasReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = stringResource(R.string.content_desc_react),
+                                tint =
+                                    if (hasReacted) {
+                                        colorScheme.primary
+                                    } else {
+                                        colorScheme.onSurfaceVariant
+                                    },
+                            )
+                        }
+
+                        // Bookmark button
+                        IconButton(
+                            onClick = {
+                                val newState = !currentPreview.isBookmarked
+                                onBookmarkToggle(token, currentPreview.filename, newState)
+                            },
+                        ) {
+                            Icon(
+                                if (currentPreview.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                                contentDescription = stringResource(R.string.content_desc_bookmark),
+                                tint =
+                                    if (currentPreview.isBookmarked) {
+                                        colorScheme.primary
+                                    } else {
+                                        colorScheme.onSurfaceVariant
+                                    },
+                            )
+                        }
+
+                        // Export button
+                        IconButton(
+                            onClick = { exportArtwork(context, currentPreview) },
+                        ) {
+                            Icon(
+                                Icons.Default.Save,
+                                contentDescription = stringResource(R.string.content_desc_export_artwork),
+                            )
+                        }
+                    }
+                },
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = colorScheme.surface,
+                    ),
+                modifier =
+                    Modifier.drawBehind {
+                        drawLine(
+                            color = colorScheme.outlineVariant,
+                            start = Offset(0f, size.height),
+                            end = Offset(size.width, size.height),
+                            strokeWidth = 1.dp.toPx(),
+                        )
+                    },
+            )
             RefreshProgressBar(
                 progress = refreshProgress,
-                modifier = Modifier.align(Alignment.TopCenter),
+                modifier = Modifier.align(Alignment.BottomCenter),
             )
+        }
+
+        // ── Tag Tabs ──
+        if (showTabs) {
+            PrimaryTabRow(
+                selectedTabIndex = pagerState.currentPage,
+                modifier =
+                    Modifier.drawBehind {
+                        drawLine(
+                            color = colorScheme.outlineVariant,
+                            start = Offset(0f, size.height),
+                            end = Offset(size.width, size.height),
+                            strokeWidth = 1.dp.toPx(),
+                        )
+                    },
+            ) {
+                tags.forEachIndexed { index, tag ->
+                    Tab(
+                        selected = pagerState.currentPage == index,
+                        onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                        text = { Text(tag) },
+                    )
+                }
+            }
         }
 
         // ── Content ──
