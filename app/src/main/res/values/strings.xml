@@ -55,6 +55,8 @@
     <string name="content_desc_export_artwork">Export artwork</string>
     <string name="content_desc_artwork_details">Artwork details</string>
     <string name="content_desc_remove_bookmark">Remove from Bookmarks</string>
+    <string name="btn_detail">Detail</string>
+    <string name="btn_save">Save</string>
     <string name="title_remove_bookmark">Remove from Bookmarks</string>
     <string name="msg_remove_bookmark_confirm">Are you sure you want to remove the artwork from bookmarks? This action is irreversible.</string>
     <string name="action_remove">Remove</string>

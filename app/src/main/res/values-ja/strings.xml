@@ -55,6 +55,8 @@
     <string name="content_desc_export_artwork">作品をエクスポート</string>
     <string name="content_desc_artwork_details">作品の詳細</string>
     <string name="content_desc_remove_bookmark">ブックマークから削除</string>
+    <string name="btn_detail">詳細</string>
+    <string name="btn_save">保存</string>
     <string name="title_remove_bookmark">ブックマークから削除</string>
     <string name="msg_remove_bookmark_confirm">ブックマークから作品を削除してもよろしいですか？この操作は元に戻せません。</string>
     <string name="action_remove">削除</string>

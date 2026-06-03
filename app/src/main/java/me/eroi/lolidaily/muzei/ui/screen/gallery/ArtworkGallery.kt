@@ -289,7 +289,7 @@ fun ArtworkGallery(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ArtworkCard(
     preview: ArtworkPreview,
@@ -437,54 +437,92 @@ fun ArtworkCard(
 
             Spacer(Modifier.height(12.dp))
 
+            var showRemoveDialog by remember { mutableStateOf(false) }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
             ) {
-                FilledTonalIconButton(onClick = { showBottomSheet = true }) {
-                    Icon(Icons.Default.Info, contentDescription = stringResource(R.string.content_desc_artwork_details))
+                val buttonColors = ToggleButtonDefaults.toggleButtonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    checkedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    checkedContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+
+                ToggleButton(
+                    checked = false,
+                    onCheckedChange = { showBottomSheet = true },
+                    modifier = Modifier.height(40.dp),
+                    shapes = ToggleButtonDefaults.shapes(),
+                    colors = buttonColors,
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.size(8.dp))
+                    Text(stringResource(R.string.btn_detail))
                 }
 
-                FilledTonalIconButton(onClick = { exportArtwork(context, preview) }) {
-                    Icon(Icons.Default.Save, contentDescription = stringResource(R.string.content_desc_export_artwork))
+                ToggleButton(
+                    checked = false,
+                    onCheckedChange = { exportArtwork(context, preview) },
+                    modifier = Modifier.height(40.dp),
+                    shapes = ToggleButtonDefaults.shapes(),
+                    colors = buttonColors,
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Save,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.size(8.dp))
+                    Text(stringResource(R.string.btn_save))
                 }
 
-                var showRemoveDialog by remember { mutableStateOf(false) }
-
-                FilledTonalIconButton(
-                    onClick = { showRemoveDialog = true },
+                ToggleButton(
+                    checked = false,
+                    onCheckedChange = { showRemoveDialog = true },
+                    modifier = Modifier.size(40.dp),
+                    shapes = ToggleButtonDefaults.shapes(),
+                    colors = buttonColors,
+                    contentPadding = PaddingValues(0.dp),
                 ) {
                     Icon(
                         Icons.Default.BookmarkRemove,
                         contentDescription = stringResource(R.string.content_desc_remove_bookmark),
+                        modifier = Modifier.size(20.dp),
                     )
                 }
+            }
 
-                if (showRemoveDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showRemoveDialog = false },
-                        title = { Text(stringResource(R.string.title_remove_bookmark)) },
-                        text = {
-                            Text(stringResource(R.string.msg_remove_bookmark_confirm))
-                        },
-                        confirmButton = {
-                            TextButton(
-                                onClick = {
-                                    onRemoveBookmark(preview)
-                                    showRemoveDialog = false
-                                },
-                            ) {
-                                Text(stringResource(R.string.action_remove), color = MaterialTheme.colorScheme.error)
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showRemoveDialog = false }) {
-                                Text(stringResource(R.string.action_cancel))
-                            }
-                        },
-                    )
-                }
+            if (showRemoveDialog) {
+                AlertDialog(
+                    onDismissRequest = { showRemoveDialog = false },
+                    title = { Text(stringResource(R.string.title_remove_bookmark)) },
+                    text = {
+                        Text(stringResource(R.string.msg_remove_bookmark_confirm))
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                onRemoveBookmark(preview)
+                                showRemoveDialog = false
+                            },
+                        ) {
+                            Text(stringResource(R.string.action_remove), color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showRemoveDialog = false }) {
+                            Text(stringResource(R.string.action_cancel))
+                        }
+                    },
+                )
             }
         }
     }
