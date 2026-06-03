@@ -1,9 +1,24 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
     id("org.jlleitschuh.gradle.ktlint")
+}
+
+// Load .env file if it exists
+val envFile = rootProject.file(".env")
+val envProps = if (envFile.exists()) {
+    Properties().apply { load(envFile.inputStream()) }
+} else {
+    Properties()
+}
+
+// Helper to get value from environment variable or .env file
+fun envOrProp(envKey: String, propKey: String = envKey): String? {
+    return System.getenv(envKey) ?: envProps.getProperty(propKey)
 }
 
 android {
@@ -15,25 +30,40 @@ android {
         applicationId = "me.eroi.lolidaily.muzei"
         minSdk = 28
         targetSdk = 37
-        versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
-        versionName = System.getenv("VERSION_NAME") ?: "0.1.0"
+        versionName = envOrProp("VERSION_NAME") ?: "0.1.0"
+        versionCode = envOrProp("VERSION_CODE")?.toIntOrNull()
+            ?: versionName?.split(".")?.let { parts ->
+                val major = parts.getOrElse(0) { "0" }.toIntOrNull() ?: 0
+                val minor = parts.getOrElse(1) { "0" }.toIntOrNull() ?: 0
+                val patch = parts.getOrElse(2) { "0" }.toIntOrNull() ?: 0
+                major * 1000000 + minor * 1000 + patch
+            } ?: 1
 
         buildConfigField("String", "API_BASE_URL", "\"https://loliconey.tsuki.ga\"")
     }
 
     signingConfigs {
         create("release") {
-            val storeFilePath = System.getenv("KEYSTORE_FILE")
-            if (storeFilePath != null) {
-                storeFile = file(storeFilePath)
-                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
-                keyAlias = System.getenv("KEY_ALIAS") ?: ""
-                keyPassword = System.getenv("KEY_PASSWORD") ?: ""
-            }
+            val storeFilePath = envOrProp("KEYSTORE_FILE") ?: "../release.keystore"
+            storeFile = file(storeFilePath)
+            storePassword = envOrProp("KEYSTORE_PASSWORD") ?: ""
+            keyAlias = envOrProp("KEY_ALIAS") ?: "release"
+            keyPassword = envOrProp("KEY_PASSWORD") ?: ""
         }
     }
 
+    // Check if release keystore exists for fallback logic
+    val releaseKeystorePath = envOrProp("KEYSTORE_FILE") ?: "../release.keystore"
+    val releaseKeystoreExists = file(releaseKeystorePath).exists()
+
     buildTypes {
+        debug {
+            signingConfig = if (releaseKeystoreExists) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -41,12 +71,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "consumer-proguard-rules.pro",
             )
-            val storeFilePath = System.getenv("KEYSTORE_FILE")
-            if (storeFilePath != null) {
-                signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (releaseKeystoreExists) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
             }
-            // If no keystore is configured, the release build will use debug signing
-            // This allows CI to build release APKs without signing configuration
         }
     }
 

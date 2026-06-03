@@ -76,7 +76,7 @@ jobs:
         run: |
           VERSION_NAME="${GITHUB_REF#refs/tags/v}"
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION_NAME"
-          VERSION_CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
+          VERSION_CODE=$((MAJOR * 1000000 + MINOR * 1000 + PATCH))
           echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
           echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
 

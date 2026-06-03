@@ -60,6 +60,22 @@ The API server URL is configured at runtime via Debug Settings → API Server. U
 
 The setup-keystore script generates a release keystore, encodes it to Base64, and prints instructions for configuring GitHub Secrets.
 
+## Signing Configuration
+
+The app uses a `.env` file in the project root for local signing configuration. This file is gitignored.
+
+```env
+# .env
+KEYSTORE_FILE=../release.keystore
+KEYSTORE_PASSWORD=your_password
+KEY_ALIAS=release
+KEY_PASSWORD=your_password
+```
+
+**Fallback behavior**: If the release keystore is not found, both debug and release builds automatically fall back to the default debug signing config.
+
+Priority: environment variables > `.env` file > default values
+
 ## CI/CD
 
 GitHub Actions workflow (`.github/workflows/release.yml`) automates build and release:
@@ -68,6 +84,14 @@ GitHub Actions workflow (`.github/workflows/release.yml`) automates build and re
 - **Lint job**: runs `ktlintCheck` and `lint`
 - **Build job**: decodes keystore from secrets, builds release APK, uploads as artifact
 - **Release job**: creates GitHub Release with APK (only on tag push)
+
+### Version numbering
+
+Tags like `v1.2.3` are converted to:
+- `VERSION_NAME`: `1.2.3`
+- `VERSION_CODE`: `MAJOR * 1000000 + MINOR * 1000 + PATCH` (e.g., `1002003`)
+
+This allows up to 999 patches per minor version and 999 minor versions per major version.
 
 ## Architecture
 
