@@ -31,6 +31,7 @@
     <string name="label_color_source_manual">Manual</string>
     <string name="label_hex_color">Hex color</string>
     <string name="msg_invalid_hex_color">Enter a valid #RRGGBB color</string>
+    <string name="title_color_picker">Choose Color</string>
     <string name="hint_no_artwork_for_color">No artwork available for color extraction</string>
     <string name="label_style_tonal_spot">Tonal Spot</string>
     <string name="label_style_vibrant">Vibrant</string>

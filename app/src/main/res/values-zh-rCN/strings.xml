@@ -31,6 +31,7 @@
     <string name="label_color_source_manual">手动选色</string>
     <string name="label_hex_color">十六进制颜色</string>
     <string name="msg_invalid_hex_color">请输入有效的 #RRGGBB 颜色</string>
+    <string name="title_color_picker">选择颜色</string>
     <string name="hint_no_artwork_for_color">没有可用于提取颜色的画作</string>
     <string name="label_style_tonal_spot">色调斑点</string>
     <string name="label_style_vibrant">鲜艳</string>
