@@ -3,6 +3,7 @@ package me.eroi.lolidaily.muzei.ui.screen.gallery
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -29,16 +30,24 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,6 +61,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
 import kotlinx.coroutines.launch
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.ReactionService
@@ -425,78 +435,112 @@ fun TodayGallery(
         // ── FAB with action menu ──
         val currentPreviewForFab = todayArtwork.firstOrNull { it.tags == tags.getOrNull(pagerState.currentPage) }
         if (currentPreviewForFab != null) {
-            var fabExpanded by remember { mutableStateOf(false) }
             val fabToken = currentPreviewForFab.filename.substringBeforeLast('.')
+            val hasReacted = currentPreviewForFab.userEmoji != null
+            var fabMenuExpanded by rememberSaveable { mutableStateOf(false) }
+            val focusRequester = remember { FocusRequester() }
 
-            Box(
-                modifier =
-                    Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp),
-            ) {
-                FloatingActionButton(
-                    onClick = { fabExpanded = true },
-                    containerColor = colorScheme.primaryContainer,
-                    contentColor = colorScheme.onPrimaryContainer,
-                ) {
-                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.content_desc_more_actions))
-                }
+            BackHandler(fabMenuExpanded) { fabMenuExpanded = false }
 
-                DropdownMenu(
-                    expanded = fabExpanded,
-                    onDismissRequest = { fabExpanded = false },
-                ) {
-                    // Like / React
-                    val hasReacted = currentPreviewForFab.userEmoji != null
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.content_desc_react)) },
-                        onClick = {
-                            fabExpanded = false
-                            val emoji = currentPreviewForFab.userEmoji
-                            if (!isLoggedIn) {
-                                Toast.makeText(context, msgLoginToReact, Toast.LENGTH_SHORT).show()
-                            } else if (emoji != null) {
-                                onReactionClick(fabToken, emoji)
-                            } else {
-                                showReactionPicker = true
+            val moreActionsDesc = stringResource(R.string.content_desc_more_actions)
+
+            val fabItems =
+                listOf(
+                    Triple(
+                        if (hasReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        stringResource(R.string.content_desc_react),
+                        if (hasReacted) colorScheme.primary else colorScheme.onSurfaceVariant,
+                    ),
+                    Triple(
+                        if (currentPreviewForFab.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                        stringResource(R.string.content_desc_bookmark),
+                        if (currentPreviewForFab.isBookmarked) colorScheme.primary else colorScheme.onSurfaceVariant,
+                    ),
+                    Triple(
+                        Icons.Default.Save,
+                        stringResource(R.string.content_desc_export_artwork),
+                        colorScheme.onSurfaceVariant,
+                    ),
+                )
+
+            FloatingActionButtonMenu(
+                modifier = Modifier.align(Alignment.BottomEnd),
+                expanded = fabMenuExpanded,
+                button = {
+                    TooltipBox(
+                        positionProvider =
+                            TooltipDefaults.rememberTooltipPositionProvider(
+                                if (fabMenuExpanded) {
+                                    TooltipAnchorPosition.Start
+                                } else {
+                                    TooltipAnchorPosition.Above
+                                },
+                            ),
+                        tooltip = {
+                            PlainTooltip {
+                                Text(stringResource(R.string.content_desc_more_actions))
                             }
                         },
-                        leadingIcon = {
+                        state = rememberTooltipState(),
+                    ) {
+                        ToggleFloatingActionButton(
+                            modifier =
+                                Modifier
+                                    .semantics {
+                                        traversalIndex = -1f
+                                        stateDescription =
+                                            if (fabMenuExpanded) "Expanded" else "Collapsed"
+                                        contentDescription = moreActionsDesc
+                                    }.animateFloatingActionButton(
+                                        visible = true,
+                                        alignment = Alignment.BottomEnd,
+                                    ).focusRequester(focusRequester),
+                            checked = fabMenuExpanded,
+                            onCheckedChange = { fabMenuExpanded = !fabMenuExpanded },
+                        ) {
+                            val imageVector by remember {
+                                derivedStateOf {
+                                    if (checkedProgress > 0.5f) Icons.Filled.Close else Icons.Filled.MoreVert
+                                }
+                            }
                             Icon(
-                                if (hasReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                painter = rememberVectorPainter(imageVector),
                                 contentDescription = null,
-                                tint = if (hasReacted) colorScheme.primary else colorScheme.onSurfaceVariant,
+                                modifier = Modifier.animateIcon({ checkedProgress }),
                             )
-                        },
-                    )
-
-                    // Bookmark
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.content_desc_bookmark)) },
+                        }
+                    }
+                },
+            ) {
+                fabItems.forEachIndexed { i, (icon, label, tint) ->
+                    FloatingActionButtonMenuItem(
                         onClick = {
-                            fabExpanded = false
-                            val newState = !currentPreviewForFab.isBookmarked
-                            onBookmarkToggle(fabToken, currentPreviewForFab.filename, newState)
+                            fabMenuExpanded = false
+                            when (i) {
+                                0 -> {
+                                    // Like / React
+                                    val emoji = currentPreviewForFab.userEmoji
+                                    if (!isLoggedIn) {
+                                        Toast.makeText(context, msgLoginToReact, Toast.LENGTH_SHORT).show()
+                                    } else if (emoji != null) {
+                                        onReactionClick(fabToken, emoji)
+                                    } else {
+                                        showReactionPicker = true
+                                    }
+                                }
+                                1 -> {
+                                    // Bookmark
+                                    val newState = !currentPreviewForFab.isBookmarked
+                                    onBookmarkToggle(fabToken, currentPreviewForFab.filename, newState)
+                                }
+                                2 -> {
+                                    // Export
+                                    exportArtwork(context, currentPreviewForFab)
+                                }
+                            }
                         },
-                        leadingIcon = {
-                            Icon(
-                                if (currentPreviewForFab.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                                contentDescription = null,
-                                tint = if (currentPreviewForFab.isBookmarked) colorScheme.primary else colorScheme.onSurfaceVariant,
-                            )
-                        },
-                    )
-
-                    // Export
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.content_desc_export_artwork)) },
-                        onClick = {
-                            fabExpanded = false
-                            exportArtwork(context, currentPreviewForFab)
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Default.Save, contentDescription = null)
-                        },
+                        icon = { Icon(icon, contentDescription = null, tint = tint) },
+                        text = { Text(text = label) },
                     )
                 }
             }
@@ -569,7 +613,7 @@ private fun ExpressivePullIndicator(
     Box(
         modifier =
             modifier
-                .offset(y = slideOffset)
+                .offset { IntOffset(0, slideOffset.roundToPx()) }
                 .graphicsLayer {
                     this.alpha = alpha
                     scaleX = scale

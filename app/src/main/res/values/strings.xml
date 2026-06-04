@@ -53,7 +53,6 @@
     <string name="label_end_of_gallery">— End of gallery —</string>
     <string name="label_unknown_artist">Unknown Artist</string>
     <string name="content_desc_export_artwork">Export artwork</string>
-    <string name="content_desc_artwork_details">Artwork details</string>
     <string name="content_desc_remove_bookmark">Remove from Bookmarks</string>
     <string name="btn_detail">Detail</string>
     <string name="btn_save">Save</string>

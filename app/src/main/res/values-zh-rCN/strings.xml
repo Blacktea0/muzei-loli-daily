@@ -53,7 +53,6 @@
     <string name="label_end_of_gallery">— 画廊到底了 —</string>
     <string name="label_unknown_artist">未知画师</string>
     <string name="content_desc_export_artwork">导出画作</string>
-    <string name="content_desc_artwork_details">画作详情</string>
     <string name="content_desc_remove_bookmark">从收藏中移除</string>
     <string name="btn_detail">详情</string>
     <string name="btn_save">保存</string>

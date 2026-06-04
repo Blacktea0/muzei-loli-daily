@@ -119,8 +119,8 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
     // Material Design 3 (override BOM for LinearWavyProgressIndicator)
-    implementation("androidx.compose.material3:material3:1.5.0-alpha20")
-    implementation("androidx.compose.material3:material3-window-size-class:1.5.0-alpha20")
+    implementation("androidx.compose.material3:material3:1.5.0-alpha21")
+    implementation("androidx.compose.material3:material3-window-size-class:1.5.0-alpha21")
     implementation("androidx.compose.material:material-icons-extended")
 
     // Activity & Lifecycle Compose integration
@@ -138,7 +138,7 @@ dependencies {
     implementation("net.engawapg.lib:zoomable:2.12.0")
 
     // AndroidX
-    implementation("androidx.core:core-ktx:1.18.0")
+    implementation("androidx.core:core-ktx:1.19.0")
     implementation("androidx.appcompat:appcompat:1.7.1")
 
     // Muzei API — wallpaper plugin framework
