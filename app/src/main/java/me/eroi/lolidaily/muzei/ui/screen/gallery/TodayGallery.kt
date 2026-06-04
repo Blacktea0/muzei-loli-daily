@@ -67,7 +67,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3WindowSizeClassApi::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalMaterial3WindowSizeClassApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun TodayGallery(
     todayArtwork: List<ArtworkPreview>,
@@ -111,7 +111,8 @@ fun TodayGallery(
     val msgLoginToReact = stringResource(R.string.msg_login_to_react)
     var showReactionPicker by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
         // ── Top App Bar + Refresh Progress (overlay at bottom) ──
         val currentPreview = todayArtwork.firstOrNull { it.tags == currentTag }
 
@@ -124,79 +125,32 @@ fun TodayGallery(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        currentTag?.let { tag ->
-                            Text(
-                                text = tag,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
                     }
                 },
                 actions = {
-                    if (currentPreview != null) {
-                        val token = currentPreview.filename.substringBeforeLast('.')
-                        val hasReacted = currentPreview.userEmoji != null
-
-                        // Like button
-                        IconButton(
-                            onClick = {
-                                val emoji = currentPreview.userEmoji
-                                if (!isLoggedIn) {
-                                    Toast
-                                        .makeText(
-                                            context,
-                                            msgLoginToReact,
-                                            Toast.LENGTH_SHORT,
-                                        ).show()
-                                } else if (emoji != null) {
-                                    onReactionClick(token, emoji)
-                                } else {
-                                    showReactionPicker = true
+                    // ── Tag segmented selector (like theme mode in Settings) ──
+                    if (showTabs) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+                        ) {
+                            tags.forEachIndexed { index, tag ->
+                                ToggleButton(
+                                    checked = pagerState.currentPage == index,
+                                    onCheckedChange = {
+                                        scope.launch { pagerState.animateScrollToPage(index) }
+                                    },
+                                    shapes =
+                                        when (index) {
+                                            0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                                            tags.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                                            else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                                        },
+                                    colors = ToggleButtonDefaults.tonalToggleButtonColors(),
+                                    modifier = Modifier.height(32.dp),
+                                ) {
+                                    Text(tag, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                                 }
-                            },
-                        ) {
-                            Icon(
-                                if (hasReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                contentDescription = stringResource(R.string.content_desc_react),
-                                tint =
-                                    if (hasReacted) {
-                                        colorScheme.primary
-                                    } else {
-                                        colorScheme.onSurfaceVariant
-                                    },
-                            )
-                        }
-
-                        // Bookmark button
-                        IconButton(
-                            onClick = {
-                                val newState = !currentPreview.isBookmarked
-                                onBookmarkToggle(token, currentPreview.filename, newState)
-                            },
-                        ) {
-                            Icon(
-                                if (currentPreview.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                                contentDescription = stringResource(R.string.content_desc_bookmark),
-                                tint =
-                                    if (currentPreview.isBookmarked) {
-                                        colorScheme.primary
-                                    } else {
-                                        colorScheme.onSurfaceVariant
-                                    },
-                            )
-                        }
-
-                        // Export button
-                        IconButton(
-                            onClick = { exportArtwork(context, currentPreview) },
-                        ) {
-                            Icon(
-                                Icons.Default.Save,
-                                contentDescription = stringResource(R.string.content_desc_export_artwork),
-                            )
+                            }
                         }
                     }
                 },
@@ -218,30 +172,6 @@ fun TodayGallery(
                 progress = refreshProgress,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
-        }
-
-        // ── Tag Tabs ──
-        if (showTabs) {
-            PrimaryTabRow(
-                selectedTabIndex = pagerState.currentPage,
-                modifier =
-                    Modifier.drawBehind {
-                        drawLine(
-                            color = colorScheme.outlineVariant,
-                            start = Offset(0f, size.height),
-                            end = Offset(size.width, size.height),
-                            strokeWidth = 1.dp.toPx(),
-                        )
-                    },
-            ) {
-                tags.forEachIndexed { index, tag ->
-                    Tab(
-                        selected = pagerState.currentPage == index,
-                        onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                        text = { Text(tag) },
-                    )
-                }
-            }
         }
 
         // ── Content ──
@@ -490,9 +420,90 @@ fun TodayGallery(
                 }
             }
         }
-    }
+        } // Column
 
-    // Reaction picker dialog (TopAppBar like button)
+        // ── FAB with action menu ──
+        val currentPreviewForFab = todayArtwork.firstOrNull { it.tags == tags.getOrNull(pagerState.currentPage) }
+        if (currentPreviewForFab != null) {
+            var fabExpanded by remember { mutableStateOf(false) }
+            val fabToken = currentPreviewForFab.filename.substringBeforeLast('.')
+
+            Box(
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp),
+            ) {
+                FloatingActionButton(
+                    onClick = { fabExpanded = true },
+                    containerColor = colorScheme.primaryContainer,
+                    contentColor = colorScheme.onPrimaryContainer,
+                ) {
+                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.content_desc_more_actions))
+                }
+
+                DropdownMenu(
+                    expanded = fabExpanded,
+                    onDismissRequest = { fabExpanded = false },
+                ) {
+                    // Like / React
+                    val hasReacted = currentPreviewForFab.userEmoji != null
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.content_desc_react)) },
+                        onClick = {
+                            fabExpanded = false
+                            val emoji = currentPreviewForFab.userEmoji
+                            if (!isLoggedIn) {
+                                Toast.makeText(context, msgLoginToReact, Toast.LENGTH_SHORT).show()
+                            } else if (emoji != null) {
+                                onReactionClick(fabToken, emoji)
+                            } else {
+                                showReactionPicker = true
+                            }
+                        },
+                        leadingIcon = {
+                            Icon(
+                                if (hasReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                contentDescription = null,
+                                tint = if (hasReacted) colorScheme.primary else colorScheme.onSurfaceVariant,
+                            )
+                        },
+                    )
+
+                    // Bookmark
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.content_desc_bookmark)) },
+                        onClick = {
+                            fabExpanded = false
+                            val newState = !currentPreviewForFab.isBookmarked
+                            onBookmarkToggle(fabToken, currentPreviewForFab.filename, newState)
+                        },
+                        leadingIcon = {
+                            Icon(
+                                if (currentPreviewForFab.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                                contentDescription = null,
+                                tint = if (currentPreviewForFab.isBookmarked) colorScheme.primary else colorScheme.onSurfaceVariant,
+                            )
+                        },
+                    )
+
+                    // Export
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.content_desc_export_artwork)) },
+                        onClick = {
+                            fabExpanded = false
+                            exportArtwork(context, currentPreviewForFab)
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Save, contentDescription = null)
+                        },
+                    )
+                }
+            }
+        }
+    } // Box
+
+    // Reaction picker dialog
     val currentPreviewForDialog = todayArtwork.firstOrNull { it.tags == tags.getOrNull(pagerState.currentPage) }
     if (showReactionPicker && isLoggedIn && currentPreviewForDialog != null) {
         val tokenForDialog = currentPreviewForDialog.filename.substringBeforeLast('.')

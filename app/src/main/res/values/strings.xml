@@ -76,6 +76,7 @@
     <string name="content_desc_react">React</string>
     <string name="content_desc_bookmark">Bookmark</string>
     <string name="content_desc_add_reaction">Add reaction</string>
+    <string name="content_desc_more_actions">More actions</string>
 
     <string name="label_anonymous_comment">"Anonymous lolicon's comment"</string>
 

@@ -76,6 +76,7 @@
     <string name="content_desc_react">リアクション</string>
     <string name="content_desc_bookmark">ブックマーク</string>
     <string name="content_desc_add_reaction">リアクションを追加</string>
+    <string name="content_desc_more_actions">その他の操作</string>
     <string name="label_anonymous_comment">名無しロリコンのコメント</string>
 
     <!-- Artwork detail bottom sheet -->

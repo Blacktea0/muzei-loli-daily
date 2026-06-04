@@ -76,6 +76,7 @@
     <string name="content_desc_react">贴贴</string>
     <string name="content_desc_bookmark">收藏</string>
     <string name="content_desc_add_reaction">添加贴贴</string>
+    <string name="content_desc_more_actions">更多操作</string>
     <string name="label_anonymous_comment">某不愿意透露名字的萝莉控的评论</string>
 
     <!-- Artwork detail bottom sheet -->
