@@ -3,6 +3,12 @@ package me.eroi.lolidaily.muzei.ui.screen.gallery
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.widget.Toast
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -19,6 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
@@ -60,7 +67,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3WindowSizeClassApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3WindowSizeClassApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun TodayGallery(
     todayArtwork: List<ArtworkPreview>,
@@ -99,6 +106,7 @@ fun TodayGallery(
     }
     val scope = rememberCoroutineScope()
     val isRefreshing = refreshProgress != null
+    val state = rememberPullToRefreshState()
     val context = LocalContext.current
     val msgLoginToReact = stringResource(R.string.msg_login_to_react)
     var showReactionPicker by remember { mutableStateOf(false) }
@@ -241,7 +249,17 @@ fun TodayGallery(
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
                 onRefresh = onRefresh,
-                modifier = Modifier.weight(1f).fillMaxSize(),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxSize(),
+                state = state,
+                indicator = {
+                    ExpressivePullIndicator(
+                        state = state,
+                        isRefreshing = isRefreshing,
+                        modifier = Modifier.align(Alignment.TopCenter),
+                    )
+                },
             ) {
                 Column(
                     modifier =
@@ -253,15 +271,14 @@ fun TodayGallery(
                 ) {
                     if (isRefreshing) {
                         if (refreshProgress > 0f) {
-                            CircularProgressIndicator(
+                            LoadingIndicator(
                                 progress = { refreshProgress },
                                 modifier = Modifier.size(48.dp),
-                                strokeWidth = 4.dp,
                             )
                         } else {
-                            CircularProgressIndicator(
+                            LoadingIndicator(
+                                progress = { refreshProgress },
                                 modifier = Modifier.size(48.dp),
-                                strokeWidth = 4.dp,
                             )
                         }
                         Spacer(Modifier.height(16.dp))
@@ -295,6 +312,14 @@ fun TodayGallery(
                     isRefreshing = if (showLoading) false else isRefreshing,
                     onRefresh = onRefresh,
                     modifier = Modifier.fillMaxSize(),
+                    state = state,
+                    indicator = {
+                        ExpressivePullIndicator(
+                            state = state,
+                            isRefreshing = isRefreshing,
+                            modifier = Modifier.align(Alignment.TopCenter),
+                        )
+                    },
                 ) {
                     if (preview != null) {
                         val context = LocalContext.current
@@ -434,15 +459,14 @@ fun TodayGallery(
                         ) {
                             if (isRefreshing) {
                                 if (refreshProgress > 0f) {
-                                    CircularProgressIndicator(
+                                    LoadingIndicator(
                                         progress = { refreshProgress },
                                         modifier = Modifier.size(48.dp),
-                                        strokeWidth = 4.dp,
                                     )
                                 } else {
-                                    CircularProgressIndicator(
+                                    LoadingIndicator(
+                                        progress = { refreshProgress },
                                         modifier = Modifier.size(48.dp),
-                                        strokeWidth = 4.dp,
                                     )
                                 }
                                 Spacer(Modifier.height(16.dp))
@@ -493,6 +517,72 @@ private fun RefreshProgressBar(
         progress = { if (progress <= 0f) 0.01f else progress },
         modifier = modifier.fillMaxWidth(),
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ExpressivePullIndicator(
+    state: androidx.compose.material3.pulltorefresh.PullToRefreshState,
+    isRefreshing: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val distanceFraction = state.distanceFraction.coerceIn(0f, 1f)
+    val rawDistanceFraction = state.distanceFraction
+
+    val alpha by animateFloatAsState(
+        targetValue = if (isRefreshing) 1f else distanceFraction,
+        animationSpec =
+            if (isRefreshing) {
+                spring(stiffness = Spring.StiffnessMedium)
+            } else {
+                snap()
+            },
+    )
+
+    val scale by animateFloatAsState(
+        targetValue = if (isRefreshing) 1f else distanceFraction / 2 + 0.5f,
+        animationSpec =
+            if (isRefreshing) {
+                spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)
+            } else {
+                snap()
+            },
+    )
+
+    val maxDistance = 80.dp
+    val slideOffset by animateDpAsState(
+        targetValue = if (rawDistanceFraction > 1f) 18.dp + maxDistance * (rawDistanceFraction - 1) else 18.dp,
+        animationSpec = spring()
+    )
+
+    Box(
+        modifier =
+            modifier
+                .offset(y = slideOffset)
+                .graphicsLayer {
+                    this.alpha = alpha
+                    scaleX = scale
+                    scaleY = scale
+                },
+        contentAlignment = Alignment.Center,
+    ) {
+        androidx.compose.animation.Crossfade(
+            targetState = isRefreshing,
+            animationSpec = tween(durationMillis = 200),
+        ) { refreshing ->
+            if (refreshing) {
+                ContainedLoadingIndicator(
+                    modifier = Modifier.size(48.dp),
+                )
+            } else {
+                ContainedLoadingIndicator(
+                    progress = { rawDistanceFraction / 2 },
+                    modifier = Modifier.size(48.dp),
+                    polygons = listOf(MaterialShapes.SoftBurst, MaterialShapes.SoftBurst),
+                )
+            }
+        }
+    }
 }
 
 @Composable
