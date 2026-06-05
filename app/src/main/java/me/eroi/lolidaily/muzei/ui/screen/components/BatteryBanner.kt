@@ -1,6 +1,7 @@
 package me.eroi.lolidaily.muzei.ui.screen.components
 
 import android.content.Intent
+import android.content.Context
 import android.provider.Settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,34 +22,29 @@ import me.eroi.lolidaily.muzei.R
 
 private const val KEY_BATTERY_BANNER_DISMISSED = "battery_banner_dismissed"
 
+fun isBatteryBannerDismissed(context: Context): Boolean {
+    val prefs = context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+    return prefs.getBoolean(KEY_BATTERY_BANNER_DISMISSED, false)
+}
+
 @Composable
-fun BatteryBanner() {
+fun BatteryBanner(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val prefs =
         remember(context) {
-            context.getSharedPreferences(
-                LoliDailyArtWorker.PREFS_NAME,
-                android.content.Context.MODE_PRIVATE,
-            )
+            context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
         }
-
-    var dismissed by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        dismissed = prefs.getBoolean(KEY_BATTERY_BANNER_DISMISSED, false)
-    }
-
-    if (dismissed) return
 
     val dismissBanner = {
         prefs.edit { putBoolean(KEY_BATTERY_BANNER_DISMISSED, true) }
-        dismissed = true
+        onDismiss()
     }
 
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.secondaryContainer,
         tonalElevation = 0.dp,
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(

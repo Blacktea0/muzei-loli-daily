@@ -1349,6 +1349,8 @@ private fun PreferenceTab(
     val context = LocalContext.current
     val showBanner = (!isMuzeiInstalled || !isSourceActivated)
     var openSheet by remember { mutableStateOf<SettingsSheet?>(null) }
+    var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
+    var showBatteryBanner by remember { mutableStateOf(false) }
 
     LaunchedEffect(isMuzeiInstalled, isSourceActivated) {
         val prefs =
@@ -1362,6 +1364,11 @@ private fun PreferenceTab(
         ) {
             prefs.edit { remove(KEY_BANNER_DISMISSED) }
         }
+    }
+
+    LaunchedEffect(Unit) {
+        updateInfo = checkForUpdate(context)
+        showBatteryBanner = !isBatteryBannerDismissed(context)
     }
 
     val isExpandedScreen = windowSizeClass == WindowWidthSizeClass.Expanded
@@ -1382,12 +1389,20 @@ private fun PreferenceTab(
             }
         }
 
-        item {
-            UpdateBanner()
+        updateInfo?.let { info ->
+            item {
+                UpdateBanner(
+                    latestVersion = info.latestVersion,
+                    downloadUrl = info.downloadUrl,
+                    onDismiss = { updateInfo = null },
+                )
+            }
         }
 
-        item {
-            BatteryBanner()
+        if (showBatteryBanner) {
+            item {
+                BatteryBanner(onDismiss = { showBatteryBanner = false })
+            }
         }
 
         item {

@@ -22,40 +22,41 @@ import me.eroi.lolidaily.muzei.util.VersionChecker
 
 private const val KEY_UPDATE_DISMISSED_VERSION = "update_dismissed_version"
 
+data class UpdateInfo(
+    val latestVersion: String,
+    val downloadUrl: String,
+)
+
+suspend fun checkForUpdate(context: Context): UpdateInfo? {
+    val prefs = context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+    val result = VersionChecker.checkForUpdate(context)
+    if (result.hasUpdate) {
+        val dismissedVersion = prefs.getString(KEY_UPDATE_DISMISSED_VERSION, null)
+        if (dismissedVersion != result.latestVersion) {
+            return UpdateInfo(result.latestVersion, result.downloadUrl)
+        }
+    }
+    return null
+}
+
 @Composable
-fun UpdateBanner() {
+fun UpdateBanner(
+    latestVersion: String,
+    downloadUrl: String,
+    onDismiss: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val prefs =
         remember(context) {
-            context.getSharedPreferences(
-                LoliDailyArtWorker.PREFS_NAME,
-                Context.MODE_PRIVATE,
-            )
+            context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
         }
-
-    var showBanner by remember { mutableStateOf(false) }
-    var latestVersion by remember { mutableStateOf("") }
-    var downloadUrl by remember { mutableStateOf("") }
-
-    LaunchedEffect(Unit) {
-        val result = VersionChecker.checkForUpdate(context)
-        if (result.hasUpdate) {
-            val dismissedVersion = prefs.getString(KEY_UPDATE_DISMISSED_VERSION, null)
-            if (dismissedVersion != result.latestVersion) {
-                latestVersion = result.latestVersion
-                downloadUrl = result.downloadUrl
-                showBanner = true
-            }
-        }
-    }
-
-    if (!showBanner) return
 
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.secondaryContainer,
         tonalElevation = 0.dp,
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
@@ -77,7 +78,7 @@ fun UpdateBanner() {
                     onClick = {
                         scope.launch {
                             prefs.edit { putString(KEY_UPDATE_DISMISSED_VERSION, latestVersion) }
-                            showBanner = false
+                            onDismiss()
                         }
                     },
                     modifier = Modifier.size(24.dp),
@@ -107,8 +108,10 @@ fun UpdateBanner() {
             ) {
                 TextButton(
                     onClick = {
-                        prefs.edit { putString(KEY_UPDATE_DISMISSED_VERSION, latestVersion) }
-                        showBanner = false
+                        scope.launch {
+                            prefs.edit { putString(KEY_UPDATE_DISMISSED_VERSION, latestVersion) }
+                            onDismiss()
+                        }
                     },
                 ) {
                     Text(stringResource(R.string.action_dismiss))

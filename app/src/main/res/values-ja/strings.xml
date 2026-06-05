@@ -10,7 +10,7 @@
     <string name="tab_settings">設定</string>
 
     <!-- Settings -->
-    <string name="title_settings">ロリ毎日 (๑• ‸ •๑)</string>
+    <string name="title_settings">Loli Daily (๑• ‸ •๑)</string>
     <string name="title_muzei_wallpaper">Muzei 壁紙</string>
     <string name="title_bangumi_account">Bangumi</string>
     <string name="title_theme_colors">テーマとカラー</string>
@@ -19,15 +19,15 @@
 
     <!-- Theme -->
     <string name="label_appearance_mode">外観モード</string>
-    <string name="label_theme_system">システム</string>
+    <string name="label_theme_system">端末</string>
     <string name="label_theme_light">ライト</string>
     <string name="label_theme_dark">ダーク</string>
 
     <!-- Color source -->
     <string name="section_color_source">カラーソース</string>
     <string name="title_color_style_preview">カラースタイルプレビュー</string>
-    <string name="label_color_source_default">デフォルト</string>
-    <string name="label_color_source_image">絵から</string>
+    <string name="label_color_source_default">デフォ</string>
+    <string name="label_color_source_image">作品</string>
     <string name="label_color_source_manual">手動</string>
     <string name="label_hex_color">16進数カラー</string>
     <string name="msg_invalid_hex_color">有効な #RRGGBB カラーを入力</string>
@@ -227,7 +227,7 @@
     <string name="action_battery_settings">バッテリー設定</string>
 
     <!-- About -->
-    <string name="title_about">について</string>
+    <string name="title_about">Loli Daily について</string>
     <string name="about_version_info">現在のバージョン %1$s (%2$d)</string>
     <string name="about_hero_title">Loli Commons</string>
     <string name="about_hero_subtitle">は国際非営利団体です。\nロリコン作品の流通促進と\nロリコン間の交流を目的としています</string>
