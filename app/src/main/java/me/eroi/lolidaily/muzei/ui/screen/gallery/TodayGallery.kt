@@ -135,6 +135,15 @@ fun TodayGallery(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
+                        if (currentTag != null) {
+                            Text(
+                                text = currentTag,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                 },
                 actions = {
