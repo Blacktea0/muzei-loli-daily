@@ -52,7 +52,7 @@
     <string name="msg_no_artwork">暂无画作。</string>
     <string name="label_end_of_gallery">— 画廊到底了 —</string>
     <string name="label_unknown_artist">未知画师</string>
-    <string name="content_desc_export_artwork">导出画作</string>
+    <string name="content_desc_export_artwork">保存</string>
     <string name="content_desc_remove_bookmark">从收藏中移除</string>
     <string name="btn_detail">详情</string>
     <string name="btn_save">保存</string>
@@ -73,7 +73,9 @@
     <string name="label_source">来源</string>
     <string name="label_artist">画师</string>
     <string name="content_desc_react">贴贴</string>
+    <string name="content_desc_react_active">取消贴贴</string>
     <string name="content_desc_bookmark">收藏</string>
+    <string name="content_desc_bookmark_active">取消收藏</string>
     <string name="content_desc_add_reaction">添加贴贴</string>
     <string name="content_desc_more_actions">更多操作</string>
     <string name="label_anonymous_comment">某不愿意透露名字的萝莉控的评论</string>

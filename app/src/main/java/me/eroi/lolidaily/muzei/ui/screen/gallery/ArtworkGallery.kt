@@ -452,6 +452,20 @@ fun ArtworkCard(
 
                 ToggleButton(
                     checked = false,
+                    onCheckedChange = { showRemoveDialog = true },
+                    modifier = Modifier.size(40.dp),
+                    shapes = ToggleButtonDefaults.shapes(),
+                    colors = buttonColors,
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    Icon(
+                        Icons.Default.BookmarkRemove,
+                        contentDescription = stringResource(R.string.content_desc_remove_bookmark),
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                ToggleButton(
+                    checked = false,
                     onCheckedChange = { showBottomSheet = true },
                     modifier = Modifier.height(40.dp),
                     shapes = ToggleButtonDefaults.shapes(),
@@ -482,21 +496,6 @@ fun ArtworkCard(
                     )
                     Spacer(Modifier.size(8.dp))
                     Text(stringResource(R.string.btn_save))
-                }
-
-                ToggleButton(
-                    checked = false,
-                    onCheckedChange = { showRemoveDialog = true },
-                    modifier = Modifier.size(40.dp),
-                    shapes = ToggleButtonDefaults.shapes(),
-                    colors = buttonColors,
-                    contentPadding = PaddingValues(0.dp),
-                ) {
-                    Icon(
-                        Icons.Default.BookmarkRemove,
-                        contentDescription = stringResource(R.string.content_desc_remove_bookmark),
-                        modifier = Modifier.size(20.dp),
-                    )
                 }
             }
 

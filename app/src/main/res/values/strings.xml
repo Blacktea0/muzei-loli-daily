@@ -52,7 +52,7 @@
     <string name="msg_no_artwork">No artwork yet.</string>
     <string name="label_end_of_gallery">— End of gallery —</string>
     <string name="label_unknown_artist">Unknown Artist</string>
-    <string name="content_desc_export_artwork">Export artwork</string>
+    <string name="content_desc_export_artwork">Save</string>
     <string name="content_desc_remove_bookmark">Remove from Bookmarks</string>
     <string name="btn_detail">Detail</string>
     <string name="btn_save">Save</string>
@@ -73,7 +73,9 @@
     <string name="label_source">Source</string>
     <string name="label_artist">Artist</string>
     <string name="content_desc_react">React</string>
+    <string name="content_desc_react_active">Undo react</string>
     <string name="content_desc_bookmark">Bookmark</string>
+    <string name="content_desc_bookmark_active">Undo bookmark</string>
     <string name="content_desc_add_reaction">Add reaction</string>
     <string name="content_desc_more_actions">More actions</string>
 

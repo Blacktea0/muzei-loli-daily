@@ -52,7 +52,7 @@
     <string name="msg_no_artwork">作品はまだありません。</string>
     <string name="label_end_of_gallery">— ギャラリーの終わり —</string>
     <string name="label_unknown_artist">不明なアーティスト</string>
-    <string name="content_desc_export_artwork">作品をエクスポート</string>
+    <string name="content_desc_export_artwork">保存</string>
     <string name="content_desc_remove_bookmark">ブックマークから削除</string>
     <string name="btn_detail">詳細</string>
     <string name="btn_save">保存</string>
@@ -73,7 +73,9 @@
     <string name="label_source">ソース</string>
     <string name="label_artist">アーティスト</string>
     <string name="content_desc_react">リアクション</string>
+    <string name="content_desc_react_active">リアクションを解除</string>
     <string name="content_desc_bookmark">ブックマーク</string>
+    <string name="content_desc_bookmark_active">ブックマークを解除</string>
     <string name="content_desc_add_reaction">リアクションを追加</string>
     <string name="content_desc_more_actions">その他の操作</string>
     <string name="label_anonymous_comment">名無しロリコンのコメント</string>

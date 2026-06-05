@@ -142,6 +142,7 @@ fun TodayGallery(
                     if (showTabs) {
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+                            modifier = Modifier.padding(8.dp)
                         ) {
                             tags.forEachIndexed { index, tag ->
                                 ToggleButton(
@@ -447,19 +448,19 @@ fun TodayGallery(
             val fabItems =
                 listOf(
                     Triple(
-                        if (hasReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        stringResource(R.string.content_desc_react),
-                        if (hasReacted) colorScheme.primary else colorScheme.onSurfaceVariant,
-                    ),
-                    Triple(
-                        if (currentPreviewForFab.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                        stringResource(R.string.content_desc_bookmark),
-                        if (currentPreviewForFab.isBookmarked) colorScheme.primary else colorScheme.onSurfaceVariant,
-                    ),
-                    Triple(
                         Icons.Default.Save,
                         stringResource(R.string.content_desc_export_artwork),
                         colorScheme.onSurfaceVariant,
+                    ),
+                    Triple(
+                        if (currentPreviewForFab.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                        stringResource(if (currentPreviewForFab.isBookmarked) R.string.content_desc_bookmark_active else R.string.content_desc_bookmark),
+                        if (currentPreviewForFab.isBookmarked) colorScheme.primary else colorScheme.onSurfaceVariant,
+                    ),
+                    Triple(
+                        if (hasReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        stringResource(if (hasReacted) R.string.content_desc_react_active else R.string.content_desc_react),
+                        if (hasReacted) colorScheme.primary else colorScheme.onSurfaceVariant,
                     ),
                 )
 
@@ -518,6 +519,15 @@ fun TodayGallery(
                             fabMenuExpanded = false
                             when (i) {
                                 0 -> {
+                                    // Export / Save
+                                    exportArtwork(context, currentPreviewForFab)
+                                }
+                                1 -> {
+                                    // Bookmark
+                                    val newState = !currentPreviewForFab.isBookmarked
+                                    onBookmarkToggle(fabToken, currentPreviewForFab.filename, newState)
+                                }
+                                2 -> {
                                     // Like / React
                                     val emoji = currentPreviewForFab.userEmoji
                                     if (!isLoggedIn) {
@@ -527,15 +537,6 @@ fun TodayGallery(
                                     } else {
                                         showReactionPicker = true
                                     }
-                                }
-                                1 -> {
-                                    // Bookmark
-                                    val newState = !currentPreviewForFab.isBookmarked
-                                    onBookmarkToggle(fabToken, currentPreviewForFab.filename, newState)
-                                }
-                                2 -> {
-                                    // Export
-                                    exportArtwork(context, currentPreviewForFab)
                                 }
                             }
                         },
@@ -1463,7 +1464,7 @@ private fun BottomActionBar(
             ) {
                 Icon(
                     if (hasReacted) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = stringResource(R.string.content_desc_react),
+                    contentDescription = stringResource(if (hasReacted) R.string.content_desc_react_active else R.string.content_desc_react),
                 )
             }
 
@@ -1486,7 +1487,7 @@ private fun BottomActionBar(
             ) {
                 Icon(
                     if (preview.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                    contentDescription = stringResource(R.string.content_desc_bookmark),
+                    contentDescription = stringResource(if (preview.isBookmarked) R.string.content_desc_bookmark_active else R.string.content_desc_bookmark),
                 )
             }
 
