@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,18 +23,15 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.model.ReactionCount
 import me.eroi.lolidaily.muzei.worker.EmojiMap
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @Composable
@@ -61,7 +59,7 @@ fun PixelEmoji(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ReactionRow(
     reactions: List<ReactionCount>,
@@ -76,7 +74,7 @@ fun ReactionRow(
 
     val context = LocalContext.current
     val msgLoginToReact = stringResource(R.string.msg_login_to_react)
-    var activeTooltipIndex by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    val scope = rememberCoroutineScope()
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
         val rows = valid.chunked(4)
@@ -85,7 +83,6 @@ fun ReactionRow(
                 for ((itemIndex, reactionResId) in row.withIndex()) {
                     val (reaction, resId) = reactionResId
                     val selected = reaction.emojiValue == userEmoji
-                    val isActive = activeTooltipIndex == Pair(rowIndex, itemIndex)
 
                     val bg =
                         if (selected) {
@@ -100,7 +97,22 @@ fun ReactionRow(
                             MaterialTheme.colorScheme.onSurfaceVariant
                         }
 
-                    Box {
+                    val tooltipState = rememberTooltipState(isPersistent = true)
+
+                    TooltipBox(
+                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                            TooltipAnchorPosition.Above
+                        ),
+                        tooltip = {
+                            PlainTooltip {
+                                Text(
+                                    text = formatUserList(reaction.users),
+                                    modifier = Modifier.widthIn(max = 280.dp),
+                                )
+                            }
+                        },
+                        state = tooltipState,
+                    ) {
                         Surface(
                             shape = RoundedCornerShape(50),
                             color = bg,
@@ -123,7 +135,7 @@ fun ReactionRow(
                                             },
                                             onLongPress = {
                                                 if (reaction.users.isNotEmpty()) {
-                                                    activeTooltipIndex = Pair(rowIndex, itemIndex)
+                                                    scope.launch { tooltipState.show() }
                                                 }
                                             },
                                         )
@@ -140,29 +152,6 @@ fun ReactionRow(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = contentColor,
                                 )
-                            }
-                        }
-
-                        if (isActive && reaction.users.isNotEmpty()) {
-                            val density = LocalDensity.current
-                            Popup(
-                                alignment = Alignment.BottomCenter,
-                                offset = IntOffset(0, with(density) { -8.dp.roundToPx() }),
-                                onDismissRequest = { activeTooltipIndex = null },
-                                properties = PopupProperties(focusable = true),
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.inverseSurface,
-                                    tonalElevation = 6.dp,
-                                ) {
-                                    Text(
-                                        text = formatUserList(reaction.users),
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.inverseOnSurface,
-                                    )
-                                }
                             }
                         }
                     }

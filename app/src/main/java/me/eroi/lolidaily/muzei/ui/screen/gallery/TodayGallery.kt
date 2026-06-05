@@ -4,6 +4,7 @@ import android.content.Intent
 import android.graphics.BitmapFactory
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -63,6 +64,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.ReactionService
 import me.eroi.lolidaily.muzei.api.SessionManager
@@ -983,7 +985,7 @@ private fun DetailMetaItem(
 
 // ── Tablet Reaction Row (horizontal capsule chips) ──────────────
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun TabletReactionRow(
     reactions: List<ReactionCount>,
@@ -998,7 +1000,7 @@ private fun TabletReactionRow(
     val context = LocalContext.current
     val msgLoginToReact = stringResource(R.string.msg_login_to_react)
     val colorScheme = MaterialTheme.colorScheme
-    var activeTooltipIndex by remember { mutableStateOf<Int?>(null) }
+    val scope = rememberCoroutineScope()
 
     FlowRow(
         modifier = modifier,
@@ -1008,22 +1010,24 @@ private fun TabletReactionRow(
         for ((index, reactionResId) in valid.withIndex()) {
             val (reaction, resId) = reactionResId
             val selected = reaction.emojiValue == userEmoji
-            val isActive = activeTooltipIndex == index
 
-            Box {
+            val tooltipState = rememberTooltipState(isPersistent = true)
+
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                    TooltipAnchorPosition.Above
+                ),
+                tooltip = {
+                    PlainTooltip {
+                        Text(
+                            text = formatUserList(reaction.users),
+                            modifier = Modifier.widthIn(max = 280.dp),
+                        )
+                    }
+                },
+                state = tooltipState,
+            ) {
                 Surface(
-                    onClick = {
-                        if (isLoggedIn) {
-                            onReactionClick(token, reaction.emojiValue)
-                        } else {
-                            Toast
-                                .makeText(
-                                    context,
-                                    msgLoginToReact,
-                                    Toast.LENGTH_SHORT,
-                                ).show()
-                        }
-                    },
                     shape = RoundedCornerShape(50),
                     color =
                         if (selected) {
@@ -1036,9 +1040,21 @@ private fun TabletReactionRow(
                             .height(32.dp)
                             .pointerInput(Unit) {
                                 detectTapGestures(
+                                    onTap = {
+                                        if (isLoggedIn) {
+                                            onReactionClick(token, reaction.emojiValue)
+                                        } else {
+                                            Toast
+                                                .makeText(
+                                                    context,
+                                                    msgLoginToReact,
+                                                    Toast.LENGTH_SHORT,
+                                                ).show()
+                                        }
+                                    },
                                     onLongPress = {
                                         if (reaction.users.isNotEmpty()) {
-                                            activeTooltipIndex = index
+                                            scope.launch { tooltipState.show() }
                                         }
                                     },
                                 )
@@ -1060,29 +1076,6 @@ private fun TabletReactionRow(
                                     colorScheme.onSurfaceVariant
                                 },
                         )
-                    }
-                }
-
-                if (isActive && reaction.users.isNotEmpty()) {
-                    val density = LocalDensity.current
-                    Popup(
-                        alignment = Alignment.BottomCenter,
-                        offset = IntOffset(0, with(density) { -8.dp.roundToPx() }),
-                        onDismissRequest = { activeTooltipIndex = null },
-                        properties = PopupProperties(focusable = true),
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = colorScheme.inverseSurface,
-                            tonalElevation = 6.dp,
-                        ) {
-                            Text(
-                                text = formatUserList(reaction.users),
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = colorScheme.inverseOnSurface,
-                            )
-                        }
                     }
                 }
             }
