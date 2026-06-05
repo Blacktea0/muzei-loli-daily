@@ -3,6 +3,7 @@ package me.eroi.lolidaily.muzei.ui.screen
 import android.content.Context
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -31,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -55,6 +57,7 @@ import me.eroi.lolidaily.muzei.ui.theme.ColorSource
 import me.eroi.lolidaily.muzei.ui.theme.ColorStyle
 import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
 import me.eroi.lolidaily.muzei.util.M3SchemeGenerator
+import androidx.core.graphics.createBitmap
 
 private val DEFAULT_SOURCE_COLOR = 0xFFF09199.toInt()
 
@@ -760,6 +763,19 @@ private fun AccountAvatar(
     nickname: String?,
     size: Dp,
 ) {
+    val context = LocalContext.current
+    val appIcon = remember {
+        val drawable = context.packageManager.getApplicationIcon(context.packageName)
+        val bitmap = createBitmap(
+            drawable.intrinsicWidth.coerceAtLeast(1),
+            drawable.intrinsicHeight.coerceAtLeast(1),
+        )
+        val canvas = android.graphics.Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        bitmap.asImageBitmap()
+    }
+
     Surface(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.secondaryContainer,
@@ -772,14 +788,11 @@ private fun AccountAvatar(
                 modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(50)),
             )
         } else {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = nickname?.firstOrNull()?.uppercase() ?: "B",
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
+            Image(
+                bitmap = appIcon,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize().clip(CircleShape),
+            )
         }
     }
 }
