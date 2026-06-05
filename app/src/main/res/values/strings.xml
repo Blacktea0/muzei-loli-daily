@@ -50,7 +50,7 @@
     <!-- Bookmark gallery -->
     <string name="msg_no_bookmarks">No bookmarked artwork yet.\nTap the bookmark icon on Today\'s artwork to save it here.</string>
     <string name="msg_no_artwork">No artwork yet.</string>
-    <string name="label_end_of_gallery">— End of gallery —</string>
+    <string name="label_end_of_gallery">— End of Bookmarks —</string>
     <string name="label_unknown_artist">Unknown Artist</string>
     <string name="content_desc_export_artwork">Save</string>
     <string name="content_desc_remove_bookmark">Remove from Bookmarks</string>
@@ -68,7 +68,7 @@
     <!-- Today gallery -->
     <string name="msg_no_tag_artwork">No %1$s artwork for today.\nPull down to refresh.</string>
     <string name="label_suggested_by">Suggested by %1$s</string>
-    <string name="label_suggested_by_anonymous">Suggested by Anonymous</string>
+    <string name="label_suggested_by_anonymous">Suggested by Anonymous Lolicon</string>
     <string name="label_characters">Characters</string>
     <string name="label_source">Source</string>
     <string name="label_artist">Artist</string>
@@ -178,8 +178,8 @@
     <string name="msg_no_app_store">No app store available</string>
 
     <!-- Export -->
-    <string name="msg_already_exported">Already exported</string>
-    <string name="msg_export_file_failed">Failed to create export file</string>
+    <string name="msg_already_exported">Already saved in Pictures/LoliDaily</string>
+    <string name="msg_export_file_failed">Failed to create file</string>
     <string name="msg_saved_to_pictures">Saved to Pictures/LoliDaily</string>
     <string name="msg_export_failed">Export failed: %1$s</string>
 

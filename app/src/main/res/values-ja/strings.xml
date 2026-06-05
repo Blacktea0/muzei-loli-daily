@@ -45,12 +45,12 @@
 
     <!-- Additional settings entry -->
     <string name="title_debug_settings">その他の設定</string>
-    <string name="label_debug_subtitle">便利な設定と役に立たない設定がある</string>
+    <string name="label_debug_subtitle">便利な設定と微妙な設定がある</string>
 
     <!-- Bookmark gallery -->
     <string name="msg_no_bookmarks">ブックマークされた作品はまだありません。\n今日の作品のブックマークアイコンをタップして保存しましょう。</string>
     <string name="msg_no_artwork">作品はまだありません。</string>
-    <string name="label_end_of_gallery">— ギャラリーの終わり —</string>
+    <string name="label_end_of_gallery">— ブックマークの終わり —</string>
     <string name="label_unknown_artist">不明なアーティスト</string>
     <string name="content_desc_export_artwork">保存</string>
     <string name="content_desc_remove_bookmark">ブックマークから削除</string>
@@ -68,7 +68,7 @@
     <!-- Today gallery -->
     <string name="msg_no_tag_artwork">今日の %1$s の作品はありません。\nプルダウンして更新してください。</string>
     <string name="label_suggested_by">%1$s がおすすめ</string>
-    <string name="label_suggested_by_anonymous">匿名のおすすめ</string>
+    <string name="label_suggested_by_anonymous">名無しロリコンがおすすめ</string>
     <string name="label_characters">キャラクター</string>
     <string name="label_source">ソース</string>
     <string name="label_artist">アーティスト</string>
@@ -177,10 +177,10 @@
     <string name="msg_no_app_store">利用可能なアプリストアがありません</string>
 
     <!-- Export -->
-    <string name="msg_already_exported">エクスポート済み</string>
-    <string name="msg_export_file_failed">エクスポートファイルの作成に失敗しました</string>
+    <string name="msg_already_exported">Pictures/LoliDaily に保存済み</string>
+    <string name="msg_export_file_failed">保存ファイルの作成に失敗しました</string>
     <string name="msg_saved_to_pictures">Pictures/LoliDaily に保存しました</string>
-    <string name="msg_export_failed">エクスポート失敗：%1$s</string>
+    <string name="msg_export_failed">保存失敗：%1$s</string>
 
     <!-- Debug: API -->
     <string name="section_debug_api">API</string>

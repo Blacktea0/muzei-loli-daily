@@ -50,7 +50,7 @@
     <!-- Bookmark gallery -->
     <string name="msg_no_bookmarks">还没有收藏的画作。\n点击今日画作上的收藏图标即可保存。</string>
     <string name="msg_no_artwork">暂无画作。</string>
-    <string name="label_end_of_gallery">— 画廊到底了 —</string>
+    <string name="label_end_of_gallery">— 收藏到底了 —</string>
     <string name="label_unknown_artist">未知画师</string>
     <string name="content_desc_export_artwork">保存</string>
     <string name="content_desc_remove_bookmark">从收藏中移除</string>
@@ -67,8 +67,8 @@
 
     <!-- Today gallery -->
     <string name="msg_no_tag_artwork">今天没有 %1$s 的画作。\n下拉刷新试试。</string>
-    <string name="label_suggested_by">%1$s 推荐</string>
-    <string name="label_suggested_by_anonymous">匿名推荐</string>
+    <string name="label_suggested_by">由 %1$s 推荐</string>
+    <string name="label_suggested_by_anonymous">由某不愿意透露名字的萝莉控推荐</string>
     <string name="label_characters">角色</string>
     <string name="label_source">来源</string>
     <string name="label_artist">画师</string>
@@ -177,10 +177,10 @@
     <string name="msg_no_app_store">没有可用的应用商店</string>
 
     <!-- Export -->
-    <string name="msg_already_exported">已导出过</string>
-    <string name="msg_export_file_failed">创建导出文件失败</string>
+    <string name="msg_already_exported">已保存到 Pictures/LoliDaily</string>
+    <string name="msg_export_file_failed">创建文件失败</string>
     <string name="msg_saved_to_pictures">已保存到 Pictures/LoliDaily</string>
-    <string name="msg_export_failed">导出失败：%1$s</string>
+    <string name="msg_export_failed">保存失败：%1$s</string>
 
     <!-- Debug: API -->
     <string name="section_debug_api">API</string>
