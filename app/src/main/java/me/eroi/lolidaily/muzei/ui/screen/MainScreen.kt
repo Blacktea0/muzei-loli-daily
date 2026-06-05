@@ -1009,6 +1009,7 @@ private fun ThemeSheet(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
         verticalArrangement = Arrangement.spacedBy(2.dp),
+        maxLines = 1
     ) {
         ThemeMode.entries.forEachIndexed { index, mode ->
             ToggleButton(
@@ -1022,14 +1023,20 @@ private fun ThemeSheet(
                         else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
                     },
                 colors = ToggleButtonDefaults.tonalToggleButtonColors(),
+                contentPadding = ButtonDefaults.ExtraSmallContentPadding,
             ) {
                 Icon(
                     themeModeIcon(mode),
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(20.dp),
                 )
                 Spacer(Modifier.size(ToggleButtonDefaults.IconSpacing))
-                Text(themeModeLabel(mode), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    themeModeLabel(mode),
+                    fontSize = 14.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
@@ -1039,6 +1046,7 @@ private fun ThemeSheet(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
         verticalArrangement = Arrangement.spacedBy(2.dp),
+        maxLines = 1,
     ) {
         ColorSource.entries.forEachIndexed { index, source ->
             ToggleButton(
@@ -1052,14 +1060,20 @@ private fun ThemeSheet(
                         else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
                     },
                 colors = ToggleButtonDefaults.tonalToggleButtonColors(),
+                contentPadding = ButtonDefaults.ExtraSmallContentPadding,
             ) {
                 Icon(
                     colorSourceIcon(source),
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(ToggleButtonDefaults.IconSize),
                 )
                 Spacer(Modifier.size(ToggleButtonDefaults.IconSpacing))
-                Text(colorSourceLabel(source))
+                Text(
+                    colorSourceLabel(source),
+                    fontSize = 14.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }

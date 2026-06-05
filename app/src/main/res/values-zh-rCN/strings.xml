@@ -19,7 +19,7 @@
 
     <!-- Theme -->
     <string name="label_appearance_mode">外观模式</string>
-    <string name="label_theme_system">跟随系统</string>
+    <string name="label_theme_system">系统</string>
     <string name="label_theme_light">浅色</string>
     <string name="label_theme_dark">深色</string>
 
@@ -27,8 +27,8 @@
     <string name="section_color_source">颜色来源</string>
     <string name="title_color_style_preview">配色风格预览</string>
     <string name="label_color_source_default">默认</string>
-    <string name="label_color_source_image">从画作提取</string>
-    <string name="label_color_source_manual">手动选色</string>
+    <string name="label_color_source_image">画作</string>
+    <string name="label_color_source_manual">手动</string>
     <string name="label_hex_color">十六进制颜色</string>
     <string name="msg_invalid_hex_color">请输入有效的 #RRGGBB 颜色</string>
     <string name="title_color_picker">选择颜色</string>
