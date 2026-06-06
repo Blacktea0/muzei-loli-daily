@@ -1,4 +1,4 @@
-package me.eroi.lolidaily.muzei.ui.screen.gallery
+package me.eroi.lolidaily.muzei.ui.screen.pages
 
 import android.os.Build
 import androidx.compose.animation.*
@@ -44,6 +44,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
+import me.eroi.lolidaily.muzei.ui.screen.components.ArtworkDetailBottomSheet
 import me.eroi.lolidaily.muzei.util.exportArtwork
 import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.zoomable
@@ -52,7 +53,7 @@ private const val GALLERY_PAGE_SIZE = 5
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ArtworkGallery(
+fun BookmarkPage(
     cachedArtwork: List<ArtworkPreview>,
     onFullscreenImage: (ArtworkPreview) -> Unit = {},
     onRemoveBookmark: (ArtworkPreview) -> Unit = {},

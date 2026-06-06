@@ -1,4 +1,4 @@
-package me.eroi.lolidaily.muzei.ui.screen.gallery
+package me.eroi.lolidaily.muzei.ui.screen.components
 
 import android.content.Intent
 import androidx.compose.foundation.layout.*
