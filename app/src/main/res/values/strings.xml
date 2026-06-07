@@ -273,4 +273,7 @@
     <string name="submit_error_generic">Something went wrong…</string>
     <string name="submit_resolve_failed">Could not auto-detect artist — please fill in manually</string>
     <string name="submit_fetching_image">Fetching image from source…</string>
+    <string name="submit_hint_character_search">Search character name…</string>
+    <string name="submit_character_searching">Searching…</string>
+    <string name="submit_character_no_results">No results found</string>
 </resources>

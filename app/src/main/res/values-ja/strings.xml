@@ -273,4 +273,7 @@
     <string name="submit_error_generic">何かがうまくいきませんでした…</string>
     <string name="submit_resolve_failed">絵師の自動検出に失敗しました — 手動で入力してください</string>
     <string name="submit_fetching_image">ソースから画像を取得中……</string>
+    <string name="submit_hint_character_search">キャラクター名で検索……</string>
+    <string name="submit_character_searching">検索中……</string>
+    <string name="submit_character_no_results">結果が見つかりません</string>
 </resources>

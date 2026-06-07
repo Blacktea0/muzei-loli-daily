@@ -3,6 +3,13 @@ package me.eroi.lolidaily.muzei.api
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import android.webkit.WebChromeClient
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.model.ArtistResolveResponse
@@ -299,15 +306,35 @@ object LoliApiClient {
 
     private val TWITTER_URL_RE = Regex("^https?://(?:www\\.)?(?:x|twitter)\\.com/([^/]+/status/\\d+)")
 
+    private val PIXIV_URL_RE = Regex("^https?://(?:www\\.)?pixiv\\.net/(?:en/)?artworks/(\\d+)")
+
+    private val BILIBILI_URL_RE = Regex("^https?://(?:www\\.)?bilibili\\.com/opus/(\\d+)")
+
     /**
-     * Fetches the first image from a known source URL (twitter via vxtwitter API).
+     * Fetches the first image from a known source URL (twitter, pixiv, bilibili).
+     * For bilibili, uses WebView to bypass captcha (context required).
      * Returns (imageBytes, mimeType) or null on failure / no image found.
      */
-    fun fetchSourceImage(url: String): Pair<ByteArray, String>? {
+    suspend fun fetchSourceImage(context: Context? = null, url: String): Pair<ByteArray, String>? {
+        // Bilibili → resolve via WebView (needs Context)
+        val biliMatch = BILIBILI_URL_RE.find(url)
+        if (biliMatch != null) {
+            val opusId = biliMatch.groupValues[1]
+            val imageUrl = if (context != null) resolveBilibiliImage(context, opusId) else null
+            return imageUrl?.let { downloadImage(it) }
+        }
+        // Twitter / Pixiv → resolve via API
         val imageUrl = resolveSourceImageUrl(url) ?: return null
+        return downloadImage(imageUrl)
+    }
+
+    private fun downloadImage(imageUrl: String): Pair<ByteArray, String>? {
         return try {
-            val request = Request.Builder().url(imageUrl).header("User-Agent", USER_AGENT).build()
-            val response = httpClient.newCall(request).execute()
+            val builder = Request.Builder().url(imageUrl).header("User-Agent", USER_AGENT)
+            if (imageUrl.contains("pximg.net")) {
+                builder.header("Referer", "https://www.pixiv.net/")
+            }
+            val response = httpClient.newCall(builder.build()).execute()
             if (!response.isSuccessful) {
                 Log.w(TAG, "Image download failed: ${response.code}")
                 return null
@@ -324,7 +351,50 @@ object LoliApiClient {
         }
     }
 
+
+    /**
+     * Resolves bilibili opus image URL using a WebView to bypass captcha.
+     * Loads the page with real WebView UA, extracts image from __INITIAL_STATE__.
+     */
+    suspend fun resolveBilibiliImage(context: Context, opusId: String): String? {
+        val url = "https://www.bilibili.com/opus/$opusId"
+        val result = withTimeoutOrNull(15_000) {
+            suspendCancellableCoroutine { cont ->
+                val handler = android.os.Handler(android.os.Looper.getMainLooper())
+                handler.post {
+                    if (!cont.isActive) return@post
+                    val webView = WebView(context).apply {
+                        settings.javaScriptEnabled = true
+                        settings.domStorageEnabled = true
+                        settings.blockNetworkImage = true
+                        settings.mediaPlaybackRequiresUserGesture = false
+                        webChromeClient = WebChromeClient()
+                        webViewClient = object : WebViewClient() {
+                            override fun onPageFinished(view: WebView, pageUrl: String?) {
+                                if (!cont.isActive) return
+                                view.evaluateJavascript(
+                                    "(function(){var s=window.__INITIAL_STATE__;" +
+                                        "if(!s)return null;" +
+                                        "var j=JSON.stringify(s);" +
+                                        "var m=j.match(/https?:\\/\\/i\\d+\\.hdslb\\.com\\/bfs\\/new_dyn\\/[^\"'\\\\\\s@]+/);" +
+                                        "return m?m[0].replace('http://','https://'):null})()"
+                                ) { value ->
+                                    if (!cont.isActive) return@evaluateJavascript
+                                    val cleaned = value?.removeSurrounding("\"")?.removeSurrounding("null")
+                                    cont.resume(if (cleaned.isNullOrEmpty() || cleaned == "null") null else cleaned, onCancellation = { _, _, _ -> })
+                                }
+                            }
+                        }
+                    }
+                    cont.invokeOnCancellation { webView.destroy() }
+                    webView.loadUrl(url)
+                }
+            }
+        }
+        return result
+    }
     private fun resolveSourceImageUrl(url: String): String? {
+        // Twitter → vxtwitter API
         val twMatch = TWITTER_URL_RE.find(url)
         if (twMatch != null) {
             val tweetPath = twMatch.groupValues[1]
@@ -336,18 +406,46 @@ object LoliApiClient {
                 val body = response.body?.string() ?: return null
                 val root = json.parseToJsonElement(body).jsonObject
                 val mediaArr = root["media_extended"]?.jsonArray ?: return null
-                mediaArr
+                val rawUrl = mediaArr
                     .firstOrNull { it.jsonObject["type"]?.jsonPrimitive?.content == "image" }
                     ?.jsonObject?.get("url")?.jsonPrimitive?.content
+                // Upgrade to max quality: pbs.twimg.com/media/{id}.jpg → ...?format=jpg&name=4096x4096
+                rawUrl?.replace(Regex("^(https://pbs\\.twimg\\.com/media/[^.]+)\\.(\\w+)$")) {
+                    "${it.groupValues[1]}?format=${it.groupValues[2]}&name=4096x4096"
+                }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to resolve source image URL via vxtwitter", e)
+                null
+            }
+        }
+        // Pixiv → /ajax/illust/{id}/pages API (no auth needed)
+        val pixivMatch = PIXIV_URL_RE.find(url)
+        if (pixivMatch != null) {
+            val illustId = pixivMatch.groupValues[1]
+            return try {
+                val apiUrl = "https://www.pixiv.net/ajax/illust/$illustId/pages"
+                val request = Request.Builder()
+                    .url(apiUrl)
+                    .header("User-Agent", USER_AGENT)
+                    .header("Referer", "https://www.pixiv.net/")
+                    .build()
+                val response = httpClient.newCall(request).execute()
+                if (!response.isSuccessful) return null
+                val body = response.body?.string() ?: return null
+                val pages = json.parseToJsonElement(body).jsonObject["body"]?.jsonArray ?: return null
+                // Prefer "regular" (1200px) to stay under 3 MB limit; fall back to "original"
+                val urls = pages.firstOrNull()?.jsonObject?.get("urls")?.jsonObject ?: return null
+                urls["regular"]?.jsonPrimitive?.content
+                    ?: urls["original"]?.jsonPrimitive?.content
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to resolve source image URL via pixiv", e)
                 null
             }
         }
         return null
     }
 
-    private fun escapeJson(s: String): String =
+    internal fun escapeJson(s: String): String =
         s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")
         .replace("\t", "\\t")
 }

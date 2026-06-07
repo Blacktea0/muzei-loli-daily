@@ -127,3 +127,30 @@ data class ArtistResolveResponse(
     val name: String? = null,
     val link: String? = null,
 )
+
+
+// ── Bangumi Character Search ──────────────────────────────
+
+@Serializable
+data class SlimCharacterImages(
+    val large: String = "",
+    val medium: String = "",
+    val small: String = "",
+    val grid: String = "",
+)
+
+@Serializable
+data class SlimCharacter(
+    val id: Int,
+    val name: String = "",
+    val nameCN: String = "",
+    val role: Int = 0,
+    val images: SlimCharacterImages? = null,
+    val nsfw: Boolean = false,
+)
+
+@Serializable
+data class CharacterSearchResponse(
+    val data: List<SlimCharacter> = emptyList(),
+    val total: Int = 0,
+)

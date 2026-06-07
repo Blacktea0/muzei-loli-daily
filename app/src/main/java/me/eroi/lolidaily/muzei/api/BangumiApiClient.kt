@@ -6,6 +6,10 @@ import android.util.Log
 import me.eroi.lolidaily.muzei.model.BangumiReply
 import me.eroi.lolidaily.muzei.model.BangumiTopic
 import me.eroi.lolidaily.muzei.model.BangumiUser
+import me.eroi.lolidaily.muzei.model.CharacterSearchResponse
+import me.eroi.lolidaily.muzei.model.SlimCharacter
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Request
 
 object BangumiApiClient {
@@ -85,6 +89,40 @@ object BangumiApiClient {
             reply.state == 0 &&
                 reply.content.startsWith(date) &&
                 reply.content.contains(tag)
+        }
+    }
+
+    /**
+     * Searches Bangumi for characters matching [keyword].
+     * POST /p1/search/characters with {"keyword": "..."}.
+     * Returns matching characters, or empty list on failure.
+     */
+    fun searchCharacters(
+        context: Context,
+        keyword: String,
+        limit: Int = 20,
+    ): List<SlimCharacter> {
+        val url = "${LoliApiClient.getBangumiBaseUrl(context)}/p1/search/characters?limit=$limit"
+        val bodyStr = """{"keyword":"${LoliApiClient.escapeJson(keyword)}"}"""
+        val body = bodyStr.toRequestBody("application/json".toMediaType())
+        val request =
+            Request.Builder()
+                .url(url)
+                .header("User-Agent", "LoliDaily/1.0 (Android)")
+                .post(body)
+                .build()
+
+        return try {
+            val response = LoliApiClient.httpClient.newCall(request).execute()
+            val responseBody = response.body?.string() ?: return emptyList()
+            if (!response.isSuccessful) {
+                Log.w(TAG, "Bangumi character search returned ${response.code}: $responseBody")
+                return emptyList()
+            }
+            LoliApiClient.json.decodeFromString<CharacterSearchResponse>(responseBody).data
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to search characters for '$keyword'", e)
+            emptyList()
         }
     }
 }

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -34,6 +35,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -42,6 +44,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -74,8 +79,12 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.eroi.lolidaily.muzei.R
+import me.eroi.lolidaily.muzei.api.BangumiApiClient
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.api.SessionManager
+import me.eroi.lolidaily.muzei.model.SlimCharacter
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 
 private const val TAG = "SubmitPage"
 private const val MAX_IMAGE_SIZE = 3L * 1024 * 1024 // 3 MB
@@ -83,8 +92,8 @@ private const val MAX_IMAGE_SIZE = 3L * 1024 * 1024 // 3 MB
 private val KNOWN_SOURCES =
     listOf(
         Triple("twitter", Regex("^https://x\\.com/([^/]+/status/\\d+)"), "twitter"),
-        Triple("pixiv", Regex("^https://www\\.pixiv\\.net/artworks/(\\d+)$"), "pixiv"),
-        Triple("bilibili", Regex("^https://www\\.bilibili\\.com/opus/(\\d+)$"), "bilibili"),
+        Triple("pixiv", Regex("^https://www\\.pixiv\\.net/(?:en/)?artworks/(\\d+)"), "pixiv"),
+        Triple("bilibili", Regex("^https://www\\.bilibili\\.com/opus/(\\d+)"), "bilibili"),
     )
 
 private data class SubmitFormState(
@@ -95,10 +104,14 @@ private data class SubmitFormState(
     val sourceUrl: String = "",
     val artistName: String = "",
     val artistUrl: String = "",
-    val characters: String = "",
+    val characterSearchQuery: String = "",
+    val characterSearchResults: List<SlimCharacter> = emptyList(),
+    val isSearchingCharacters: Boolean = false,
+    val selectedCharacters: List<SlimCharacter> = emptyList(),
     val comment: String = "",
     val selectedTag: String = "LC0",
     val anonymous: Boolean = false,
+    val fetchedSourceUrl: String = "",
     val isFetchingImage: Boolean = false,
     val isSubmitting: Boolean = false,
     val statusMessage: String? = null,
@@ -180,30 +193,46 @@ fun SubmitPage(
             }
         }
 
-    // Auto-fetch artist + image when source URL changes
+    // Auto-fetch artist + image when source URL changes (debounced)
     LaunchedEffect(state.sourceUrl) {
         val url = state.sourceUrl.trim()
         if (url.isBlank()) {
             if (state.imageBytes != null) {
-                state = state.copy(imageUri = null, imageBytes = null, imageName = "", imageMimeType = "")
+                state = state.copy(
+                    imageUri = null, imageBytes = null, imageName = "", imageMimeType = "",
+                    fetchedSourceUrl = "",
+                )
             }
             return@LaunchedEffect
         }
         val match = KNOWN_SOURCES.find { (_, regex, _) -> regex.containsMatchIn(url) }
         if (match == null) return@LaunchedEffect
 
-        // Skip if image already loaded
-        if (state.imageBytes != null) return@LaunchedEffect
+        // Skip if this exact URL was already fetched
+        if (url == state.fetchedSourceUrl) return@LaunchedEffect
 
-        state = state.copy(isFetchingImage = true)
-        val (type, regex, _) = match
-        val rid = regex.find(url)?.groupValues?.get(1) ?: return@LaunchedEffect
+        // Debounce: wait for user to stop typing before fetching
+        delay(600)
+
+        // Re-check after debounce — URL may have changed
+        val currentUrl = state.sourceUrl.trim()
+        if (currentUrl != url) return@LaunchedEffect
+        val currentMatch = KNOWN_SOURCES.find { (_, regex, _) -> regex.containsMatchIn(currentUrl) }
+        if (currentMatch == null) return@LaunchedEffect
+
+        state = state.copy(
+            isFetchingImage = true,
+            imageUri = null, imageBytes = null, imageName = "", imageMimeType = "",
+            artistName = "", artistUrl = "",
+        )
+        val (type, regex, _) = currentMatch
+        val rid = regex.find(currentUrl)?.groupValues?.get(1) ?: return@LaunchedEffect
 
         val artistDeferred = async(Dispatchers.IO) {
             LoliApiClient.resolveArtist(context, type, rid)
         }
         val imageDeferred = async(Dispatchers.IO) {
-            LoliApiClient.fetchSourceImage(url)
+            LoliApiClient.fetchSourceImage(context, currentUrl)
         }
 
         val artist = try { artistDeferred.await() } catch (_: Exception) { null }
@@ -215,6 +244,7 @@ fun SubmitPage(
                 if (bytes.size > MAX_IMAGE_SIZE) {
                     state = state.copy(
                         isFetchingImage = false,
+                        fetchedSourceUrl = currentUrl,
                         statusMessage = res.getString(
                             if (mime == "image/png") R.string.submit_error_size_png
                             else R.string.submit_error_size
@@ -235,6 +265,7 @@ fun SubmitPage(
                         }",
                         imageMimeType = mime,
                         isFetchingImage = false,
+                        fetchedSourceUrl = currentUrl,
                         artistName = artist?.name ?: state.artistName,
                         artistUrl = artist?.link ?: state.artistUrl,
                     )
@@ -242,6 +273,7 @@ fun SubmitPage(
             } else {
                 state = state.copy(
                     isFetchingImage = false,
+                    fetchedSourceUrl = currentUrl,
                     artistName = artist?.name ?: state.artistName,
                     artistUrl = artist?.link ?: state.artistUrl,
                     statusMessage = if (artist?.name == null && artist?.link == null)
@@ -250,7 +282,7 @@ fun SubmitPage(
                 )
             }
         }
-     }
+    }
 
     fun doSubmit() {
         val s = state
@@ -279,19 +311,8 @@ fun SubmitPage(
             state = state.copy(statusMessage = res.getString(R.string.submit_error_invalid_url, res.getString(R.string.submit_label_artist_url)), isError = true)
             return
         }
-        // Parse character IDs
-        val characterIds =
-            s.characters
-                .trim()
-                .split("\\s+".toRegex())
-                .filter { it.isNotBlank() }
-                .mapNotNull { url ->
-                    try {
-                        url.split("/").last().toLong()
-                    } catch (_: Exception) {
-                        null
-                    }
-                }
+        // Character IDs from selected characters
+        val characterIds = s.selectedCharacters.map { it.id.toLong() }
         val session = SessionManager.loadSession(context)
         if (session == null || !session.isValid) {
             state = state.copy(statusMessage = res.getString(R.string.submit_error_login), isError = true)
@@ -550,17 +571,112 @@ fun SubmitPage(
                 enabled = !state.isSubmitting,
             )
 
-            OutlinedTextField(
-                value = state.characters,
-                onValueChange = { state = state.copy(characters = it) },
-                label = { Text(stringResource(R.string.submit_label_characters)) },
-                placeholder = { Text(stringResource(R.string.submit_hint_characters)) },
-                singleLine = false,
-                maxLines = 3,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next, keyboardType = KeyboardType.Uri),
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !state.isSubmitting,
+            // ── Character search ──
+            Text(
+                text = stringResource(R.string.submit_label_characters),
+                style = MaterialTheme.typography.labelLarge,
             )
+
+            // Debounced character search
+            var searchJob by remember { mutableStateOf<Job?>(null) }
+            LaunchedEffect(state.characterSearchQuery) {
+                val query = state.characterSearchQuery.trim()
+                if (query.length < 2) {
+                    state = state.copy(characterSearchResults = emptyList(), isSearchingCharacters = false)
+                    return@LaunchedEffect
+                }
+                state = state.copy(isSearchingCharacters = true)
+                searchJob?.cancel()
+                searchJob = launch(Dispatchers.IO) {
+                    delay(400)
+                    val results = BangumiApiClient.searchCharacters(context, query)
+                    withContext(Dispatchers.Main) {
+                        state = state.copy(
+                            characterSearchResults = results.filter { r -> state.selectedCharacters.none { it.id == r.id } },
+                            isSearchingCharacters = false,
+                        )
+                    }
+                }
+            }
+
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = state.characterSearchQuery,
+                    onValueChange = {
+                        state = state.copy(characterSearchQuery = it)
+                    },
+                    placeholder = { Text(stringResource(R.string.submit_hint_character_search)) },
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (state.isSearchingCharacters) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        }
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.isSubmitting,
+                )
+
+                DropdownMenu(
+                    expanded = state.characterSearchResults.isNotEmpty() && state.characterSearchQuery.trim().length >= 2,
+                    onDismissRequest = { state = state.copy(characterSearchResults = emptyList()) },
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp),
+                ) {
+                    state.characterSearchResults.forEach { character ->
+                        val displayName = if (character.nameCN.isNotBlank()) "${character.nameCN} (${character.name})" else character.name
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    character.images?.let { imgs ->
+                                        AsyncImage(
+                                            model = imgs.grid.ifBlank { imgs.medium.ifBlank { imgs.small } },
+                                            contentDescription = null,
+                                            modifier = Modifier.size(32.dp).clip(RoundedCornerShape(4.dp)),
+                                            contentScale = ContentScale.Crop,
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                    }
+                                    Text(displayName, style = MaterialTheme.typography.bodyMedium)
+                                }
+                            },
+                            onClick = {
+                                state = state.copy(
+                                    selectedCharacters = state.selectedCharacters + character,
+                                    characterSearchQuery = "",
+                                    characterSearchResults = emptyList(),
+                                )
+                            },
+                        )
+                    }
+                }
+            }
+
+            // Selected character chips
+            if (state.selectedCharacters.isNotEmpty()) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    state.selectedCharacters.forEach { character ->
+                        val chipLabel = character.nameCN.ifBlank { character.name }
+                        InputChip(
+                            selected = false,
+                            onClick = {},
+                            label = { Text(chipLabel) },
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = {
+                                        state = state.copy(
+                                            selectedCharacters = state.selectedCharacters - character,
+                                        )
+                                    },
+                                    modifier = Modifier.size(18.dp),
+                                ) {
+                                    Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(14.dp))
+                                }
+                            },
+                        )
+                    }
+                }
+            }
 
             OutlinedTextField(
                 value = state.comment,
