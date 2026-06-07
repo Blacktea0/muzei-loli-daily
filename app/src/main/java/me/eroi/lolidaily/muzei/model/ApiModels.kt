@@ -113,3 +113,17 @@ data class LcUserInfo(
     val sd: String = "",
     val subPrivacy: String = "private",
 )
+
+// ── Daily Submit ─────────────────────────────────────────
+
+@Serializable
+data class DailySubmitResponse(val otc: String)
+
+@Serializable
+data class PresignResponse(val signedUrl: String)
+
+@Serializable
+data class ArtistResolveResponse(
+    val name: String? = null,
+    val link: String? = null,
+)

@@ -235,4 +235,41 @@
     <string name="about_highlight_nonprofit">international nonprofit</string>
     <string name="about_official_site">Official Website</string>
     <string name="about_source_code">Source Code</string>
+
+    <!-- Submit -->
+    <string name="tab_submit">Submit</string>
+    <string name="title_submit">Submit Artwork</string>
+    <string name="submit_login_required">Please log in to Bangumi to submit artwork.</string>
+    <string name="submit_tag_label">Classification</string>
+    <string name="submit_image_label">Image *</string>
+    <string name="submit_image_hint">Tap to select an image</string>
+    <string name="submit_image_formats">JPG / PNG / WebP / AVIF · Max 3 MB</string>
+    <string name="submit_image_preview">Selected image preview</string>
+    <string name="submit_label_source">Source URL</string>
+    <string name="submit_hint_source">Link to the artist\'s original post</string>
+    <string name="submit_label_artist">Artist Name</string>
+    <string name="submit_hint_artist">e.g. a familiar magic user of lines and colors</string>
+    <string name="submit_label_artist_url">Artist Link</string>
+    <string name="submit_hint_artist_url">e.g. pixiv, twitter profile, or BGM character page</string>
+    <string name="submit_label_characters">Characters</string>
+    <string name="submit_hint_characters">BGM character page links, separated by spaces</string>
+    <string name="submit_label_comment">Comment</string>
+    <string name="submit_hint_comment">Say something about this artwork…</string>
+    <string name="submit_anonymous">Submit anonymously</string>
+    <string name="submit_guidelines_link">Submission Guidelines</string>
+    <string name="submit_button">Submit</string>
+    <string name="submit_sending">Sending…</string>
+    <string name="submit_success">Your submission has been received ♥</string>
+    <string name="submit_error_format">Unsupported image format</string>
+    <string name="submit_error_size">Image exceeds 3 MB — please resize first</string>
+    <string name="submit_error_size_png">Image exceeds 3 MB — consider converting to JPG</string>
+    <string name="submit_error_read">Failed to read image file</string>
+    <string name="submit_error_no_image">Please select an image first</string>
+    <string name="submit_error_source_required">\"Source URL\" is required</string>
+    <string name="submit_error_artist_required">\"Artist Name\" is required</string>
+    <string name="submit_error_artist_url_required">\"Artist Link\" is required</string>
+    <string name="submit_error_invalid_url">\"%1$s\" should be a valid URL</string>
+    <string name="submit_error_login">Please log in first</string>
+    <string name="submit_error_generic">Something went wrong…</string>
+    <string name="submit_resolve_failed">Could not auto-detect artist — please fill in manually</string>
 </resources>

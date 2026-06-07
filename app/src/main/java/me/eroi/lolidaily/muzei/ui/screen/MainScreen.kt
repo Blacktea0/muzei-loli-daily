@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Upload
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -33,9 +34,10 @@ private const val KEY_LAST_TAB = "settings_last_tab"
 /**
  * MD3 main screen for the Loli Daily Muzei plugin.
  *
- * Three destinations via bottom NavigationBar (phone) or NavigationRail (tablet/foldable):
+ * Four destinations via bottom NavigationBar (phone) or NavigationRail (tablet/foldable):
  * - Today: current day's artwork gallery
- * - History: all previously cached artwork
+ * - Bookmarks: all previously cached artwork
+ * - Submit: upload new artwork to Loli Commons
  * - Settings: tag filters, account, theme, debug
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalMaterial3WindowSizeClassApi::class)
@@ -111,9 +113,14 @@ fun MainScreen(
                 1,
             ),
             Triple(
-                if (selectedTab == 2) Icons.Filled.Settings else Icons.Outlined.Settings,
-                stringResource(R.string.tab_settings),
+                if (selectedTab == 2) Icons.Filled.Upload else Icons.Outlined.Upload,
+                stringResource(R.string.tab_submit),
                 2,
+            ),
+            Triple(
+                if (selectedTab == 3) Icons.Filled.Settings else Icons.Outlined.Settings,
+                stringResource(R.string.tab_settings),
+                3,
             ),
         )
 
@@ -163,7 +170,7 @@ fun MainScreen(
             // Content area
             Column(modifier = Modifier.weight(1f).background(MaterialTheme.colorScheme.surface)) {
                 // Top bar for settings tab
-                if (selectedTab == 2) {
+                if (selectedTab == 3) {
                     CenterAlignedTopAppBar(
                         title = { Text(stringResource(R.string.title_settings)) },
                         colors =
@@ -204,6 +211,12 @@ fun MainScreen(
                         )
 
                     2 ->
+                        SubmitPage(
+                            isLoggedIn = isLoggedIn,
+                            onLogin = onLogin,
+                        )
+
+                    3 ->
                         SettingsPage(
                             selectedTags = selectedTags,
                             onTagsChanged = onTagsChanged,
@@ -241,7 +254,7 @@ fun MainScreen(
         // Phone: Bottom NavigationBar
         Scaffold(
             topBar = {
-                if (selectedTab == 2) {
+                if (selectedTab == 3) {
                     CenterAlignedTopAppBar(
                         title = { Text(stringResource(R.string.title_settings)) },
                         colors =
@@ -283,7 +296,20 @@ fun MainScreen(
                         selected = selectedTab == 2,
                         onClick = { selectedTab = 2 },
                         icon = {
-                            Crossfade(targetState = selectedTab == 2, label = "settings_icon") {
+                            Crossfade(targetState = selectedTab == 2, label = "submit_icon") {
+                                Icon(
+                                    imageVector = if (it) Icons.Filled.Upload else Icons.Outlined.Upload,
+                                    contentDescription = stringResource(R.string.tab_submit),
+                                )
+                            }
+                        },
+                        label = { Text(stringResource(R.string.tab_submit)) },
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab == 3,
+                        onClick = { selectedTab = 3 },
+                        icon = {
+                            Crossfade(targetState = selectedTab == 3, label = "settings_icon") {
                                 Icon(
                                     imageVector = if (it) Icons.Filled.Settings else Icons.Outlined.Settings,
                                     contentDescription = stringResource(R.string.tab_settings),
@@ -330,6 +356,14 @@ fun MainScreen(
                     }
 
                 2 ->
+                    Box(modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
+                        SubmitPage(
+                            isLoggedIn = isLoggedIn,
+                            onLogin = onLogin,
+                        )
+                    }
+
+                3 ->
                     Box(modifier = Modifier.padding(padding)) {
                         SettingsPage(
                             selectedTags = selectedTags,

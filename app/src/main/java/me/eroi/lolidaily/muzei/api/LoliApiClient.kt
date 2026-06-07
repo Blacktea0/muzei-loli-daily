@@ -5,9 +5,12 @@ import android.net.Uri
 import android.util.Log
 import kotlinx.serialization.json.Json
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
+import me.eroi.lolidaily.muzei.model.ArtistResolveResponse
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyResponse
+import me.eroi.lolidaily.muzei.model.DailySubmitResponse
 import me.eroi.lolidaily.muzei.model.LcUserInfo
+import me.eroi.lolidaily.muzei.model.PresignResponse
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -176,4 +179,122 @@ object LoliApiClient {
             false
         }
     }
+
+    /**
+     * Submits daily artwork metadata. Returns the OTC (one-time code) on success, or an error message.
+     * Mirrors JS: lcClient.postDaily → POST /v1/daily/submit
+     */
+    fun submitDaily(
+        context: Context,
+        sourceUrl: String,
+        artistName: String,
+        artistUrl: String,
+        characters: List<Long>,
+        tags: String,
+        comment: String,
+        anonymous: Boolean,
+        token: String,
+    ): Result<String> {
+        val url = "${getApiBaseUrl(context)}/api/v1/daily/submit"
+        val charactersJson = characters.joinToString(",", "[", "]")
+        val bodyStr =
+            """{"sourceUrl":"${escapeJson(sourceUrl)}","artistName":"${escapeJson(artistName)}",""" +
+                """"artistUrl":"${escapeJson(artistUrl)}","characters":$charactersJson,""" +
+                """"tags":"${escapeJson(tags)}","comment":"${escapeJson(comment)}","anonymous":$anonymous}"""
+        val body = bodyStr.toRequestBody("application/json".toMediaType())
+        val request =
+            Request.Builder()
+                .url(url)
+                .header("User-Agent", USER_AGENT)
+                .header("Authorization", "Bearer $token")
+                .post(body)
+                .build()
+        return try {
+            val response = httpClient.newCall(request).execute()
+            val responseBody = response.body?.string() ?: ""
+            if (response.code == 429) {
+                return Result.failure(Exception("已达到提交队列上限，过一段时间再来吧"))
+            }
+            if (!response.isSuccessful) {
+                Log.w(TAG, "submitDaily returned ${response.code}: $responseBody")
+                return Result.failure(Exception("嘶……好像网卡了或者服务器炸了……"))
+            }
+            val otc = json.decodeFromString<DailySubmitResponse>(responseBody).otc
+            Result.success(otc)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to submit daily", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Uploads an image for a submitted daily artwork using a presigned URL.
+     * Mirrors JS: lcClient.uploadDailyImage → POST /v1/daily/img-upload-presign + PUT
+     */
+    fun uploadDailyImage(
+        context: Context,
+        fileName: String,
+        contentType: String,
+        contentLength: Long,
+        otc: String,
+        imageBytes: ByteArray,
+        token: String,
+    ): Result<Unit> {
+        // Step 1: Get presigned URL
+        val presignUrl = "${getApiBaseUrl(context)}/api/v1/daily/img-upload-presign"
+        val presignBody =
+            """{"filename":"${escapeJson(fileName)}","contentType":"${escapeJson(contentType)}",""" +
+                """"contentLength":$contentLength,"otc":"${escapeJson(otc)}"}"""
+        val presignRequest =
+            Request.Builder()
+                .url(presignUrl)
+                .header("User-Agent", USER_AGENT)
+                .header("Authorization", "Bearer $token")
+                .post(presignBody.toRequestBody("application/json".toMediaType()))
+                .build()
+        val presignResponse = httpClient.newCall(presignRequest).execute()
+        val presignBodyStr = presignResponse.body?.string() ?: ""
+        if (!presignResponse.isSuccessful) {
+            Log.w(TAG, "presign returned ${presignResponse.code}: $presignBodyStr")
+            return Result.failure(Exception("上传请求被拒绝"))
+        }
+        val signedUrl = json.decodeFromString<PresignResponse>(presignBodyStr).signedUrl
+
+        // Step 2: PUT image to signed URL
+        val putBody = imageBytes.toRequestBody(contentType.toMediaType())
+        val putRequest = Request.Builder().url(signedUrl).put(putBody).build()
+        val putResponse = httpClient.newCall(putRequest).execute()
+        if (!putResponse.isSuccessful) {
+            Log.w(TAG, "image PUT returned ${putResponse.code}")
+            return Result.failure(Exception("上传失败"))
+        }
+        return Result.success(Unit)
+    }
+
+    /**
+     * Resolves artist info from a known source URL (twitter/pixiv/bilibili).
+     * Mirrors JS: lcClient.fetchDailyResolve → GET /v1/daily/resolve
+     */
+    fun resolveArtist(
+        context: Context,
+        type: String,
+        rid: String,
+    ): ArtistResolveResponse? {
+        val url =
+            "${getApiBaseUrl(context)}/api/v1/daily/resolve?type=${Uri.encode(type)}&rid=${Uri.encode(rid)}"
+        val request = Request.Builder().url(url).header("User-Agent", USER_AGENT).get().build()
+        return try {
+            val response = httpClient.newCall(request).execute()
+            if (!response.isSuccessful) return null
+            val body = response.body?.string() ?: return null
+            json.decodeFromString<ArtistResolveResponse>(body)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to resolve artist", e)
+            null
+        }
+    }
+
+    private fun escapeJson(s: String): String =
+        s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")
+        .replace("\t", "\\t")
 }

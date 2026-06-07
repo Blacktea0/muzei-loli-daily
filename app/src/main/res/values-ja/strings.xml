@@ -235,4 +235,41 @@
     <string name="about_highlight_nonprofit">国際非営利</string>
     <string name="about_official_site">公式サイト</string>
     <string name="about_source_code">ソースコード</string>
+
+    <!-- Submit -->
+    <string name="tab_submit">投稿</string>
+    <string name="title_submit">イラスト投稿</string>
+    <string name="submit_login_required">イラストを投稿するにはBangumiにログインしてください。</string>
+    <string name="submit_tag_label">分類</string>
+    <string name="submit_image_label">画像 *</string>
+    <string name="submit_image_hint">タップして画像を選択</string>
+    <string name="submit_image_formats">JPG / PNG / WebP / AVIF · 最大 3 MB</string>
+    <string name="submit_image_preview">選択した画像のプレビュー</string>
+    <string name="submit_label_source">ソースURL</string>
+    <string name="submit_hint_source">作者のオリジナル投稿ページへのリンク</string>
+    <string name="submit_label_artist">絵師名</string>
+    <string name="submit_hint_artist">線と色彩の魔法使い</string>
+    <string name="submit_label_artist_url">絵師リンク</string>
+    <string name="submit_hint_artist_url">例：pixiv、twitterプロフィール、BGMキャラクターページ</string>
+    <string name="submit_label_characters">キャラクター</string>
+    <string name="submit_hint_characters">BGMキャラクターページのリンク、スペース区切り</string>
+    <string name="submit_label_comment">コメント</string>
+    <string name="submit_hint_comment">イラストについて何か一言……</string>
+    <string name="submit_anonymous">投稿者名を非表示</string>
+    <string name="submit_guidelines_link">投稿ガイドライン</string>
+    <string name="submit_button">送信</string>
+    <string name="submit_sending">送信中……</string>
+    <string name="submit_success">想いは……届きました</string>
+    <string name="submit_error_format">サポートされていない画像形式です</string>
+    <string name="submit_error_size">画像が3MBを超えています — サイズを調整してください</string>
+    <string name="submit_error_size_png">画像が3MBを超えています — JPGへの変換をおすすめします</string>
+    <string name="submit_error_read">画像ファイルの読み込みに失敗しました</string>
+    <string name="submit_error_no_image">画像を選択してください</string>
+    <string name="submit_error_source_required">"ソースURL"は必須項目です</string>
+    <string name="submit_error_artist_required">"絵師名"は必須項目です</string>
+    <string name="submit_error_artist_url_required">"絵師リンク"は必須項目です</string>
+    <string name="submit_error_invalid_url">"%1$s"には有効なURLを入力してください</string>
+    <string name="submit_error_login">先にログインしてください</string>
+    <string name="submit_error_generic">何かがうまくいきませんでした…</string>
+    <string name="submit_resolve_failed">絵師の自動検出に失敗しました — 手動で入力してください</string>
 </resources>

@@ -235,4 +235,41 @@
     <string name="about_highlight_nonprofit">国际非盈利</string>
     <string name="about_official_site">官方网站</string>
     <string name="about_source_code">源代码</string>
+
+    <!-- Submit -->
+    <string name="tab_submit">投稿</string>
+    <string name="title_submit">投稿插画</string>
+    <string name="submit_login_required">请先登录班固米以投稿插画。</string>
+    <string name="submit_tag_label">分级</string>
+    <string name="submit_image_label">图片 *</string>
+    <string name="submit_image_hint">点击选择要上传的图片</string>
+    <string name="submit_image_formats">JPG / PNG / WebP / AVIF · 最大 3 MB</string>
+    <string name="submit_image_preview">已选图片预览</string>
+    <string name="submit_label_source">来源链接</string>
+    <string name="submit_hint_source">原作者发布页面的链接</string>
+    <string name="submit_label_artist">绘师名</string>
+    <string name="submit_hint_artist">线条与色彩法术使用者</string>
+    <string name="submit_label_artist_url">绘师链接</string>
+    <string name="submit_hint_artist_url">例如 pixiv、twitter 主页、bgm 人物链接</string>
+    <string name="submit_label_characters">角色</string>
+    <string name="submit_hint_characters">班固米角色页面的链接，多个链接用空格分隔</string>
+    <string name="submit_label_comment">说点什么</string>
+    <string name="submit_hint_comment">图文是否无关，令人深思……</string>
+    <string name="submit_anonymous">不显示投稿者</string>
+    <string name="submit_guidelines_link">投稿须知</string>
+    <string name="submit_button">发送</string>
+    <string name="submit_sending">发送中……</string>
+    <string name="submit_success">心意……传达到了呢</string>
+    <string name="submit_error_format">不支持的图片格式</string>
+    <string name="submit_error_size">图片超过 3MB 了，请先调整尺寸</string>
+    <string name="submit_error_size_png">图片超过 3MB 了，建议转换为 jpg 格式</string>
+    <string name="submit_error_read">读取图片文件失败</string>
+    <string name="submit_error_no_image">是不是忘记选择图片了？</string>
+    <string name="submit_error_source_required">"来源链接"一栏是必填项</string>
+    <string name="submit_error_artist_required">"绘师名"一栏是必填项</string>
+    <string name="submit_error_artist_url_required">"绘师链接"一栏是必填项</string>
+    <string name="submit_error_invalid_url">"%1$s"一栏应该填写链接</string>
+    <string name="submit_error_login">请先登录</string>
+    <string name="submit_error_generic">嘶……好像网卡了或者服务器炸了……</string>
+    <string name="submit_resolve_failed">TwT 捕捉绘师失败，请手动填写名称和链接</string>
 </resources>
