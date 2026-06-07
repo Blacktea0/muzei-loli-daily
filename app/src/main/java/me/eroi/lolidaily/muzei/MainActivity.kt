@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import me.eroi.lolidaily.muzei.api.BangumiApiClient
+import me.eroi.lolidaily.muzei.api.link.cleanUrl
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.db.DatabaseProvider
 import me.eroi.lolidaily.muzei.db.EntityMapper
@@ -92,6 +93,12 @@ class MainActivity : AppCompatActivity() {
 
         // Muzei launches with an explicit Intent (no action); launcher uses ACTION_MAIN
         val fromMuzei = intent?.action != Intent.ACTION_MAIN
+
+        // Handle share intent: extract URL, resolve short links, strip tracking params
+        val sharedUrl: String? = if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
+            val raw = intent.getStringExtra(Intent.EXTRA_TEXT)
+            if (!raw.isNullOrBlank()) cleanUrl(LoliApiClient.httpClient, raw.trim()) else null
+        } else null
 
         setContent {
             LoliDailyTheme(
@@ -183,7 +190,8 @@ class MainActivity : AppCompatActivity() {
                         removeBookmark(preview)
                     },
                     refreshProgress = refreshProgress,
-                    initialTab = if (fromMuzei) 2 else 0,
+                    initialTab = if (fromMuzei || sharedUrl != null) 2 else 0,
+                    initialSourceUrl = sharedUrl,
                     onTodayPageOpened = { loadPreview() },
                 )
             }

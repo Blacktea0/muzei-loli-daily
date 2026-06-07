@@ -79,6 +79,7 @@ fun MainScreen(
     sourceColorArgb: Int? = null,
     onBadgeChanged: (String) -> Unit = {},
     onTodayPageOpened: () -> Unit = {},
+    initialSourceUrl: String? = null,
 ) {
     val context = LocalContext.current
     val windowSizeClass = calculateWindowSizeClass(context as android.app.Activity)
@@ -214,6 +215,7 @@ fun MainScreen(
                         SubmitPage(
                             isLoggedIn = isLoggedIn,
                             onLogin = onLogin,
+                            initialSourceUrl = initialSourceUrl,
                         )
 
                     3 ->
@@ -360,9 +362,9 @@ fun MainScreen(
                         SubmitPage(
                             isLoggedIn = isLoggedIn,
                             onLogin = onLogin,
+                            initialSourceUrl = initialSourceUrl,
                         )
                     }
-
                 3 ->
                     Box(modifier = Modifier.padding(padding)) {
                         SettingsPage(

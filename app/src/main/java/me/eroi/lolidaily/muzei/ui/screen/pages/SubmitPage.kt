@@ -82,6 +82,7 @@ import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.BangumiApiClient
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.api.SessionManager
+import me.eroi.lolidaily.muzei.api.link.SourceLinkParserRegistry
 import me.eroi.lolidaily.muzei.model.SlimCharacter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -89,12 +90,6 @@ import kotlinx.coroutines.delay
 private const val TAG = "SubmitPage"
 private const val MAX_IMAGE_SIZE = 3L * 1024 * 1024 // 3 MB
 
-private val KNOWN_SOURCES =
-    listOf(
-        Triple("twitter", Regex("^https://x\\.com/([^/]+/status/\\d+)"), "twitter"),
-        Triple("pixiv", Regex("^https://www\\.pixiv\\.net/(?:en/)?artworks/(\\d+)"), "pixiv"),
-        Triple("bilibili", Regex("^https://www\\.bilibili\\.com/opus/(\\d+)"), "bilibili"),
-    )
 
 private data class SubmitFormState(
     val imageUri: Uri? = null,
@@ -131,6 +126,7 @@ private data class SubmitFormState(
 fun SubmitPage(
     isLoggedIn: Boolean,
     onLogin: () -> Unit,
+    initialSourceUrl: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -193,6 +189,13 @@ fun SubmitPage(
             }
         }
 
+    // Pre-fill source URL from share intent
+    LaunchedEffect(initialSourceUrl) {
+        if (!initialSourceUrl.isNullOrBlank()) {
+            state = state.copy(sourceUrl = initialSourceUrl)
+        }
+    }
+
     // Auto-fetch artist + image when source URL changes (debounced)
     LaunchedEffect(state.sourceUrl) {
         val url = state.sourceUrl.trim()
@@ -205,7 +208,7 @@ fun SubmitPage(
             }
             return@LaunchedEffect
         }
-        val match = KNOWN_SOURCES.find { (_, regex, _) -> regex.containsMatchIn(url) }
+        val match = SourceLinkParserRegistry.match(url)
         if (match == null) return@LaunchedEffect
 
         // Skip if this exact URL was already fetched
@@ -217,7 +220,7 @@ fun SubmitPage(
         // Re-check after debounce — URL may have changed
         val currentUrl = state.sourceUrl.trim()
         if (currentUrl != url) return@LaunchedEffect
-        val currentMatch = KNOWN_SOURCES.find { (_, regex, _) -> regex.containsMatchIn(currentUrl) }
+        val currentMatch = SourceLinkParserRegistry.match(currentUrl)
         if (currentMatch == null) return@LaunchedEffect
 
         state = state.copy(
@@ -225,11 +228,9 @@ fun SubmitPage(
             imageUri = null, imageBytes = null, imageName = "", imageMimeType = "",
             artistName = "", artistUrl = "",
         )
-        val (type, regex, _) = currentMatch
-        val rid = regex.find(currentUrl)?.groupValues?.get(1) ?: return@LaunchedEffect
 
         val artistDeferred = async(Dispatchers.IO) {
-            LoliApiClient.resolveArtist(context, type, rid)
+            SourceLinkParserRegistry.resolveArtist(context, currentMatch.type, currentMatch.resourceId)
         }
         val imageDeferred = async(Dispatchers.IO) {
             LoliApiClient.fetchSourceImage(context, currentUrl)
@@ -255,7 +256,7 @@ fun SubmitPage(
                     state = state.copy(
                         imageUri = "source_image".toUri(),
                         imageBytes = bytes,
-                        imageName = "source_${rid.replace("/", "_")}.${
+                        imageName = "source_${currentMatch.resourceId.replace("/", "_")}.${
                             when (mime) {
                                 "image/png" -> "png"
                                 "image/webp" -> "webp"
@@ -283,7 +284,6 @@ fun SubmitPage(
             }
         }
     }
-
     fun doSubmit() {
         val s = state
         if (s.imageBytes == null) {
