@@ -11,6 +11,9 @@ import me.eroi.lolidaily.muzei.model.DailyResponse
 import me.eroi.lolidaily.muzei.model.DailySubmitResponse
 import me.eroi.lolidaily.muzei.model.LcUserInfo
 import me.eroi.lolidaily.muzei.model.PresignResponse
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -292,6 +295,56 @@ object LoliApiClient {
             Log.w(TAG, "Failed to resolve artist", e)
             null
         }
+    }
+
+    private val TWITTER_URL_RE = Regex("^https?://(?:www\\.)?(?:x|twitter)\\.com/([^/]+/status/\\d+)")
+
+    /**
+     * Fetches the first image from a known source URL (twitter via vxtwitter API).
+     * Returns (imageBytes, mimeType) or null on failure / no image found.
+     */
+    fun fetchSourceImage(url: String): Pair<ByteArray, String>? {
+        val imageUrl = resolveSourceImageUrl(url) ?: return null
+        return try {
+            val request = Request.Builder().url(imageUrl).header("User-Agent", USER_AGENT).build()
+            val response = httpClient.newCall(request).execute()
+            if (!response.isSuccessful) {
+                Log.w(TAG, "Image download failed: ${response.code}")
+                return null
+            }
+            val bytes = response.body?.bytes() ?: return null
+            if (bytes.isEmpty()) return null
+            val mime =
+                response.header("Content-Type", "image/jpeg")
+                    ?.split(";")?.first()?.trim() ?: "image/jpeg"
+            bytes to mime
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to download source image", e)
+            null
+        }
+    }
+
+    private fun resolveSourceImageUrl(url: String): String? {
+        val twMatch = TWITTER_URL_RE.find(url)
+        if (twMatch != null) {
+            val tweetPath = twMatch.groupValues[1]
+            return try {
+                val apiUrl = "https://api.vxtwitter.com/$tweetPath"
+                val request = Request.Builder().url(apiUrl).header("User-Agent", USER_AGENT).build()
+                val response = httpClient.newCall(request).execute()
+                if (!response.isSuccessful) return null
+                val body = response.body?.string() ?: return null
+                val root = json.parseToJsonElement(body).jsonObject
+                val mediaArr = root["media_extended"]?.jsonArray ?: return null
+                mediaArr
+                    .firstOrNull { it.jsonObject["type"]?.jsonPrimitive?.content == "image" }
+                    ?.jsonObject?.get("url")?.jsonPrimitive?.content
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to resolve source image URL via vxtwitter", e)
+                null
+            }
+        }
+        return null
     }
 
     private fun escapeJson(s: String): String =

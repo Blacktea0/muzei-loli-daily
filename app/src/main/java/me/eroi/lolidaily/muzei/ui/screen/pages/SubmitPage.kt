@@ -52,6 +52,7 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -69,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.eroi.lolidaily.muzei.R
@@ -97,6 +99,7 @@ private data class SubmitFormState(
     val comment: String = "",
     val selectedTag: String = "LC0",
     val anonymous: Boolean = false,
+    val isFetchingImage: Boolean = false,
     val isSubmitting: Boolean = false,
     val statusMessage: String? = null,
     val isError: Boolean = false,
@@ -121,7 +124,6 @@ fun SubmitPage(
     val res = context.applicationContext.resources
     val scope = rememberCoroutineScope()
     var state by remember { mutableStateOf(SubmitFormState()) }
-
     val photoPicker =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             if (uri == null) return@rememberLauncherForActivityResult
@@ -178,29 +180,77 @@ fun SubmitPage(
             }
         }
 
-    fun resolveSourceArtist(url: String) {
-        val match = KNOWN_SOURCES.find { (_, regex, _) -> regex.containsMatchIn(url) } ?: return
+    // Auto-fetch artist + image when source URL changes
+    LaunchedEffect(state.sourceUrl) {
+        val url = state.sourceUrl.trim()
+        if (url.isBlank()) {
+            if (state.imageBytes != null) {
+                state = state.copy(imageUri = null, imageBytes = null, imageName = "", imageMimeType = "")
+            }
+            return@LaunchedEffect
+        }
+        val match = KNOWN_SOURCES.find { (_, regex, _) -> regex.containsMatchIn(url) }
+        if (match == null) return@LaunchedEffect
+
+        // Skip if image already loaded
+        if (state.imageBytes != null) return@LaunchedEffect
+
+        state = state.copy(isFetchingImage = true)
         val (type, regex, _) = match
-        val rid = regex.find(url)?.groupValues?.get(1) ?: return
-        scope.launch(Dispatchers.IO) {
-            val result = LoliApiClient.resolveArtist(context, type, rid)
-            withContext(Dispatchers.Main) {
-                if (result?.name != null || result?.link != null) {
-                    state =
-                        state.copy(
-                            artistName = result.name ?: state.artistName,
-                            artistUrl = result.link ?: state.artistUrl,
-                        )
+        val rid = regex.find(url)?.groupValues?.get(1) ?: return@LaunchedEffect
+
+        val artistDeferred = async(Dispatchers.IO) {
+            LoliApiClient.resolveArtist(context, type, rid)
+        }
+        val imageDeferred = async(Dispatchers.IO) {
+            LoliApiClient.fetchSourceImage(url)
+        }
+
+        val artist = try { artistDeferred.await() } catch (_: Exception) { null }
+        val imageResult = try { imageDeferred.await() } catch (_: Exception) { null }
+
+        withContext(Dispatchers.Main) {
+            if (imageResult != null) {
+                val (bytes, mime) = imageResult
+                if (bytes.size > MAX_IMAGE_SIZE) {
+                    state = state.copy(
+                        isFetchingImage = false,
+                        statusMessage = res.getString(
+                            if (mime == "image/png") R.string.submit_error_size_png
+                            else R.string.submit_error_size
+                        ),
+                        isError = true,
+                    )
                 } else {
-                    state =
-                        state.copy(
-                            statusMessage = res.getString(R.string.submit_resolve_failed),
-                            isError = false,
-                        )
+                    state = state.copy(
+                        imageUri = "source_image".toUri(),
+                        imageBytes = bytes,
+                        imageName = "source_${rid.replace("/", "_")}.${
+                            when (mime) {
+                                "image/png" -> "png"
+                                "image/webp" -> "webp"
+                                "image/avif" -> "avif"
+                                else -> "jpg"
+                            }
+                        }",
+                        imageMimeType = mime,
+                        isFetchingImage = false,
+                        artistName = artist?.name ?: state.artistName,
+                        artistUrl = artist?.link ?: state.artistUrl,
+                    )
                 }
+            } else {
+                state = state.copy(
+                    isFetchingImage = false,
+                    artistName = artist?.name ?: state.artistName,
+                    artistUrl = artist?.link ?: state.artistUrl,
+                    statusMessage = if (artist?.name == null && artist?.link == null)
+                        res.getString(R.string.submit_resolve_failed) else null,
+                    isError = if (artist?.name == null && artist?.link == null) false else state.isError,
+                )
             }
         }
-    }
+     }
 
     fun doSubmit() {
         val s = state
@@ -385,7 +435,7 @@ fun SubmitPage(
                             shape = RoundedCornerShape(12.dp),
                         )
                         .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                        .clickable {
+                        .clickable(enabled = !state.isFetchingImage && !state.isSubmitting) {
                             photoPicker.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                             )
@@ -394,7 +444,7 @@ fun SubmitPage(
             ) {
                 if (state.imageUri != null) {
                     AsyncImage(
-                        model = state.imageUri,
+                        model = state.imageBytes ?: state.imageUri,
                         contentDescription = stringResource(R.string.submit_image_preview),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit,
@@ -416,6 +466,16 @@ fun SubmitPage(
                             Icons.Filled.Close,
                             contentDescription = stringResource(R.string.content_desc_clear),
                             tint = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                } else if (state.isFetchingImage) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(modifier = Modifier.size(40.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.submit_fetching_image),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 } else {

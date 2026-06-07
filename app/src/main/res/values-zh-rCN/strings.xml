@@ -272,4 +272,5 @@
     <string name="submit_error_login">请先登录</string>
     <string name="submit_error_generic">嘶……好像网卡了或者服务器炸了……</string>
     <string name="submit_resolve_failed">TwT 捕捉绘师失败，请手动填写名称和链接</string>
+    <string name="submit_fetching_image">正在从来源获取图片……</string>
 </resources>
