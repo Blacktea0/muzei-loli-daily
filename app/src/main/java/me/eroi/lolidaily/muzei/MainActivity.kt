@@ -28,6 +28,7 @@ import me.eroi.lolidaily.muzei.api.BangumiApiClient
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.db.DatabaseProvider
 import me.eroi.lolidaily.muzei.db.EntityMapper
+import me.eroi.lolidaily.muzei.worker.WorkScheduler
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyResponse
@@ -87,7 +88,7 @@ class MainActivity : AppCompatActivity() {
         loadState()
         applyRecentsPrivacy(this, prefs.getBoolean(KEY_HIDE_RECENTS_CONTENT, false))
         loadSourceStatus()
-        LoliDailyArtWorker.ensureDailyRefreshScheduled(this)
+        WorkScheduler.ensureDailyRefreshScheduled(this)
 
         // Muzei launches with an explicit Intent (no action); launcher uses ACTION_MAIN
         val fromMuzei = intent?.action != Intent.ACTION_MAIN
@@ -196,7 +197,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun startRefresh() {
         refreshProgress = 0f // Immediately show refresh indicator in PullToRefreshBox
-        val workId = LoliDailyArtWorker.enqueueLoad(this, forceRefresh = true)
+        val workId = WorkScheduler.enqueueLoad(this, forceRefresh = true)
         if (workId != null) {
             lifecycleScope.launch {
                 var wasInProgress = false
@@ -271,7 +272,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun saveState() {
         prefs.edit { putStringSet(LoliDailyArtWorker.KEY_ENABLED_TAGS, selectedTags) }
-        LoliDailyArtWorker.enqueueRefilter(this)
+        WorkScheduler.enqueueRefilter(this)
     }
 
     private fun loadAccountProfile() {

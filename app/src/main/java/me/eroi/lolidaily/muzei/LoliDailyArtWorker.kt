@@ -74,76 +74,13 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
             // ── Step 1: Obtain card data ──────────────────────────
             if (!refilterOnly && shouldFetchApi(forceRefresh)) {
                 val cachedDate = loadCachedResponse()?.date
-
-                val fetched = LoliApiClient.fetchDailyResponse(applicationContext)
+                val fetched = fetchAndCache()
                 if (fetched != null) {
                     didFetchApi = true
-                    val (fetchedCards, fetchedDate) = fetched
-                    cards = fetchedCards
-                    apiDate = fetchedDate
-                    saveCachedResponse(fetchedCards, fetchedDate)
-                    markFetchTime()
-                    saveDayChangeDate()
-
-                    isNewDay = forceRefresh || cachedDate == null || cachedDate != fetchedDate
-
-                    if (cards.isNotEmpty()) {
-                        downloadNewImages(cards, forceDownload = forceRefresh) { fraction ->
-                            refreshProgress.value = fraction
-                        }
-                        saveCardsMetadata(cards, fetchedDate)
-                        recordImageDates(cards, fetchedDate)
-                        prefs.edit { putString(KEY_LAST_API_DATE, fetchedDate) }
-
-                        val newTokens =
-                            cards
-                                .mapNotNull {
-                                    if (it.imgUrl.isNotBlank()) Md5.hash(it.imgUrl) else null
-                                }
-                                .toSet()
-                        val allDates = loadImageDatesInternal()
-                        val staleTokens =
-                            ImageDownloader.findStaleTokensForDate(
-                                prefs,
-                                fetchedDate,
-                                newTokens,
-                                allDates,
-                            )
-                        if (staleTokens.isNotEmpty()) {
-                            Log.d(
-                                TAG,
-                                "Date $fetchedDate — cleaning ${staleTokens.size} stale artworks",
-                            )
-                            ImageDownloader.cleanupStaleArtworks(
-                                applicationContext,
-                                staleTokens.toList(),
-                                prefs,
-                                allDates,
-                            )
-                        }
-
-                        if (isNewDay) {
-                            val oldDateTokens =
-                                allDates.filterValues { it != fetchedDate }.keys
-                            if (oldDateTokens.isNotEmpty()) {
-                                Log.d(
-                                    TAG,
-                                    "New day — scanning ${oldDateTokens.size} old-date tokens",
-                                )
-                                ImageDownloader.cleanupNonBookmarkedFromOldDates(
-                                    applicationContext,
-                                    oldDateTokens,
-                                    prefs,
-                                    allDates,
-                                )
-                            }
-                        }
-
-                        Log.d(
-                            TAG,
-                            "Synced ${cards.size} artworks for $fetchedDate (newDay=$isNewDay)",
-                        )
-                    }
+                    cards = fetched.first
+                    apiDate = fetched.second
+                    isNewDay = forceRefresh || cachedDate == null || cachedDate != apiDate
+                    syncCardsToDisk(cards, apiDate, forceRefresh, isNewDay)
                 }
             }
 
@@ -154,55 +91,11 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                     cards = cached.cards
                     apiDate = cached.date
                 } else if (!refilterOnly) {
-                    val fetched = LoliApiClient.fetchDailyResponse(applicationContext)
+                    val fetched = fetchAndCache()
                     if (fetched != null) {
-                        val (fbCards, fbDate) = fetched
-                        cards = fbCards
-                        apiDate = fbDate
-                        saveCachedResponse(fbCards, fbDate)
-                        markFetchTime()
-                        saveDayChangeDate()
-
-                        if (cards.isNotEmpty()) {
-                            downloadNewImages(cards, forceDownload = false) { fraction ->
-                                refreshProgress.value = fraction
-                            }
-                            saveCardsMetadata(cards, fbDate)
-                            recordImageDates(cards, fbDate)
-                            val newTokens =
-                                cards
-                                    .mapNotNull {
-                                        if (it.imgUrl.isNotBlank()) Md5.hash(it.imgUrl) else null
-                                    }
-                                    .toSet()
-                            val allDates = loadImageDatesInternal()
-                            val staleTokens =
-                                ImageDownloader.findStaleTokensForDate(
-                                    prefs,
-                                    fbDate,
-                                    newTokens,
-                                    allDates,
-                                )
-                            if (staleTokens.isNotEmpty()) {
-                                ImageDownloader.cleanupStaleArtworks(
-                                    applicationContext,
-                                    staleTokens.toList(),
-                                    prefs,
-                                    allDates,
-                                )
-                            }
-
-                            val oldDateTokens =
-                                loadImageDatesInternal().filterValues { it != fbDate }.keys
-                            if (oldDateTokens.isNotEmpty()) {
-                                ImageDownloader.cleanupNonBookmarkedFromOldDates(
-                                    applicationContext,
-                                    oldDateTokens,
-                                    prefs,
-                                    loadImageDatesInternal(),
-                                )
-                            }
-                        }
+                        cards = fetched.first
+                        apiDate = fetched.second
+                        syncCardsToDisk(cards, apiDate, forceDownload = false, isNewDay = true)
                     } else {
                         return Result.retry()
                     }
@@ -229,6 +122,57 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
             refreshProgress.value = null
             Result.retry()
         }
+    }
+
+    private fun fetchAndCache(): Pair<List<Card>, String>? {
+        val fetched = LoliApiClient.fetchDailyResponse(applicationContext) ?: return null
+        val (cards, date) = fetched
+        saveCachedResponse(cards, date)
+        markFetchTime()
+        saveDayChangeDate()
+        return cards to date
+    }
+
+    private fun syncCardsToDisk(
+        cards: List<Card>,
+        date: String,
+        forceDownload: Boolean,
+        isNewDay: Boolean,
+    ) {
+        if (cards.isEmpty()) return
+
+        downloadNewImages(cards, forceDownload = forceDownload) { fraction ->
+            refreshProgress.value = fraction
+        }
+        saveCardsMetadata(cards, date)
+        recordImageDates(cards, date)
+        prefs.edit { putString(KEY_LAST_API_DATE, date) }
+
+        // Clean stale tokens for the current date
+        val allDates = loadImageDatesInternal()
+        val newTokens =
+            cards.mapNotNull { if (it.imgUrl.isNotBlank()) Md5.hash(it.imgUrl) else null }.toSet()
+        val staleTokens =
+            ImageDownloader.findStaleTokensForDate(prefs, date, newTokens, allDates)
+        if (staleTokens.isNotEmpty()) {
+            Log.d(TAG, "Date $date — cleaning ${staleTokens.size} stale artworks")
+            ImageDownloader.cleanupStaleArtworks(
+                applicationContext, staleTokens.toList(), prefs, allDates,
+            )
+        }
+
+        // Clean non-bookmarked artworks from previous dates
+        if (isNewDay) {
+            val oldDateTokens = allDates.filterValues { it != date }.keys
+            if (oldDateTokens.isNotEmpty()) {
+                Log.d(TAG, "New day — scanning ${oldDateTokens.size} old-date tokens")
+                ImageDownloader.cleanupNonBookmarkedFromOldDates(
+                    applicationContext, oldDateTokens, prefs, allDates,
+                )
+            }
+        }
+
+        Log.d(TAG, "Synced ${cards.size} artworks for $date (newDay=$isNewDay)")
     }
 
     // ── API fetch gating ──────────────────────────────────────────
@@ -510,19 +454,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
         val refreshProgress = MutableStateFlow<Float?>(null)
 
-        // ── Delegation wrappers (implementation moved to api/ + worker/) ──
-
-        fun enqueueLoad(
-            context: Context,
-            forceRefresh: Boolean = false,
-            initial: Boolean = true,
-        ) = WorkScheduler.enqueueLoad(context, forceRefresh, initial)
-
-        fun enqueueRefilter(context: Context) = WorkScheduler.enqueueRefilter(context)
-
-        fun resetDailyRefreshState(context: Context) = WorkScheduler.resetDailyRefreshState(context)
-
-        fun ensureDailyRefreshScheduled(context: Context) = WorkScheduler.ensureDailyRefreshScheduled(context)
+        // Refresh scheduling delegates removed — callers use WorkScheduler directly.
 
         fun computeDayChangeDate(
             context: Context,

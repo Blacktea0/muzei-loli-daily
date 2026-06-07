@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import me.eroi.lolidaily.muzei.worker.WorkScheduler
 
 /**
  * Receives force-refresh requests from Muzei's command action or other in-app triggers. Enqueues
@@ -15,7 +16,7 @@ class RefreshReceiver : BroadcastReceiver() {
         intent: Intent,
     ) {
         Log.d(TAG, "Force refresh triggered via broadcast")
-        LoliDailyArtWorker.enqueueLoad(context, forceRefresh = true)
+        WorkScheduler.enqueueLoad(context, forceRefresh = true)
     }
 
     companion object {

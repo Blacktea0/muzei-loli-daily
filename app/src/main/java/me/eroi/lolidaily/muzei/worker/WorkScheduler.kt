@@ -44,10 +44,6 @@ object WorkScheduler {
         }
 
         val shouldDailyRefresh = !forceRefresh && System.currentTimeMillis() > nextRefreshTs
-        if (shouldDailyRefresh) {
-            Log.d(TAG, "Daily refresh triggered — past scheduled time")
-            DailyRefreshScheduler.scheduleNext(context)
-        }
 
         val work =
             OneTimeWorkRequestBuilder<LoliDailyArtWorker>()

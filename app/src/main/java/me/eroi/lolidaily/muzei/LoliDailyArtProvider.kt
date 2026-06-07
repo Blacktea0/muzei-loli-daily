@@ -15,6 +15,7 @@ import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.InputStream
+import me.eroi.lolidaily.muzei.worker.WorkScheduler
 
 /**
  * Muzei Art Provider that sources daily artwork from the Loli Daily API.
@@ -34,8 +35,8 @@ class LoliDailyArtProvider : MuzeiArtProvider() {
                 }
 
         Log.d(TAG, "onLoadRequested(initial=$initial) — enqueuing load")
-        LoliDailyArtWorker.ensureDailyRefreshScheduled(appContext)
-        LoliDailyArtWorker.enqueueLoad(appContext, forceRefresh = false, initial = initial)
+        WorkScheduler.ensureDailyRefreshScheduled(appContext)
+        WorkScheduler.enqueueLoad(appContext, forceRefresh = false, initial = initial)
     }
 
     /** Provides command actions visible when viewing the current wallpaper in Muzei. */

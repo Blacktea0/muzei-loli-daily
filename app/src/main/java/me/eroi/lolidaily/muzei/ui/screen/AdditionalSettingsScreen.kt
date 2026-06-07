@@ -63,6 +63,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
+import me.eroi.lolidaily.muzei.worker.WorkScheduler
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.ui.screen.components.ThemeOption
@@ -469,14 +470,14 @@ private fun RefreshTimeCard() {
                         "DebugSettings",
                         "Refresh time changed: day-change date $oldDayChangeDate -> $newDayChangeDate, triggering force refresh",
                     )
-                    LoliDailyArtWorker.enqueueLoad(context, forceRefresh = true)
+                    WorkScheduler.enqueueLoad(context, forceRefresh = true)
                 } else {
                     Log.d(
                         "DebugSettings",
                         "Refresh time changed: day-change date unchanged ($newDayChangeDate), no force refresh needed"
                     )
                 }
-                LoliDailyArtWorker.resetDailyRefreshState(context)
+                WorkScheduler.resetDailyRefreshState(context)
                 showDialog = false
             },
         )

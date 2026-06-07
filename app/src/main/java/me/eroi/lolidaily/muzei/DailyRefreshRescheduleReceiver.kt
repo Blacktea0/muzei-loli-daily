@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import me.eroi.lolidaily.muzei.worker.WorkScheduler
 
 class DailyRefreshRescheduleReceiver : BroadcastReceiver() {
     override fun onReceive(
@@ -17,7 +18,7 @@ class DailyRefreshRescheduleReceiver : BroadcastReceiver() {
             Intent.ACTION_MY_PACKAGE_REPLACED,
             -> {
                 Log.d(TAG, "Rescheduling daily refresh after ${intent.action}")
-                LoliDailyArtWorker.ensureDailyRefreshScheduled(context)
+                WorkScheduler.ensureDailyRefreshScheduled(context)
             }
             else -> Unit
         }
