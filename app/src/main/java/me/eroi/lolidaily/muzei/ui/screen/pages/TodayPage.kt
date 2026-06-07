@@ -522,7 +522,6 @@ fun TodayPage(
                 fabItems.forEachIndexed { i, (icon, label, tint) ->
                     FloatingActionButtonMenuItem(
                         onClick = {
-                            fabMenuExpanded = false
                             when (i) {
                                 0 -> {
                                     // Export / Save
