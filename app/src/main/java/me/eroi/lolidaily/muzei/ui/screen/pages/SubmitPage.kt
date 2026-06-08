@@ -100,7 +100,6 @@ private const val MAX_IMAGE_SIZE = 3L * 1024 * 1024 // 3 MB
 /**
  * If [bytes] exceeds [MAX_IMAGE_SIZE], attempts to re-encode as lossy WebP.
  * Returns (compressedBytes, "image/webp") on success, or null if still too large.
- * If [bytes] is already within limit, returns null (no conversion needed).
  */
 private fun compressToWebpIfNeeded(bytes: ByteArray): Pair<ByteArray, String>? {
     val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
