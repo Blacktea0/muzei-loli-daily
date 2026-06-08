@@ -276,4 +276,16 @@
     <string name="submit_hint_character_search">キャラクター名で検索……</string>
     <string name="submit_character_searching">検索中……</string>
     <string name="submit_character_no_results">結果が見つかりません</string>
+
+    <!-- Third-party accounts -->
+    <string name="section_third_party_accounts">サードパーティアカウント</string>
+    <string name="title_pixiv_account">Pixiv</string>
+    <string name="status_pixiv_logged_in">Pixiv にログイン済み</string>
+    <string name="status_pixiv_not_logged_in">未ログイン</string>
+    <string name="label_pixiv_login_hint">ログインしてR-18画像を取得</string>
+    <string name="title_login_pixiv">Pixiv にログイン</string>
+    <string name="msg_connecting_pixiv">Pixiv に接続中…</string>
+    <string name="msg_pixiv_already_logged_in">Pixiv にログイン済みです</string>
+    <string name="msg_pixiv_logged_in">Pixiv ログイン成功</string>
+    <string name="msg_pixiv_logged_out">Pixiv ログアウトしました</string>
 </resources>

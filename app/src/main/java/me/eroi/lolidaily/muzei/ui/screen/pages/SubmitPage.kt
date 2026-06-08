@@ -246,6 +246,8 @@ fun SubmitPage(
                     state = state.copy(
                         isFetchingImage = false,
                         fetchedSourceUrl = currentUrl,
+                        artistName = artist?.name ?: state.artistName,
+                        artistUrl = artist?.link ?: state.artistUrl,
                         statusMessage = res.getString(
                             if (mime == "image/png") R.string.submit_error_size_png
                             else R.string.submit_error_size

@@ -1,6 +1,8 @@
 package me.eroi.lolidaily.muzei.ui.screen
-
+import android.content.Intent
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -63,9 +65,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
+import me.eroi.lolidaily.muzei.PixivLoginActivity
 import me.eroi.lolidaily.muzei.worker.WorkScheduler
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.LoliApiClient
+import me.eroi.lolidaily.muzei.api.SessionManager
 import me.eroi.lolidaily.muzei.ui.screen.components.ThemeOption
 
 const val KEY_HIDE_RECENTS_CONTENT = "hide_recents_content"
@@ -111,6 +115,12 @@ fun AdditionalSettingsScreen(onBack: () -> Unit) {
             item {
                 SettingsGroup {
                     RefreshTimeCard()
+                }
+            }
+            item { SettingsSectionLabel(stringResource(R.string.section_third_party_accounts)) }
+            item {
+                SettingsGroup {
+                    PixivAccountCard()
                 }
             }
             item { SettingsSectionLabel(stringResource(R.string.section_privacy)) }
@@ -556,4 +566,57 @@ private fun LanguageCard() {
             },
         )
     }
+}
+// ── Pixiv Account Card ────────────────────────────────────────
+@Composable
+private fun PixivAccountCard() {
+    val context = LocalContext.current
+    var pixivSessionId by remember {
+        mutableStateOf(SessionManager.loadPixivSessionId(context))
+    }
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            pixivSessionId = SessionManager.loadPixivSessionId(context)
+        }
+    }
+    val isLoggedIn = pixivSessionId != null
+    val subtitle = if (isLoggedIn) {
+        stringResource(R.string.status_pixiv_logged_in)
+    } else {
+        stringResource(R.string.label_pixiv_login_hint)
+    }
+    SettingsRow(
+        icon = Icons.Default.Language,
+        title = stringResource(R.string.title_pixiv_account),
+        subtitle = subtitle,
+        trailing = {
+            if (isLoggedIn) {
+                Text(
+                    text = stringResource(R.string.action_logout),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
+                            SessionManager.clearPixivSession(context)
+                            PixivLoginActivity.clearPixivCookies()
+                            pixivSessionId = null
+                            android.widget.Toast.makeText(
+                                context,
+                                context.getString(R.string.msg_pixiv_logged_out),
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+            }
+        },
+        onClick = if (isLoggedIn) null else {
+            {
+                launcher.launch(Intent(context, PixivLoginActivity::class.java))
+            }
+        },
+    )
 }

@@ -306,17 +306,22 @@ object LoliApiClient {
 
     /**
      * Downloads an image from [imageUrl].
-     * Optionally sets a Referer header (needed for pixiv).
+     * Optionally sets a Referer header (needed for pixiv) and Cookie header (for authenticated pixiv).
      */
-    internal fun downloadImage(imageUrl: String, referer: String? = null): Pair<ByteArray, String>? {
+    internal fun downloadImage(imageUrl: String, referer: String? = null, cookie: String? = null): Pair<ByteArray, String>? {
         return try {
+            Log.d(TAG, "downloadImage: url=${imageUrl.take(80)}, hasCookie=${cookie != null}")
             val builder = Request.Builder().url(imageUrl).header("User-Agent", USER_AGENT)
             if (referer != null) {
                 builder.header("Referer", referer)
             } else if (imageUrl.contains("pximg.net")) {
                 builder.header("Referer", "https://www.pixiv.net/")
             }
+            if (cookie != null) {
+                builder.header("Cookie", cookie)
+            }
             val response = httpClient.newCall(builder.build()).execute()
+            Log.d(TAG, "downloadImage response: ${response.code}, contentLength=${response.header("Content-Length")}")
             if (!response.isSuccessful) {
                 Log.w(TAG, "Image download failed: ${response.code}")
                 return null
@@ -326,6 +331,7 @@ object LoliApiClient {
             val mime =
                 response.header("Content-Type", "image/jpeg")
                     ?.split(";")?.first()?.trim() ?: "image/jpeg"
+            Log.d(TAG, "downloadImage success: ${bytes.size} bytes, $mime")
             bytes to mime
         } catch (e: Exception) {
             Log.w(TAG, "Failed to download image", e)

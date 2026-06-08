@@ -23,6 +23,9 @@ local.properties
 *.aab
 *.keystore
 !*.keystore.enc
+# Temp / debug artifacts
+tmp/
+.kotlin/
 
 # OS
 .DS_Store

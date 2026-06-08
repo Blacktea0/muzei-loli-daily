@@ -34,6 +34,12 @@
             android:exported="false"
             android:label="Login to Bangumi" />
 
+        <!-- Pixiv login — WebView-based Pixiv account login for original quality images -->
+        <activity
+            android:name="me.eroi.lolidaily.muzei.PixivLoginActivity"
+            android:exported="false"
+            android:label="Login to Pixiv" />
+
         <!-- Additional settings — developer tools and testing options -->
         <activity
             android:name="me.eroi.lolidaily.muzei.AdditionalSettingsActivity"

@@ -276,4 +276,16 @@
     <string name="submit_hint_character_search">Search character name…</string>
     <string name="submit_character_searching">Searching…</string>
     <string name="submit_character_no_results">No results found</string>
+
+    <!-- Third-party accounts -->
+    <string name="section_third_party_accounts">Third-party Accounts</string>
+    <string name="title_pixiv_account">Pixiv</string>
+    <string name="status_pixiv_logged_in">Logged in to Pixiv</string>
+    <string name="status_pixiv_not_logged_in">Not logged in</string>
+    <string name="label_pixiv_login_hint">Login to fetch R-18 images</string>
+    <string name="title_login_pixiv">Login to Pixiv</string>
+    <string name="msg_connecting_pixiv">Connecting to Pixiv…</string>
+    <string name="msg_pixiv_already_logged_in">Already logged in to Pixiv</string>
+    <string name="msg_pixiv_logged_in">Pixiv login successful</string>
+    <string name="msg_pixiv_logged_out">Pixiv logged out</string>
 </resources>

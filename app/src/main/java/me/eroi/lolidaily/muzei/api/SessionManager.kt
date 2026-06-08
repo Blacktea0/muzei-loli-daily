@@ -21,8 +21,8 @@ object SessionManager {
     private const val KEY_BGM_AVATAR_URL = "bgm_avatar_url"
     private const val KEY_BGM_DOMAIN = "bgm_domain"
     private const val KEY_LC_BADGE = "lc_badge"
+    private const val KEY_PIXIV_SESSION_ID = "pixiv_session_id"
     private const val DEFAULT_BGM_DOMAIN = "chii.in"
-
     private val json = Json { ignoreUnknownKeys = true }
 
     fun loadSession(context: Context): Session? {
@@ -160,5 +160,28 @@ object SessionManager {
         } catch (_: Exception) {
             null
         }
+    }
+    fun savePixivSessionId(
+        context: Context,
+        sessionId: String,
+    ) {
+        context
+            .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+            .edit {
+                putString(KEY_PIXIV_SESSION_ID, sessionId)
+            }
+    }
+    fun loadPixivSessionId(context: Context): String? {
+        return context
+            .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_PIXIV_SESSION_ID, null)
+            ?.takeIf { it.isNotBlank() }
+    }
+    fun clearPixivSession(context: Context) {
+        context
+            .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+            .edit {
+                remove(KEY_PIXIV_SESSION_ID)
+            }
     }
 }
