@@ -1,5 +1,6 @@
 package me.eroi.lolidaily.muzei.ui.screen.pages
 
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import android.webkit.MimeTypeMap
@@ -572,6 +573,48 @@ fun SubmitPage(
                             color = MaterialTheme.colorScheme.outline,
                         )
                     }
+                }
+            }
+
+            // ── Image info ──
+            if (state.imageBytes != null) {
+                val imageInfo = remember(state.imageBytes) {
+                    val bytes = state.imageBytes!!
+                    val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+                    val w = opts.outWidth
+                    val h = opts.outHeight
+                    val format = when {
+                        state.imageMimeType.contains("png") -> "PNG"
+                        state.imageMimeType.contains("webp") -> "WebP"
+                        state.imageMimeType.contains("avif") -> "AVIF"
+                        else -> "JPEG"
+                    }
+                    val sizeStr = when {
+                        bytes.size >= 1_048_576 -> "%.1f MB".format(bytes.size / 1_048_576.0)
+                        else -> "%.0f KB".format(bytes.size / 1024.0)
+                    }
+                    Triple(format, "${w} × ${h}", sizeStr)
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Text(
+                        text = imageInfo.first,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = imageInfo.second,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = imageInfo.third,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
 
