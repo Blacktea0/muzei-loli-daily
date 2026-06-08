@@ -1,5 +1,6 @@
 package me.eroi.lolidaily.muzei.ui.screen.pages
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
@@ -89,11 +90,33 @@ import me.eroi.lolidaily.muzei.api.link.isShortLink
 import me.eroi.lolidaily.muzei.api.link.resolveShortLink
 import me.eroi.lolidaily.muzei.api.link.stripTrackingParams
 import me.eroi.lolidaily.muzei.model.SlimCharacter
+import me.eroi.lolidaily.muzei.ui.screen.components.FullscreenImageViewer
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 
 private const val TAG = "SubmitPage"
 private const val MAX_IMAGE_SIZE = 3L * 1024 * 1024 // 3 MB
+
+/**
+ * If [bytes] exceeds [MAX_IMAGE_SIZE], attempts to re-encode as lossy WebP.
+ * Returns (compressedBytes, "image/webp") on success, or null if still too large.
+ * If [bytes] is already within limit, returns null (no conversion needed).
+ */
+private fun compressToWebpIfNeeded(bytes: ByteArray): Pair<ByteArray, String>? {
+    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
+    for (quality in listOf(80, 60, 40, 20)) {
+        val out = java.io.ByteArrayOutputStream()
+        @Suppress("DEPRECATION")
+        bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, quality, out)
+        val compressed = out.toByteArray()
+        if (compressed.size <= MAX_IMAGE_SIZE) {
+            bitmap.recycle()
+            return compressed to "image/webp"
+        }
+    }
+    bitmap.recycle()
+    return null
+}
 
 
 private data class SubmitFormState(
@@ -138,6 +161,7 @@ fun SubmitPage(
     val res = context.applicationContext.resources
     val scope = rememberCoroutineScope()
     var state by remember { mutableStateOf(SubmitFormState()) }
+    var showFullscreenViewer by remember { mutableStateOf(false) }
     val photoPicker =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             if (uri == null) return@rememberLauncherForActivityResult
@@ -150,45 +174,59 @@ fun SubmitPage(
                                 ?.let { "image/$it" }
                             ?: "image/jpeg"
                     if (mimeType !in listOf("image/jpeg", "image/png", "image/webp", "image/avif")) {
-                        state =
-                            state.copy(
+                        withContext(Dispatchers.Main) {
+                            state = state.copy(
                                 statusMessage = res.getString(R.string.submit_error_format),
                                 isError = true,
                             )
+                        }
                         return@launch
                     }
                     val bytes =
                         context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                             ?: return@launch
                     if (bytes.size > MAX_IMAGE_SIZE) {
-                        val msg =
-                            if (mimeType == "image/png") {
-                                res.getString(R.string.submit_error_size_png)
-                            } else {
-                                res.getString(R.string.submit_error_size)
+                        val compressed = compressToWebpIfNeeded(bytes)
+                        if (compressed != null) {
+                            val (cBytes, cMime) = compressed
+                            val name = (uri.lastPathSegment ?: "image").replaceAfterLast('.', "webp")
+                            withContext(Dispatchers.Main) {
+                                state = state.copy(
+                                    imageUri = uri,
+                                    imageBytes = cBytes,
+                                    imageName = name,
+                                    imageMimeType = cMime,
+                                    statusMessage = res.getString(R.string.submit_compressed_to_webp),
+                                    isError = false,
+                                )
                             }
-                        state = state.copy(statusMessage = msg, isError = true)
+                        } else {
+                            withContext(Dispatchers.Main) {
+                                state = state.copy(
+                                    statusMessage = res.getString(R.string.submit_error_size),
+                                    isError = true,
+                                )
+                            }
+                        }
                         return@launch
                     }
                     val name = uri.lastPathSegment ?: "image.jpg"
                     withContext(Dispatchers.Main) {
-                        state =
-                            state.copy(
-                                imageUri = uri,
-                                imageBytes = bytes,
-                                imageName = name,
-                                imageMimeType = mimeType,
-                                statusMessage = null,
-                            )
+                        state = state.copy(
+                            imageUri = uri,
+                            imageBytes = bytes,
+                            imageName = name,
+                            imageMimeType = mimeType,
+                            statusMessage = null,
+                        )
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to read image", e)
                     withContext(Dispatchers.Main) {
-                        state =
-                            state.copy(
-                                statusMessage = res.getString(R.string.submit_error_read),
-                                isError = true,
-                            )
+                        state = state.copy(
+                            statusMessage = res.getString(R.string.submit_error_read),
+                            isError = true,
+                        )
                     }
                 }
             }
@@ -262,40 +300,49 @@ fun SubmitPage(
         val artist = try { artistDeferred.await() } catch (e: Exception) { Log.w(TAG, "resolveArtist failed", e); null }
         val imageResult = try { imageDeferred.await() } catch (_: Exception) { null }
 
+        // Attempt WebP compression if image exceeds size limit
+        val finalResult = if (imageResult != null) {
+            val (bytes, mime) = imageResult
+            if (bytes.size > MAX_IMAGE_SIZE) {
+                val compressed = withContext(Dispatchers.IO) { compressToWebpIfNeeded(bytes) }
+                if (compressed != null) compressed else null // null = still too large
+            } else {
+                bytes to mime
+            }
+        } else null
+
         withContext(Dispatchers.Main) {
-            if (imageResult != null) {
-                val (bytes, mime) = imageResult
-                if (bytes.size > MAX_IMAGE_SIZE) {
-                    state = state.copy(
-                        isFetchingImage = false,
-                        fetchedSourceUrl = currentUrl,
-                        artistName = artist?.name ?: state.artistName,
-                        artistUrl = artist?.link ?: state.artistUrl,
-                        statusMessage = res.getString(
-                            if (mime == "image/png") R.string.submit_error_size_png
-                            else R.string.submit_error_size
-                        ),
-                        isError = true,
-                    )
-                } else {
-                    state = state.copy(
-                        imageUri = "source_image".toUri(),
-                        imageBytes = bytes,
-                        imageName = "source_${currentMatch.resourceId.replace("/", "_")}.${
-                            when (mime) {
-                                "image/png" -> "png"
-                                "image/webp" -> "webp"
-                                "image/avif" -> "avif"
-                                else -> "jpg"
-                            }
-                        }",
-                        imageMimeType = mime,
-                        isFetchingImage = false,
-                        fetchedSourceUrl = currentUrl,
-                        artistName = artist?.name ?: state.artistName,
-                        artistUrl = artist?.link ?: state.artistUrl,
-                    )
-                }
+            if (finalResult != null) {
+                val (bytes, mime) = finalResult
+                state = state.copy(
+                    imageUri = "source_image".toUri(),
+                    imageBytes = bytes,
+                    imageName = "source_${currentMatch.resourceId.replace("/", "_")}.${
+                        when (mime) {
+                            "image/png" -> "png"
+                            "image/webp" -> "webp"
+                            "image/avif" -> "avif"
+                            else -> "jpg"
+                        }
+                    }",
+                    imageMimeType = mime,
+                    isFetchingImage = false,
+                    fetchedSourceUrl = currentUrl,
+                    artistName = artist?.name ?: state.artistName,
+                    artistUrl = artist?.link ?: state.artistUrl,
+                    statusMessage = if (imageResult != null && imageResult.first.size > MAX_IMAGE_SIZE)
+                        res.getString(R.string.submit_compressed_to_webp) else null,
+                )
+            } else if (imageResult != null) {
+                // Image fetched but too large even after compression
+                state = state.copy(
+                    isFetchingImage = false,
+                    fetchedSourceUrl = currentUrl,
+                    artistName = artist?.name ?: state.artistName,
+                    artistUrl = artist?.link ?: state.artistUrl,
+                    statusMessage = res.getString(R.string.submit_error_size),
+                    isError = true,
+                )
             } else {
                 state = state.copy(
                     isFetchingImage = false,
@@ -511,9 +558,13 @@ fun SubmitPage(
                         )
                         .background(MaterialTheme.colorScheme.surfaceContainerLow)
                         .clickable(enabled = !state.isFetchingImage && !state.isSubmitting) {
-                            photoPicker.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
+                            if (state.imageBytes != null) {
+                                showFullscreenViewer = true
+                            } else {
+                                photoPicker.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            }
                         },
                 contentAlignment = Alignment.Center,
             ) {
@@ -863,5 +914,13 @@ fun SubmitPage(
 
             Spacer(modifier = Modifier.height(16.dp))
         }
+    }
+
+    if (showFullscreenViewer && state.imageBytes != null) {
+        FullscreenImageViewer(
+            model = state.imageBytes!!,
+            filename = state.imageName.ifEmpty { "image" },
+            onDismiss = { showFullscreenViewer = false },
+        )
     }
 }

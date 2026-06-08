@@ -45,6 +45,7 @@ import coil3.request.ImageRequest
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.ui.screen.components.ArtworkDetailBottomSheet
+import me.eroi.lolidaily.muzei.ui.screen.components.FullscreenImageViewer
 import me.eroi.lolidaily.muzei.util.exportArtwork
 import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.zoomable
@@ -541,91 +542,11 @@ fun FullscreenImageOverlay(
     preview: ArtworkPreview,
     onDismiss: () -> Unit,
 ) {
-    val context = LocalContext.current
-    val zoomState = rememberZoomState()
-
-    var showAppBar by remember { mutableStateOf(false) }
-    val currentShowAppBar by rememberUpdatedState(showAppBar)
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties =
-            DialogProperties(
-                usePlatformDefaultWidth = false,
-                dismissOnBackPress = true,
-                dismissOnClickOutside = false,
-                decorFitsSystemWindows = false,
-            ),
-    ) {
-        // Get the dialog's window via DialogWindowProvider to hide status bar
-        val dialogView = LocalView.current
-        DisposableEffect(Unit) {
-            val parentView = dialogView.parent as? android.view.View
-            val dialogWindow = (parentView as? androidx.compose.ui.window.DialogWindowProvider)?.window
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                val controller = dialogWindow?.insetsController
-                controller?.hide(android.view.WindowInsets.Type.statusBars())
-                controller?.systemBarsBehavior =
-                    android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                onDispose {
-                    controller?.show(android.view.WindowInsets.Type.statusBars())
-                }
-            } else {
-                @Suppress("DEPRECATION")
-                dialogWindow?.setFlags(
-                    android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                    android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                )
-                onDispose {
-                    @Suppress("DEPRECATION")
-                    dialogWindow?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN)
-                }
-            }
-        }
-
-        Box(
-            modifier = Modifier.fillMaxSize().background(Color.Black),
-            contentAlignment = Alignment.Center,
-        ) {
-            AsyncImage(
-                model = ImageRequest.Builder(context).data(preview.uri).build(),
-                contentDescription = preview.filename,
-                contentScale = ContentScale.Fit,
-                modifier =
-                    Modifier.fillMaxSize()
-                        .zoomable(
-                            zoomState,
-                            enableOneFingerZoom = false,
-                            onTap = {
-                                if (currentShowAppBar) showAppBar = false else showAppBar = true
-                            },
-                        ),
-            )
-
-            AnimatedVisibility(
-                visible = showAppBar,
-                modifier = Modifier.align(Alignment.TopCenter),
-                enter = fadeIn(),
-                exit = fadeOut(),
-            ) {
-                Row(
-                    modifier =
-                        Modifier.fillMaxWidth()
-                            .background(Color.Black.copy(alpha = 0.4f))
-                            .statusBarsPadding()
-                            .padding(4.dp),
-                ) {
-                    IconButton(onClick = onDismiss) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.content_desc_close),
-                            tint = Color.White,
-                        )
-                    }
-                }
-            }
-        }
-    }
+    FullscreenImageViewer(
+        model = preview.uri,
+        filename = preview.filename,
+        onDismiss = onDismiss,
+    )
 }
 
 @Composable

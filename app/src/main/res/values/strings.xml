@@ -262,7 +262,7 @@
     <string name="submit_success">Your submission has been received ♥</string>
     <string name="submit_error_format">Unsupported image format</string>
     <string name="submit_error_size">Image exceeds 3 MB — please resize first</string>
-    <string name="submit_error_size_png">Image exceeds 3 MB — consider converting to JPG</string>
+    <string name="submit_compressed_to_webp">Image exceeded 3 MB — automatically converted to WebP</string>
     <string name="submit_error_read">Failed to read image file</string>
     <string name="submit_error_no_image">Please select an image first</string>
     <string name="submit_error_source_required">\"Source URL\" is required</string>
