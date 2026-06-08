@@ -252,7 +252,6 @@
     <string name="submit_label_artist_url">绘师链接</string>
     <string name="submit_hint_artist_url">例如 pixiv、twitter 主页、bgm 人物链接</string>
     <string name="submit_label_characters">角色</string>
-    <string name="submit_hint_characters">班固米角色页面的链接，多个链接用空格分隔</string>
     <string name="submit_label_comment">说点什么</string>
     <string name="submit_hint_comment">图文是否无关，令人深思……</string>
     <string name="submit_anonymous">不显示投稿者</string>
@@ -263,7 +262,7 @@
     <string name="submit_success">心意……传达到了呢</string>
     <string name="submit_error_format">不支持的图片格式</string>
     <string name="submit_error_size">图片超过 3MB 了，请先调整尺寸</string>
-    <string name="submit_error_size_png">图片超过 3MB 了，建议转换为 jpg 格式</string>
+    <string name="submit_compressed_to_webp">图片超过 3MB，已自动转换为 WebP 格式</string>
     <string name="submit_error_read">读取图片文件失败</string>
     <string name="submit_error_no_image">是不是忘记选择图片了？</string>
     <string name="submit_error_source_required">"来源链接"一栏是必填项</string>
@@ -275,8 +274,6 @@
     <string name="submit_resolve_failed">TwT 捕捉绘师失败，请手动填写名称和链接</string>
     <string name="submit_fetching_image">正在从来源获取图片……</string>
     <string name="submit_hint_character_search">搜索角色名称……</string>
-    <string name="submit_character_searching">搜索中……</string>
-    <string name="submit_character_no_results">未找到结果</string>
     <string name="action_clear_form">清空表单</string>
     <string name="submit_clear_title">清空表单</string>
     <string name="submit_clear_message">确定要清空所有表单内容吗？</string>
@@ -285,7 +282,6 @@
     <string name="section_third_party_accounts">第三方账号</string>
     <string name="title_pixiv_account">Pixiv</string>
     <string name="status_pixiv_logged_in">已登录 Pixiv</string>
-    <string name="status_pixiv_not_logged_in">未登录</string>
     <string name="label_pixiv_login_hint">登录后可拉取 R-18 图片</string>
     <string name="title_login_pixiv">登录 Pixiv</string>
     <string name="msg_connecting_pixiv">正在连接 Pixiv…</string>

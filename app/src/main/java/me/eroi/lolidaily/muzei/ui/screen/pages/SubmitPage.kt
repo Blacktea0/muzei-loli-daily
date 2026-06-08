@@ -29,35 +29,47 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExpandedFullScreenContainedSearchBar
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.InputChip
+import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
+import androidx.compose.material3.SearchBarState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberContainedSearchBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
@@ -65,12 +77,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.LinkAnnotation
@@ -94,7 +108,10 @@ import me.eroi.lolidaily.muzei.api.link.isShortLink
 import me.eroi.lolidaily.muzei.api.link.resolveShortLink
 import me.eroi.lolidaily.muzei.api.link.stripTrackingParams
 import me.eroi.lolidaily.muzei.model.SlimCharacter
+import me.eroi.lolidaily.muzei.ui.screen.components.CharacterSearchBar
+import me.eroi.lolidaily.muzei.ui.screen.components.CharacterSearchBarState
 import me.eroi.lolidaily.muzei.ui.screen.components.FullscreenImageViewer
+import me.eroi.lolidaily.muzei.ui.screen.components.rememberCharacterSearchBarState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 
@@ -109,7 +126,7 @@ private fun compressIfNeeded(bytes: ByteArray): Pair<ByteArray, String>? {
     val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
     for (quality in listOf(80, 60, 40, 20)) {
         val out = java.io.ByteArrayOutputStream()
-        @Suppress("DEPRECATION")
+        @Suppress("DEPRECATION", "NewApi")
         bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, quality, out)
         val compressed = out.toByteArray()
         if (compressed.size <= MAX_IMAGE_SIZE) {
@@ -130,9 +147,6 @@ private data class SubmitFormState(
     val sourceUrl: String = "",
     val artistName: String = "",
     val artistUrl: String = "",
-    val characterSearchQuery: String = "",
-    val characterSearchResults: List<SlimCharacter> = emptyList(),
-    val isSearchingCharacters: Boolean = false,
     val selectedCharacters: List<SlimCharacter> = emptyList(),
     val comment: String = "",
     val selectedTag: String = "LC0",
@@ -153,13 +167,13 @@ private data class SubmitFormState(
  * - Source URL auto-resolve for known platforms (twitter/pixiv/bilibili)
  * - Image validation: jpg/png/webp/avif, ≤ 3 MB
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun SubmitPage(
     isLoggedIn: Boolean,
     onLogin: () -> Unit,
-    initialSourceUrl: String? = null,
     modifier: Modifier = Modifier,
+    initialSourceUrl: String? = null,
 ) {
     val context = LocalContext.current
     val res = context.applicationContext.resources
@@ -464,6 +478,9 @@ fun SubmitPage(
             },
         )
     }
+    // ── Character search ──
+    val characterSearchBarState = rememberCharacterSearchBarState()
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -480,6 +497,13 @@ fun SubmitPage(
                     TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surface,
                     ),
+            )
+            CharacterSearchBar(
+                selectedCharacters = state.selectedCharacters,
+                onCharacterSelected = { character ->
+                    state = state.copy(selectedCharacters = state.selectedCharacters + character)
+                },
+                state = characterSearchBarState,
             )
         },
         modifier = modifier,
@@ -501,7 +525,6 @@ fun SubmitPage(
             }
             return@Scaffold
         }
-
         Column(
             modifier =
                 Modifier.fillMaxSize()
@@ -719,74 +742,39 @@ fun SubmitPage(
                 style = MaterialTheme.typography.labelLarge,
             )
 
-            // Debounced character search
-            var searchJob by remember { mutableStateOf<Job?>(null) }
-            LaunchedEffect(state.characterSearchQuery) {
-                val query = state.characterSearchQuery.trim()
-                if (query.length < 2) {
-                    state = state.copy(characterSearchResults = emptyList(), isSearchingCharacters = false)
-                    return@LaunchedEffect
-                }
-                state = state.copy(isSearchingCharacters = true)
-                searchJob?.cancel()
-                searchJob = launch(Dispatchers.IO) {
-                    delay(400)
-                    val results = BangumiApiClient.searchCharacters(context, query)
-                    withContext(Dispatchers.Main) {
-                        state = state.copy(
-                            characterSearchResults = results.filter { r -> state.selectedCharacters.none { it.id == r.id } },
-                            isSearchingCharacters = false,
-                        )
-                    }
-                }
-            }
-
-            Box(modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = state.characterSearchQuery,
-                    onValueChange = {
-                        state = state.copy(characterSearchQuery = it)
-                    },
-                    placeholder = { Text(stringResource(R.string.submit_hint_character_search)) },
-                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                    trailingIcon = {
-                        if (state.isSearchingCharacters) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                        }
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !state.isSubmitting,
-                )
-
-                DropdownMenu(
-                    expanded = state.characterSearchResults.isNotEmpty() && state.characterSearchQuery.trim().length >= 2,
-                    onDismissRequest = { state = state.copy(characterSearchResults = emptyList()) },
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp),
-                ) {
-                    state.characterSearchResults.forEach { character ->
-                        val displayName = if (character.nameCN.isNotBlank()) "${character.nameCN} (${character.name})" else character.name
-                        DropdownMenuItem(
-                            text = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    character.images?.let { imgs ->
-                                        AsyncImage(
-                                            model = imgs.grid.ifBlank { imgs.medium.ifBlank { imgs.small } },
-                                            contentDescription = null,
-                                            modifier = Modifier.size(32.dp).clip(RoundedCornerShape(4.dp)),
-                                            contentScale = ContentScale.Crop,
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                    }
-                                    Text(displayName, style = MaterialTheme.typography.bodyMedium)
+            // Selected character chips
+            if (state.selectedCharacters.isNotEmpty()) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    state.selectedCharacters.forEach { character ->
+                        val chipLabel = character.nameCN.ifBlank { character.name }
+                        val avatarUrl = character.images?.small
+                        InputChip(
+                            selected = true,
+                            onClick = {
+                                state = state.copy(selectedCharacters = state.selectedCharacters - character)
+                            },
+                            label = { Text(chipLabel) },
+                            avatar = {
+                                if (!avatarUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = avatarUrl,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(InputChipDefaults.AvatarSize).clip(RoundedCornerShape(4.dp)),
+                                        contentScale = ContentScale.Crop,
+                                    )
+                                } else {
+                                    Icon(
+                                        Icons.Filled.Person,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(InputChipDefaults.AvatarSize),
+                                    )
                                 }
                             },
-                            onClick = {
-                                state = state.copy(
-                                    selectedCharacters = state.selectedCharacters + character,
-                                    characterSearchQuery = "",
-                                    characterSearchResults = emptyList(),
+                            trailingIcon = {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(InputChipDefaults.AvatarSize),
                                 )
                             },
                         )
@@ -794,30 +782,12 @@ fun SubmitPage(
                 }
             }
 
-            // Selected character chips
-            if (state.selectedCharacters.isNotEmpty()) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    state.selectedCharacters.forEach { character ->
-                        val chipLabel = character.nameCN.ifBlank { character.name }
-                        InputChip(
-                            selected = false,
-                            onClick = {},
-                            label = { Text(chipLabel) },
-                            trailingIcon = {
-                                IconButton(
-                                    onClick = {
-                                        state = state.copy(
-                                            selectedCharacters = state.selectedCharacters - character,
-                                        )
-                                    },
-                                    modifier = Modifier.size(18.dp),
-                                ) {
-                                    Icon(Icons.Filled.Close, contentDescription = null, modifier = Modifier.size(14.dp))
-                                }
-                            },
-                        )
-                    }
-                }
+            // Add character button — opens full-screen search
+            IconButton(
+                onClick = { scope.launch { characterSearchBarState.animateToExpanded() } },
+                enabled = !state.isSubmitting,
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.submit_label_characters))
             }
 
             OutlinedTextField(

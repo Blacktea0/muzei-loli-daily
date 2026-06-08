@@ -13,7 +13,7 @@ import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.model.ArtistResolveResponse
 
 private const val TAG = "BilibiliParser"
-
+@android.annotation.SuppressLint("SetJavaScriptEnabled")
 object BilibiliParser : SourceLinkParser {
     override val type = "bilibili"
 

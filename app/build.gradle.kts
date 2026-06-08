@@ -95,7 +95,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+            freeCompilerArgs.addAll("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api", "-opt-in=androidx.compose.material3.ExperimentalMaterial3ExpressiveApi")
+        }
+    }
 
     lint {
         // Abort build on lint errors

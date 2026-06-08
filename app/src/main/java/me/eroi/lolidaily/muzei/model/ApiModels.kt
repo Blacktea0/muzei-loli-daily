@@ -148,9 +148,3 @@ data class SlimCharacter(
     val images: SlimCharacterImages? = null,
     val nsfw: Boolean = false,
 )
-
-@Serializable
-data class CharacterSearchResponse(
-    val data: List<SlimCharacter> = emptyList(),
-    val total: Int = 0,
-)

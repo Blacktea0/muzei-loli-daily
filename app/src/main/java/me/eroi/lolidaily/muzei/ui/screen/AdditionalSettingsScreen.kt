@@ -1,4 +1,5 @@
 package me.eroi.lolidaily.muzei.ui.screen
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -603,6 +604,7 @@ private fun PixivAccountCard() {
                             SessionManager.clearPixivSession(context)
                             PixivLoginActivity.clearPixivCookies()
                             pixivSessionId = null
+                            @SuppressLint("LocalContextGetResourceValueCall")
                             android.widget.Toast.makeText(
                                 context,
                                 context.getString(R.string.msg_pixiv_logged_out),

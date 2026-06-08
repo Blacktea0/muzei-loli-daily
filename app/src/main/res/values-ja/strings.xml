@@ -252,7 +252,6 @@
     <string name="submit_label_artist_url">絵師リンク</string>
     <string name="submit_hint_artist_url">例：pixiv、twitterプロフィール、BGMキャラクターページ</string>
     <string name="submit_label_characters">キャラクター</string>
-    <string name="submit_hint_characters">BGMキャラクターページのリンク、スペース区切り</string>
     <string name="submit_label_comment">コメント</string>
     <string name="submit_hint_comment">イラストについて何か一言……</string>
     <string name="submit_anonymous">投稿者名を非表示</string>
@@ -263,7 +262,7 @@
     <string name="submit_success">想いは……届きました</string>
     <string name="submit_error_format">サポートされていない画像形式です</string>
     <string name="submit_error_size">画像が3MBを超えています — サイズを調整してください</string>
-    <string name="submit_error_size_png">画像が3MBを超えています — JPGへの変換をおすすめします</string>
+    <string name="submit_compressed_to_webp">画像が3MBを超えたため、自動的にWebPに変換しました</string>
     <string name="submit_error_read">画像ファイルの読み込みに失敗しました</string>
     <string name="submit_error_no_image">画像を選択してください</string>
     <string name="submit_error_source_required">"ソースURL"は必須項目です</string>
@@ -275,8 +274,6 @@
     <string name="submit_resolve_failed">絵師の自動検出に失敗しました — 手動で入力してください</string>
     <string name="submit_fetching_image">ソースから画像を取得中……</string>
     <string name="submit_hint_character_search">キャラクター名で検索……</string>
-    <string name="submit_character_searching">検索中……</string>
-    <string name="submit_character_no_results">結果が見つかりません</string>
     <string name="action_clear_form">フォームをクリア</string>
     <string name="submit_clear_title">フォームをクリア</string>
     <string name="submit_clear_message">すべてのフォーム内容をクリアしますか？</string>
@@ -285,7 +282,6 @@
     <string name="section_third_party_accounts">サードパーティアカウント</string>
     <string name="title_pixiv_account">Pixiv</string>
     <string name="status_pixiv_logged_in">Pixiv にログイン済み</string>
-    <string name="status_pixiv_not_logged_in">未ログイン</string>
     <string name="label_pixiv_login_hint">ログインしてR-18画像を取得</string>
     <string name="title_login_pixiv">Pixiv にログイン</string>
     <string name="msg_connecting_pixiv">Pixiv に接続中…</string>
