@@ -276,7 +276,7 @@ object LoliApiClient {
      * Resolves artist info from a known source URL (twitter/pixiv/bilibili).
      * Mirrors JS: lcClient.fetchDailyResolve → GET /v1/daily/resolve
      */
-    fun resolveArtist(
+    suspend fun resolveArtist(
         context: Context,
         type: String,
         rid: String,
@@ -286,7 +286,10 @@ object LoliApiClient {
         val request = Request.Builder().url(url).header("User-Agent", USER_AGENT).get().build()
         return try {
             val response = httpClient.newCall(request).execute()
-            if (!response.isSuccessful) return null
+            if (!response.isSuccessful) {
+                Log.w(TAG, "resolveArtist returned ${response.code}")
+                return null
+            }
             val body = response.body?.string() ?: return null
             json.decodeFromString<ArtistResolveResponse>(body)
         } catch (e: Exception) {

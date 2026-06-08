@@ -30,6 +30,17 @@ object SourceLinkParserRegistry {
     }
 
     /**
+     * Returns the canonical desktop URL for [url] by delegating to the matching parser.
+     * Returns null if no parser matches.
+     */
+    fun canonicalUrl(url: String): String? {
+        for (parser in parsers) {
+            if (parser.match(url) != null) return parser.canonicalUrl(url)
+        }
+        return null
+    }
+
+    /**
      * Fetches the first image from a known source URL.
      * Returns (imageBytes, mimeType) or null.
      */
@@ -46,7 +57,7 @@ object SourceLinkParserRegistry {
      * Resolves artist info for a known source type and resource ID.
      * Falls back to the Loli Commons /v1/daily/resolve API.
      */
-    fun resolveArtist(
+    suspend fun resolveArtist(
         context: Context,
         type: String,
         resourceId: String,

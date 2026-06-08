@@ -27,6 +27,11 @@ object PixivParser : SourceLinkParser {
         return SourceMatch(type, m.groupValues[1])
     }
 
+    override fun canonicalUrl(url: String): String {
+        val canonical = url.replace("://touch.pixiv.net/", "://www.pixiv.net/")
+        return stripTrackingParams(canonical)
+    }
+
     override suspend fun fetchSourceImage(context: Context, url: String): Pair<ByteArray, String>? {
         val m = URL_RE.find(url) ?: return null
         val illustId = m.groupValues[1]
@@ -43,7 +48,7 @@ object PixivParser : SourceLinkParser {
         return result
     }
 
-    override fun resolveArtist(context: Context, resourceId: String): ArtistResolveResponse? {
+    override suspend fun resolveArtist(context: Context, resourceId: String): ArtistResolveResponse? {
         return LoliApiClient.resolveArtist(context, type, resourceId)
     }
 

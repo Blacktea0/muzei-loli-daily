@@ -10,13 +10,22 @@ private val STRIPPED_PARAMS = setOf(
     "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term",
     "ref", "spm_id_from", "trackid", "from_source", "msource",
     "source", "medium", "campaign", "vd_source", "unique_k",
+    "share_from", "share_medium", "share_plat", "share_session_id",
+    "share_source", "share_tag", "share_type", "share_id",
+    "plat_id", "spmid", "timestamp",
 )
+
+private val URL_PATTERN = Regex("https?://[^\\s]+")
 
 /**
  * Resolves a short URL (e.g. b23.tv) to its redirect destination.
  * Returns null on failure or if the URL is not a short link.
  */
-fun resolveShortLink(client: OkHttpClient, url: String): String? {
+private val noRedirectClient = OkHttpClient.Builder()
+    .followRedirects(false)
+    .build()
+
+fun resolveShortLink(url: String): String? {
     if (!isShortLink(url)) return null
     return try {
         val request = Request.Builder()
@@ -24,7 +33,7 @@ fun resolveShortLink(client: OkHttpClient, url: String): String? {
             .header("User-Agent", "LoliDaily/1.0 (Android)")
             .head()
             .build()
-        val response = client.newCall(request).execute()
+        val response = noRedirectClient.newCall(request).execute()
         val location = response.header("Location")
         response.close()
         location
@@ -66,10 +75,19 @@ fun stripTrackingParams(url: String): String {
 }
 
 /**
+ * Extracts the first URL from mixed text (e.g. shared content that includes
+ * a title or description alongside the URL).  Returns null if no URL found.
+ */
+fun extractUrl(text: String): String? {
+    val m = URL_PATTERN.find(text) ?: return null
+    return m.value
+}
+
+/**
  * Full pipeline: resolve short link → strip tracking params.
  * Returns the cleaned URL, or the original if no changes needed.
  */
-fun cleanUrl(client: OkHttpClient, url: String): String {
-    val resolved = resolveShortLink(client, url) ?: url
+fun cleanUrl(url: String): String {
+    val resolved = resolveShortLink(url) ?: url
     return stripTrackingParams(resolved)
 }

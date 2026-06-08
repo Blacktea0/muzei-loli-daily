@@ -84,6 +84,9 @@ import me.eroi.lolidaily.muzei.api.BangumiApiClient
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.api.SessionManager
 import me.eroi.lolidaily.muzei.api.link.SourceLinkParserRegistry
+import me.eroi.lolidaily.muzei.api.link.isShortLink
+import me.eroi.lolidaily.muzei.api.link.resolveShortLink
+import me.eroi.lolidaily.muzei.api.link.stripTrackingParams
 import me.eroi.lolidaily.muzei.model.SlimCharacter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -209,8 +212,26 @@ fun SubmitPage(
             }
             return@LaunchedEffect
         }
+        // Resolve short links (b23.tv, t.co, etc.) to actual URLs
+        if (isShortLink(url)) {
+            val resolved = withContext(Dispatchers.IO) {
+                resolveShortLink(url)
+            }
+            if (resolved != null) {
+                state = state.copy(sourceUrl = stripTrackingParams(resolved))
+                return@LaunchedEffect  // re-trigger with resolved URL
+            }
+        }
+
         val match = SourceLinkParserRegistry.match(url)
         if (match == null) return@LaunchedEffect
+
+        // Canonicalize: mobile → desktop, strip tracking params
+        val canonical = SourceLinkParserRegistry.canonicalUrl(url)
+        if (canonical != null && canonical != url) {
+            state = state.copy(sourceUrl = canonical)
+            return@LaunchedEffect  // re-trigger with canonical URL
+        }
 
         // Skip if this exact URL was already fetched
         if (url == state.fetchedSourceUrl) return@LaunchedEffect
@@ -237,7 +258,7 @@ fun SubmitPage(
             LoliApiClient.fetchSourceImage(context, currentUrl)
         }
 
-        val artist = try { artistDeferred.await() } catch (_: Exception) { null }
+        val artist = try { artistDeferred.await() } catch (e: Exception) { Log.w(TAG, "resolveArtist failed", e); null }
         val imageResult = try { imageDeferred.await() } catch (_: Exception) { null }
 
         withContext(Dispatchers.Main) {

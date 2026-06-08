@@ -21,6 +21,13 @@ object TwitterParser : SourceLinkParser {
         return SourceMatch(type, m.groupValues[1])
     }
 
+    override fun canonicalUrl(url: String): String {
+        val canonical = url
+            .replace("://x.com/", "://twitter.com/")
+            .replace("://mobile.twitter.com/", "://twitter.com/")
+        return stripTrackingParams(canonical)
+    }
+
     override suspend fun fetchSourceImage(context: Context, url: String): Pair<ByteArray, String>? {
         val m = URL_RE.find(url) ?: return null
         val tweetPath = m.groupValues[1]
@@ -28,7 +35,7 @@ object TwitterParser : SourceLinkParser {
         return LoliApiClient.downloadImage(imageUrl)
     }
 
-    override fun resolveArtist(context: Context, resourceId: String): ArtistResolveResponse? {
+    override suspend fun resolveArtist(context: Context, resourceId: String): ArtistResolveResponse? {
         return LoliApiClient.resolveArtist(context, type, resourceId)
     }
 

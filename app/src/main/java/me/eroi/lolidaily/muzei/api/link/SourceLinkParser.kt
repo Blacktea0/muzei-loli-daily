@@ -2,7 +2,6 @@ package me.eroi.lolidaily.muzei.api.link
 
 import android.content.Context
 import me.eroi.lolidaily.muzei.model.ArtistResolveResponse
-import okhttp3.OkHttpClient
 
 /**
  * Result of matching a URL against a [SourceLinkParser].
@@ -33,6 +32,14 @@ interface SourceLinkParser {
     fun match(url: String): SourceMatch?
 
     /**
+     * Converts a platform URL to its canonical desktop form.
+     * Handles mobile subdomains (m.bilibili.com → www.bilibili.com),
+     * platform short links (x.com → twitter.com), and strips tracking params.
+     * Returns the canonical URL, or the original if no conversion is needed.
+     */
+    fun canonicalUrl(url: String): String = url
+
+    /**
      * Fetches the first image from the source page.
      * Returns (imageBytes, mimeType) or null.
      */
@@ -42,5 +49,5 @@ interface SourceLinkParser {
      * Resolves artist name and profile URL from the resource ID.
      * Calls the Loli Commons /v1/daily/resolve API.
      */
-    fun resolveArtist(context: Context, resourceId: String): ArtistResolveResponse?
+    suspend fun resolveArtist(context: Context, resourceId: String): ArtistResolveResponse?
 }
