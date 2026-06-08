@@ -181,74 +181,74 @@ fun MainScreen(
                     )
                 }
 
-                // Tab content
-                when (selectedTab) {
-                    0 ->
-                        TodayPage(
-                            todayArtwork = todayArtwork,
-                            isLoggedIn = isLoggedIn,
-                            onFullscreenImage = { fullscreenPreview = it },
-                            onReactionClick = onReactionClick,
-                            onRefresh = onRefresh,
-                            onBookmarkToggle = onBookmarkToggle,
-                            refreshProgress = refreshProgress,
-                            initialPage = todayPagerPage,
-                            onPageChanged = { todayPagerPage = it },
-                            windowSizeClass = windowSizeClass.widthSizeClass,
-                            onPageOpened = onTodayPageOpened,
-                        )
-
-                    1 ->
-                        BookmarkPage(
-                            cachedArtwork = bookmarkArtwork,
-                            onFullscreenImage = { fullscreenPreview = it },
-                            onRemoveBookmark = onRemoveBookmark,
-                            emptyMessage = stringResource(R.string.msg_no_bookmarks),
-                            searchQuery = bookmarkSearchQuery,
-                            selectedTag = bookmarkSelectedTag,
-                            onSearchQueryChange = { bookmarkSearchQuery = it },
-                            onTagSelected = { bookmarkSelectedTag = it },
-                            windowSizeClass = windowSizeClass.widthSizeClass,
-                        )
-
-                    2 ->
-                        SubmitPage(
-                            isLoggedIn = isLoggedIn,
-                            onLogin = onLogin,
-                            initialSourceUrl = initialSourceUrl,
-                        )
-
-                    3 ->
-                        SettingsPage(
-                            selectedTags = selectedTags,
-                            onTagsChanged = onTagsChanged,
-                            isLoggedIn = isLoggedIn,
-                            onLogin = onLogin,
-                            onLogout = onLogout,
-                            bgmUsername = bgmUsername,
-                            bgmNickname = bgmNickname,
-                            bgmAvatarUrl = bgmAvatarUrl,
-                            bgmDomain = bgmDomain,
-                            onDomainChanged = onDomainChanged,
-                            lcBadge = lcBadge,
-                            onBadgeChanged = onBadgeChanged,
-                            isSourceActivated = isSourceActivated,
-                            isMuzeiInstalled = isMuzeiInstalled,
-                            onOpenMuzei = onOpenMuzei,
-                            themeMode = themeMode,
-                            onThemeModeChanged = onThemeModeChanged,
-                            colorSource = colorSource,
-                            onColorSourceChanged = onColorSourceChanged,
-                            colorStyle = colorStyle,
-                            onColorStyleChanged = onColorStyleChanged,
-                            manualColorArgb = manualColorArgb,
-                            onManualColorChanged = onManualColorChanged,
-                            sourceColorArgb = sourceColorArgb,
-                            onOpenDebug = onOpenDebug,
-                            onOpenAbout = onOpenAbout,
-                            todayArtwork = todayArtwork,
-                            windowSizeClass = windowSizeClass.widthSizeClass,
-                        )
+                // Tab content — SubmitPage always stays in composition to preserve form state
+                Box(modifier = Modifier.fillMaxSize()) {
+                    when (selectedTab) {
+                        0 ->
+                            TodayPage(
+                                todayArtwork = todayArtwork,
+                                isLoggedIn = isLoggedIn,
+                                onFullscreenImage = { fullscreenPreview = it },
+                                onReactionClick = onReactionClick,
+                                onRefresh = onRefresh,
+                                onBookmarkToggle = onBookmarkToggle,
+                                refreshProgress = refreshProgress,
+                                initialPage = todayPagerPage,
+                                onPageChanged = { todayPagerPage = it },
+                                windowSizeClass = windowSizeClass.widthSizeClass,
+                                onPageOpened = onTodayPageOpened,
+                            )
+                        1 ->
+                            BookmarkPage(
+                                cachedArtwork = bookmarkArtwork,
+                                onFullscreenImage = { fullscreenPreview = it },
+                                onRemoveBookmark = onRemoveBookmark,
+                                emptyMessage = stringResource(R.string.msg_no_bookmarks),
+                                searchQuery = bookmarkSearchQuery,
+                                selectedTag = bookmarkSelectedTag,
+                                onSearchQueryChange = { bookmarkSearchQuery = it },
+                                onTagSelected = { bookmarkSelectedTag = it },
+                                windowSizeClass = windowSizeClass.widthSizeClass,
+                            )
+                        3 ->
+                            SettingsPage(
+                                selectedTags = selectedTags,
+                                onTagsChanged = onTagsChanged,
+                                isLoggedIn = isLoggedIn,
+                                onLogin = onLogin,
+                                onLogout = onLogout,
+                                bgmUsername = bgmUsername,
+                                bgmNickname = bgmNickname,
+                                bgmAvatarUrl = bgmAvatarUrl,
+                                bgmDomain = bgmDomain,
+                                onDomainChanged = onDomainChanged,
+                                lcBadge = lcBadge,
+                                onBadgeChanged = onBadgeChanged,
+                                isSourceActivated = isSourceActivated,
+                                isMuzeiInstalled = isMuzeiInstalled,
+                                onOpenMuzei = onOpenMuzei,
+                                themeMode = themeMode,
+                                onThemeModeChanged = onThemeModeChanged,
+                                colorSource = colorSource,
+                                onColorSourceChanged = onColorSourceChanged,
+                                colorStyle = colorStyle,
+                                onColorStyleChanged = onColorStyleChanged,
+                                manualColorArgb = manualColorArgb,
+                                onManualColorChanged = onManualColorChanged,
+                                sourceColorArgb = sourceColorArgb,
+                                onOpenDebug = onOpenDebug,
+                                onOpenAbout = onOpenAbout,
+                                todayArtwork = todayArtwork,
+                                windowSizeClass = windowSizeClass.widthSizeClass,
+                            )
+                    }
+                    // SubmitPage stays mounted regardless of selected tab
+                    SubmitPage(
+                        isLoggedIn = isLoggedIn,
+                        onLogin = onLogin,
+                        initialSourceUrl = initialSourceUrl,
+                        modifier = if (selectedTab == 2) Modifier else Modifier.size(0.dp),
+                    )
                 }
             }
         }
@@ -324,9 +324,9 @@ fun MainScreen(
             },
             modifier = modifier,
         ) { padding ->
-            when (selectedTab) {
-                0 ->
-                    Box(modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
+            Box(modifier = Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) {
+                when (selectedTab) {
+                    0 ->
                         TodayPage(
                             todayArtwork = todayArtwork,
                             isLoggedIn = isLoggedIn,
@@ -340,10 +340,7 @@ fun MainScreen(
                             windowSizeClass = windowSizeClass.widthSizeClass,
                             onPageOpened = onTodayPageOpened,
                         )
-                    }
-
-                1 ->
-                    Box(modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
+                    1 ->
                         BookmarkPage(
                             cachedArtwork = bookmarkArtwork,
                             onFullscreenImage = { fullscreenPreview = it },
@@ -355,48 +352,46 @@ fun MainScreen(
                             onTagSelected = { bookmarkSelectedTag = it },
                             windowSizeClass = windowSizeClass.widthSizeClass,
                         )
-                    }
-
-                2 ->
-                    Box(modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
-                        SubmitPage(
-                            isLoggedIn = isLoggedIn,
-                            onLogin = onLogin,
-                            initialSourceUrl = initialSourceUrl,
-                        )
-                    }
-                3 ->
-                    Box(modifier = Modifier.padding(padding)) {
-                        SettingsPage(
-                            selectedTags = selectedTags,
-                            onTagsChanged = onTagsChanged,
-                            isLoggedIn = isLoggedIn,
-                            onLogin = onLogin,
-                            onLogout = onLogout,
-                            bgmUsername = bgmUsername,
-                            bgmNickname = bgmNickname,
-                            bgmAvatarUrl = bgmAvatarUrl,
-                            bgmDomain = bgmDomain,
-                            onDomainChanged = onDomainChanged,
-                            lcBadge = lcBadge,
-                            onBadgeChanged = onBadgeChanged,
-                            isSourceActivated = isSourceActivated,
-                            isMuzeiInstalled = isMuzeiInstalled,
-                            onOpenMuzei = onOpenMuzei,
-                            themeMode = themeMode,
-                            onThemeModeChanged = onThemeModeChanged,
-                            colorSource = colorSource,
-                            onColorSourceChanged = onColorSourceChanged,
-                            colorStyle = colorStyle,
-                            onColorStyleChanged = onColorStyleChanged,
-                            manualColorArgb = manualColorArgb,
-                            onManualColorChanged = onManualColorChanged,
-                            sourceColorArgb = sourceColorArgb,
-                            onOpenDebug = onOpenDebug,
-                            onOpenAbout = onOpenAbout,
-                            todayArtwork = todayArtwork,
-                        )
-                    }
+                    3 ->
+                        Box(Modifier.padding(top = padding.calculateTopPadding())) {
+                            SettingsPage(
+                                selectedTags = selectedTags,
+                                onTagsChanged = onTagsChanged,
+                                isLoggedIn = isLoggedIn,
+                                onLogin = onLogin,
+                                onLogout = onLogout,
+                                bgmUsername = bgmUsername,
+                                bgmNickname = bgmNickname,
+                                bgmAvatarUrl = bgmAvatarUrl,
+                                bgmDomain = bgmDomain,
+                                onDomainChanged = onDomainChanged,
+                                lcBadge = lcBadge,
+                                onBadgeChanged = onBadgeChanged,
+                                isSourceActivated = isSourceActivated,
+                                isMuzeiInstalled = isMuzeiInstalled,
+                                onOpenMuzei = onOpenMuzei,
+                                themeMode = themeMode,
+                                onThemeModeChanged = onThemeModeChanged,
+                                colorSource = colorSource,
+                                onColorSourceChanged = onColorSourceChanged,
+                                colorStyle = colorStyle,
+                                onColorStyleChanged = onColorStyleChanged,
+                                manualColorArgb = manualColorArgb,
+                                onManualColorChanged = onManualColorChanged,
+                                sourceColorArgb = sourceColorArgb,
+                                onOpenDebug = onOpenDebug,
+                                onOpenAbout = onOpenAbout,
+                                todayArtwork = todayArtwork,
+                            )
+                        }
+                }
+                // SubmitPage stays mounted regardless of selected tab
+                SubmitPage(
+                    isLoggedIn = isLoggedIn,
+                    onLogin = onLogin,
+                    initialSourceUrl = initialSourceUrl,
+                    modifier = if (selectedTab == 2) Modifier else Modifier.size(0.dp),
+                )
             }
         }
     }

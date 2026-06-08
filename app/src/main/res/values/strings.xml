@@ -276,7 +276,10 @@
     <string name="submit_hint_character_search">Search character name…</string>
     <string name="submit_character_searching">Searching…</string>
     <string name="submit_character_no_results">No results found</string>
-
+    <string name="action_clear_form">Clear form</string>
+    <string name="submit_clear_title">Clear form</string>
+    <string name="submit_clear_message">Are you sure you want to clear all form content?</string>
+    <string name="submit_action_cancel">Cancel</string>
     <!-- Third-party accounts -->
     <string name="section_third_party_accounts">Third-party Accounts</string>
     <string name="title_pixiv_account">Pixiv</string>

@@ -276,7 +276,10 @@
     <string name="submit_hint_character_search">キャラクター名で検索……</string>
     <string name="submit_character_searching">検索中……</string>
     <string name="submit_character_no_results">結果が見つかりません</string>
-
+    <string name="action_clear_form">フォームをクリア</string>
+    <string name="submit_clear_title">フォームをクリア</string>
+    <string name="submit_clear_message">すべてのフォーム内容をクリアしますか？</string>
+    <string name="submit_action_cancel">キャンセル</string>
     <!-- Third-party accounts -->
     <string name="section_third_party_accounts">サードパーティアカウント</string>
     <string name="title_pixiv_account">Pixiv</string>

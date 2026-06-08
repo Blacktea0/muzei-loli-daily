@@ -276,7 +276,10 @@
     <string name="submit_hint_character_search">搜索角色名称……</string>
     <string name="submit_character_searching">搜索中……</string>
     <string name="submit_character_no_results">未找到结果</string>
-
+    <string name="action_clear_form">清空表单</string>
+    <string name="submit_clear_title">清空表单</string>
+    <string name="submit_clear_message">确定要清空所有表单内容吗？</string>
+    <string name="submit_action_cancel">取消</string>
     <!-- Third-party accounts -->
     <string name="section_third_party_accounts">第三方账号</string>
     <string name="title_pixiv_account">Pixiv</string>
