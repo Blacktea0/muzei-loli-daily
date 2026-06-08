@@ -257,6 +257,7 @@
     <string name="submit_hint_comment">图文是否无关，令人深思……</string>
     <string name="submit_anonymous">不显示投稿者</string>
     <string name="submit_guidelines_link">投稿须知</string>
+    <string name="submit_confirm_guidelines">我已阅读并确保上传的作品符合%1$s *</string>
     <string name="submit_button">发送</string>
     <string name="submit_sending">发送中……</string>
     <string name="submit_success">心意……传达到了呢</string>

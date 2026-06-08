@@ -257,6 +257,7 @@
     <string name="submit_hint_comment">Say something about this artwork…</string>
     <string name="submit_anonymous">Submit anonymously</string>
     <string name="submit_guidelines_link">Submission Guidelines</string>
+    <string name="submit_confirm_guidelines">I confirm that the uploaded work complies with the %1$s *</string>
     <string name="submit_button">Submit</string>
     <string name="submit_sending">Sending…</string>
     <string name="submit_success">Your submission has been received ♥</string>

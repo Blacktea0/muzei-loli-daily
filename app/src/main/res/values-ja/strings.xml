@@ -257,6 +257,7 @@
     <string name="submit_hint_comment">イラストについて何か一言……</string>
     <string name="submit_anonymous">投稿者名を非表示</string>
     <string name="submit_guidelines_link">投稿ガイドライン</string>
+    <string name="submit_confirm_guidelines">アップロード作品が%1$sに準拠していることを確認しました *</string>
     <string name="submit_button">送信</string>
     <string name="submit_sending">送信中……</string>
     <string name="submit_success">想いは……届きました</string>

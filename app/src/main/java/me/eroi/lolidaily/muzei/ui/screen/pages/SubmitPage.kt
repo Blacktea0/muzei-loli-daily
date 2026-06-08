@@ -73,6 +73,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -133,6 +137,7 @@ private data class SubmitFormState(
     val comment: String = "",
     val selectedTag: String = "LC0",
     val anonymous: Boolean = false,
+    val confirmGuidelines: Boolean = false,
     val fetchedSourceUrl: String = "",
     val isFetchingImage: Boolean = false,
     val isSubmitting: Boolean = false,
@@ -850,15 +855,57 @@ fun SubmitPage(
                 )
             }
 
-            // ── Submit notice link ──
-            TextButton(
-                onClick = {
-                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
-                    intent.data = "https://bgm.tv/group/topic/417120".toUri()
-                    context.startActivity(intent)
-                },
+            // ── Confirm guidelines checkbox ──
+            val bgmDomain = SessionManager.loadDomain(context)
+            val guidelinesUrl = "https://$bgmDomain/group/topic/417120"
+            val guidelinesLabel = stringResource(R.string.submit_guidelines_link)
+            val fullText = stringResource(R.string.submit_confirm_guidelines, guidelinesLabel)
+            val annotatedText = buildAnnotatedString {
+                val start = fullText.indexOf(guidelinesLabel)
+                if (start >= 0) {
+                    append(fullText.substring(0, start))
+                    pushLink(
+                        LinkAnnotation.Clickable(
+                            tag = "URL",
+                            styles = TextLinkStyles(
+                                style = SpanStyle(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+                                ),
+                            ),
+                        ) {
+                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
+                            intent.data = guidelinesUrl.toUri()
+                            context.startActivity(intent)
+                        },
+                    )
+                    append(guidelinesLabel)
+                    pop()
+                    append(fullText.substring(start + guidelinesLabel.length))
+                } else {
+                    append(fullText)
+                }
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(enabled = !state.isSubmitting) {
+                            state = state.copy(confirmGuidelines = !state.confirmGuidelines)
+                        }
+                        .padding(horizontal = 4.dp),
             ) {
-                Text(stringResource(R.string.submit_guidelines_link))
+                Checkbox(
+                    checked = state.confirmGuidelines,
+                    onCheckedChange = { state = state.copy(confirmGuidelines = it) },
+                    enabled = !state.isSubmitting,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = annotatedText,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
 
             // ── Submit button + progress ──
@@ -869,7 +916,7 @@ fun SubmitPage(
             Button(
                 onClick = { doSubmit() },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
-                enabled = !state.isSubmitting,
+                enabled = !state.isSubmitting && state.confirmGuidelines,
             ) {
                 if (state.isSubmitting) {
                     CircularProgressIndicator(
