@@ -101,7 +101,7 @@ private const val MAX_IMAGE_SIZE = 3L * 1024 * 1024 // 3 MB
  * If [bytes] exceeds [MAX_IMAGE_SIZE], attempts to re-encode as lossy WebP.
  * Returns (compressedBytes, "image/webp") on success, or null if still too large.
  */
-private fun compressToWebpIfNeeded(bytes: ByteArray): Pair<ByteArray, String>? {
+private fun compressIfNeeded(bytes: ByteArray): Pair<ByteArray, String>? {
     val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
     for (quality in listOf(80, 60, 40, 20)) {
         val out = java.io.ByteArrayOutputStream()
@@ -185,10 +185,11 @@ fun SubmitPage(
                         context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                             ?: return@launch
                     if (bytes.size > MAX_IMAGE_SIZE) {
-                        val compressed = compressToWebpIfNeeded(bytes)
+                        val compressed = compressIfNeeded(bytes)
                         if (compressed != null) {
                             val (cBytes, cMime) = compressed
-                            val name = (uri.lastPathSegment ?: "image").replaceAfterLast('.', "webp")
+                            val ext = cMime.substringAfter('/')
+                            val name = (uri.lastPathSegment ?: "image").replaceAfterLast('.', ext)
                             withContext(Dispatchers.Main) {
                                 state = state.copy(
                                     imageUri = uri,
@@ -299,12 +300,12 @@ fun SubmitPage(
         val artist = try { artistDeferred.await() } catch (e: Exception) { Log.w(TAG, "resolveArtist failed", e); null }
         val imageResult = try { imageDeferred.await() } catch (_: Exception) { null }
 
-        // Attempt WebP compression if image exceeds size limit
+        // Attempt AVIF/WebP compression if image exceeds size limit
         val finalResult = if (imageResult != null) {
             val (bytes, mime) = imageResult
             if (bytes.size > MAX_IMAGE_SIZE) {
-                val compressed = withContext(Dispatchers.IO) { compressToWebpIfNeeded(bytes) }
-                if (compressed != null) compressed else null // null = still too large
+                val c = withContext(Dispatchers.IO) { compressIfNeeded(bytes) }
+                if (c != null) c.first to c.second else null // null = still too large
             } else {
                 bytes to mime
             }
@@ -313,6 +314,7 @@ fun SubmitPage(
         withContext(Dispatchers.Main) {
             if (finalResult != null) {
                 val (bytes, mime) = finalResult
+                val wasCompressed = imageResult != null && imageResult.first.size > MAX_IMAGE_SIZE
                 state = state.copy(
                     imageUri = "source_image".toUri(),
                     imageBytes = bytes,
@@ -320,7 +322,6 @@ fun SubmitPage(
                         when (mime) {
                             "image/png" -> "png"
                             "image/webp" -> "webp"
-                            "image/avif" -> "avif"
                             else -> "jpg"
                         }
                     }",
@@ -329,18 +330,8 @@ fun SubmitPage(
                     fetchedSourceUrl = currentUrl,
                     artistName = artist?.name ?: state.artistName,
                     artistUrl = artist?.link ?: state.artistUrl,
-                    statusMessage = if (imageResult != null && imageResult.first.size > MAX_IMAGE_SIZE)
+                    statusMessage = if (wasCompressed)
                         res.getString(R.string.submit_compressed_to_webp) else null,
-                )
-            } else if (imageResult != null) {
-                // Image fetched but too large even after compression
-                state = state.copy(
-                    isFetchingImage = false,
-                    fetchedSourceUrl = currentUrl,
-                    artistName = artist?.name ?: state.artistName,
-                    artistUrl = artist?.link ?: state.artistUrl,
-                    statusMessage = res.getString(R.string.submit_error_size),
-                    isError = true,
                 )
             } else {
                 state = state.copy(

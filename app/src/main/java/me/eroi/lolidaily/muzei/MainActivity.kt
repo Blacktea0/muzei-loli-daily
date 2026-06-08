@@ -79,10 +79,13 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Configure Coil with SVG decoder
+        // Configure Coil with SVG and AVIF decoders
         SingletonImageLoader.setSafe { context ->
             ImageLoader.Builder(context)
-                .components { add(SvgDecoder.Factory()) }
+                .components {
+                    add(SvgDecoder.Factory())
+                    add(me.eroi.lolidaily.muzei.api.decoder.AvifDecoder.Factory())
+                }
                 .build()
         }
 
