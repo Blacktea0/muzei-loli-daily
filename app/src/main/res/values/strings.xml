@@ -3,6 +3,7 @@
     <string name="app_name">Loli Daily for Muzei</string>
     <string name="source_title">Loli Daily</string>
     <string name="source_description">Daily artwork from the Loli Daily collection</string>
+    <string name="share_target_label">Submit</string>
 
     <!-- Navigation -->
     <string name="tab_today">Today</string>

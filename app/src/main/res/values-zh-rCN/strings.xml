@@ -3,6 +3,7 @@
     <string name="app_name">Loli Daily 壁纸</string>
     <string name="source_title">Loli Daily</string>
     <string name="source_description">每日 Loli Daily 精选画作</string>
+    <string name="share_target_label">投稿</string>
 
     <!-- Navigation -->
     <string name="tab_today">今日</string>

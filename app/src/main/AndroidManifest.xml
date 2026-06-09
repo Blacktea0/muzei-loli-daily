@@ -21,12 +21,20 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+
+        <!-- Share target — shows as "投稿" in Android share sheet -->
+        <activity-alias
+            android:name=".MainActivityShareAlias"
+            android:targetActivity="me.eroi.lolidaily.muzei.MainActivity"
+            android:label="@string/share_target_label"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
-        </activity>
+        </activity-alias>
 
         <!-- OAuth login — WebView-based Bangumi OAuth for reaction submission -->
         <activity
