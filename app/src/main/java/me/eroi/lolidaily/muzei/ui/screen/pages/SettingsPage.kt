@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -210,7 +209,6 @@ fun SettingsPage(
                     subtitle = stringResource(R.string.label_debug_subtitle),
                     iconContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     iconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    endIcon = Icons.AutoMirrored.Filled.OpenInNew,
                     onClick = onOpenDebug,
                 )
             }
@@ -221,7 +219,7 @@ fun SettingsPage(
                 GroupedSettingsRow(
                     icon = Icons.Filled.Info,
                     title = stringResource(R.string.title_about),
-                    subtitle = stringResource(R.string.about_version_info, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
+                    subtitle = stringResource(R.string.about_version_info, BuildConfig.VERSION_NAME),
                     iconContainerColor = MaterialTheme.colorScheme.primaryContainer,
                     iconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     onClick = onOpenAbout,

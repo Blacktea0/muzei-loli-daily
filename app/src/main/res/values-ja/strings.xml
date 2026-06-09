@@ -229,7 +229,7 @@
 
     <!-- About -->
     <string name="title_about">Loli Daily について</string>
-    <string name="about_version_info">現在のバージョン %1$s (%2$d)</string>
+    <string name="about_version_info">現在のバージョン %1$s</string>
     <string name="about_hero_title">Loli Commons</string>
     <string name="about_hero_subtitle">は国際非営利団体です。\nロリコン作品の流通促進と\nロリコン間の交流を目的としています</string>
     <string name="about_hero_tagline">世界にはもっとロリが必要 &lt;3</string>

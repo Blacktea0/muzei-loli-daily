@@ -221,6 +221,12 @@ private fun HeroDetailContent(
                         )
                     }
                 },
+            trailing =
+                if (preview.suggestedByUsername == null) {
+                    {}
+                } else {
+                    null
+                },
         )
 
         // ── Characters Section ──
@@ -311,6 +317,7 @@ internal fun DetailMetaItem(
     value: String,
     maxLines: Int = 2,
     onClick: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     val rowModifier =
         if (onClick != null) {
@@ -349,13 +356,16 @@ internal fun DetailMetaItem(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        Spacer(Modifier.width(8.dp))
-        Icon(
-            if (onClick != null) Icons.AutoMirrored.Filled.OpenInNew else Icons.Default.ChevronRight,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (trailing != null) {
+            trailing()
+        } else {
+            Icon(
+                if (onClick != null) Icons.AutoMirrored.Filled.OpenInNew else Icons.Default.ChevronRight,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

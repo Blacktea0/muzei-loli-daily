@@ -297,7 +297,7 @@ internal fun TabletDetailContent(
         // Uploader (placed last)
         val suggestedByDisplay =
             buildString {
-                append(preview.suggestedByName ?: stringResource(R.string.label_unknown))
+                append(preview.suggestedByName ?: stringResource(R.string.label_anonymous))
                 preview.suggestedByUsername?.let { append(" @$it") }
             }
         DetailMetaItem(
