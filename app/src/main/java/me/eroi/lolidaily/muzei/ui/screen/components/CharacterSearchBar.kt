@@ -56,6 +56,8 @@ import kotlinx.coroutines.withContext
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.BangumiApiClient
 import me.eroi.lolidaily.muzei.model.SlimCharacter
+import me.eroi.lolidaily.muzei.model.SlimCharacterImages
+import me.eroi.lolidaily.muzei.db.CharacterHistoryEntity
 
 /**
  * State holder for [CharacterSearchBar].
@@ -79,8 +81,13 @@ fun rememberCharacterSearchBarState(): CharacterSearchBarState {
 /**
  * Full-screen character search bar with autocomplete and infinite-scroll pagination.
  *
- * @param selectedCharacters already selected characters (excluded from results)
- * @param onCharacterSelected called when user taps a search result
+ * When the search input is empty, displays [recentCharacters] as a history list with per-item
+ * dismiss buttons. Already-selected characters are filtered out automatically.
+ *
+ * @param selectedCharacters already selected characters (excluded from results and history)
+ * @param onCharacterSelected called when user taps a search result or history entry
+ * @param recentCharacters recently selected characters shown when input is empty
+ * @param onRemoveHistory called when user taps the dismiss button on a history entry
  * @param state state holder — use [rememberCharacterSearchBarState] to create
  * @param modifier modifier for the outer [ExpandedFullScreenContainedSearchBar]
  */
@@ -89,6 +96,8 @@ fun rememberCharacterSearchBarState(): CharacterSearchBarState {
 fun CharacterSearchBar(
     selectedCharacters: List<SlimCharacter>,
     onCharacterSelected: (SlimCharacter) -> Unit,
+    recentCharacters: List<CharacterHistoryEntity> = emptyList(),
+    onRemoveHistory: (Int) -> Unit = {},
     modifier: Modifier = Modifier,
     state: CharacterSearchBarState = rememberCharacterSearchBarState(),
 ) {
@@ -189,6 +198,57 @@ fun CharacterSearchBar(
         modifier = modifier,
     ) {
         HorizontalDivider()
+        // Recent character history (shown when search input is empty)
+        val filteredHistory = recentCharacters.filter { h -> selectedCharacters.none { it.id == h.characterId } }
+        if (textFieldState.text.isEmpty() && results.isEmpty() && suggestions.isEmpty() && !isSearching && filteredHistory.isNotEmpty()) {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(filteredHistory, key = { it.characterId }) { entry ->
+                    val displayName = if (entry.nameCN.isNotBlank()) "${entry.name} (${entry.nameCN})" else entry.name
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onCharacterSelected(
+                                    SlimCharacter(
+                                        id = entry.characterId,
+                                        name = entry.name,
+                                        nameCN = entry.nameCN,
+                                        images = if (entry.imageUrl.isNotEmpty()) SlimCharacterImages(small = entry.imageUrl) else null,
+                                    ),
+                                )
+                                results = emptyList()
+                                scrollId = null
+                                searchTotal = 0
+                                suggestions = emptyList()
+                                textFieldState.setTextAndPlaceCursorAtEnd("")
+                                scope.launch { searchBarState.animateToCollapsed() }
+                            }
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                    ) {
+                        if (entry.imageUrl.isNotEmpty()) {
+                            AsyncImage(
+                                model = entry.imageUrl,
+                                contentDescription = null,
+                                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(4.dp)),
+                                contentScale = ContentScale.Crop,
+                            )
+                        } else {
+                            Spacer(modifier = Modifier.size(40.dp))
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(displayName, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                        IconButton(
+                            onClick = { onRemoveHistory(entry.characterId) },
+                            modifier = Modifier.clearAndSetSemantics {},
+                        ) {
+                            Icon(Icons.Filled.Close, contentDescription = null)
+                        }
+                    }
+                }
+            }
+        }
+
         // Autocomplete suggestions
         if (suggestions.isNotEmpty() && results.isEmpty() && !isSearching) {
             Column(modifier = Modifier.fillMaxWidth()) {

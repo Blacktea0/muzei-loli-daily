@@ -129,6 +129,8 @@ import me.eroi.lolidaily.muzei.ui.screen.components.SubmitTipBanner
 import me.eroi.lolidaily.muzei.ui.screen.components.rememberCharacterSearchBarState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import me.eroi.lolidaily.muzei.db.CharacterHistoryEntity
+import me.eroi.lolidaily.muzei.db.DatabaseProvider
 
 private const val TAG = "SubmitPage"
 private const val MAX_IMAGE_SIZE = 3L * 1024 * 1024 // 3 MB
@@ -527,6 +529,34 @@ fun SubmitPage(
     }
     // ── Character search ──
     val characterSearchBarState = rememberCharacterSearchBarState()
+    val historyDao = remember { DatabaseProvider.getInstance(context).characterHistoryDao() }
+    var characterHistory by remember { mutableStateOf<List<CharacterHistoryEntity>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        characterHistory = withContext(Dispatchers.IO) { historyDao.getAll() }
+    }
+
+    fun saveCharacterToHistory(character: SlimCharacter) {
+        scope.launch(Dispatchers.IO) {
+            historyDao.upsert(
+                CharacterHistoryEntity(
+                    characterId = character.id,
+                    name = character.name,
+                    nameCN = character.nameCN,
+                    imageUrl = character.images?.small ?: "",
+                    selectedAt = System.currentTimeMillis(),
+                ),
+            )
+            characterHistory = historyDao.getAll()
+        }
+    }
+
+    fun removeCharacterHistory(characterId: Int) {
+        scope.launch(Dispatchers.IO) {
+            historyDao.delete(characterId)
+            characterHistory = historyDao.getAll()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -549,7 +579,10 @@ fun SubmitPage(
                 selectedCharacters = state.selectedCharacters,
                 onCharacterSelected = { character ->
                     state = state.copy(selectedCharacters = state.selectedCharacters + character)
+                    saveCharacterToHistory(character)
                 },
+                recentCharacters = characterHistory,
+                onRemoveHistory = { removeCharacterHistory(it) },
                 state = characterSearchBarState,
             )
         },
