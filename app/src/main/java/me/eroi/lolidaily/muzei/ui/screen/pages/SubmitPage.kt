@@ -935,7 +935,7 @@ fun SubmitPage(
                 if (state.selectedCharacters.isNotEmpty()) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         state.selectedCharacters.forEach { character ->
-                            val chipLabel = character.nameCN.ifBlank { character.name }
+                            val chipLabel = character.name.ifBlank { character.nameCN }
                             val avatarUrl = character.images?.small
                             InputChip(
                                 selected = true,
