@@ -47,9 +47,8 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.automirrored.outlined.Comment
-import androidx.compose.material.icons.outlined.Link
-import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.automirrored.filled.Comment
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -536,7 +535,7 @@ fun SubmitPage(
                 actions = {
                     IconButton(onClick = { showClearDialog = true }) {
                         Icon(
-                            imageVector = Icons.Default.DeleteOutline,
+                            imageVector = Icons.Filled.DeleteOutline,
                             contentDescription = stringResource(R.string.action_clear_form),
                         )
                     }
@@ -877,7 +876,7 @@ fun SubmitPage(
                 OutlinedTextField(
                     value = state.sourceUrl,
                     onValueChange = { state = state.copy(sourceUrl = it) },
-                    leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Filled.Link, contentDescription = null) },
                     label = {
                         Text(
                             stringResource(R.string.submit_label_source) + " *",
@@ -894,7 +893,7 @@ fun SubmitPage(
                 OutlinedTextField(
                     value = state.artistName,
                     onValueChange = { state = state.copy(artistName = it) },
-                    leadingIcon = { Icon(Icons.Outlined.Person, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
                     label = {
                         Text(
                             stringResource(R.string.submit_label_artist) + " *",
@@ -911,7 +910,7 @@ fun SubmitPage(
                 OutlinedTextField(
                     value = state.artistUrl,
                     onValueChange = { state = state.copy(artistUrl = it) },
-                    leadingIcon = { Icon(Icons.Outlined.Person, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
                     label = {
                         Text(
                             stringResource(R.string.submit_label_artist_url) + " *",
@@ -961,7 +960,7 @@ fun SubmitPage(
                                 },
                                 trailingIcon = {
                                     Icon(
-                                        Icons.Default.Close,
+                                        Icons.Filled.Close,
                                         contentDescription = null,
                                         modifier = Modifier.size(InputChipDefaults.AvatarSize),
                                     )
@@ -992,7 +991,7 @@ fun SubmitPage(
                 OutlinedTextField(
                     value = state.comment,
                     onValueChange = { state = state.copy(comment = it) },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Comment, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = null) },
                     placeholder = { Text(stringResource(R.string.submit_hint_comment)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -1158,14 +1157,16 @@ fun SubmitPage(
                             },
                     color = colorScheme.surfaceContainerLow,
                 ) {
-                    SubmitTipBanner(Modifier.padding(16.dp))
-                    FormContent(
-                        modifier =
-                            Modifier
-                                .weight(1f)
-                                .verticalScroll(rememberScrollState())
-                                .padding(16.dp),
-                    )
+                    Column(modifier = Modifier.padding(top = 16.dp)) {
+                        SubmitTipBanner(Modifier.padding(horizontal = 16.dp))
+                        FormContent(
+                            modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(horizontal = 16.dp),
+                        )
+                    }
                 }
             }
         } else {

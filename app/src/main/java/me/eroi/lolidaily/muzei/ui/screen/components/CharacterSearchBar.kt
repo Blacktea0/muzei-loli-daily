@@ -18,10 +18,13 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExpandedFullScreenContainedSearchBar
 import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SearchBarState
@@ -169,12 +172,23 @@ fun CharacterSearchBar(
                 trailingIcon = {
                     if (isSearching) {
                         LoadingIndicator(modifier = Modifier.size(32.dp))
+                    } else if (textFieldState.text.isNotEmpty()) {
+                        IconButton(onClick = {
+                            textFieldState.setTextAndPlaceCursorAtEnd("")
+                            results = emptyList()
+                            scrollId = null
+                            searchTotal = 0
+                            suggestions = emptyList()
+                        }) {
+                            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.content_desc_clear))
+                        }
                     }
                 },
             )
         },
         modifier = modifier,
     ) {
+        HorizontalDivider()
         // Autocomplete suggestions
         if (suggestions.isNotEmpty() && results.isEmpty() && !isSearching) {
             Column(modifier = Modifier.fillMaxWidth()) {
