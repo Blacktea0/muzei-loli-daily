@@ -47,13 +47,18 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.automirrored.outlined.Comment
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExpandedFullScreenContainedSearchBar
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
@@ -94,6 +99,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.material3.Surface
@@ -118,6 +124,7 @@ import me.eroi.lolidaily.muzei.model.SlimCharacter
 import me.eroi.lolidaily.muzei.ui.screen.components.CharacterSearchBar
 import me.eroi.lolidaily.muzei.ui.screen.components.CharacterSearchBarState
 import me.eroi.lolidaily.muzei.ui.screen.components.FullscreenImageViewer
+import me.eroi.lolidaily.muzei.ui.screen.components.SubmitTipBanner
 import me.eroi.lolidaily.muzei.ui.screen.components.rememberCharacterSearchBarState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -164,6 +171,7 @@ private data class SubmitFormState(
     val isSubmitting: Boolean = false,
     val statusMessage: String? = null,
     val isError: Boolean = false,
+    val validationAttempted: Boolean = false,
 )
 
 /**
@@ -375,8 +383,8 @@ fun SubmitPage(
     }
     fun doSubmit() {
         val s = state
+        state = state.copy(validationAttempted = true)
         if (s.imageBytes == null) {
-            state = state.copy(statusMessage = res.getString(R.string.submit_error_no_image), isError = true)
             return
         }
         if (s.sourceUrl.isBlank()) {
@@ -699,18 +707,17 @@ fun SubmitPage(
                         modifier =
                             Modifier.fillMaxWidth()
                                 .aspectRatio(16f / 9f)
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(4.dp))
                                 .border(
-                                    width = 2.dp,
+                                    width = 1.dp,
                                     color =
                                         if (state.imageUri != null) {
                                             MaterialTheme.colorScheme.primary
                                         } else {
-                                            MaterialTheme.colorScheme.outlineVariant
+                                            MaterialTheme.colorScheme.outline
                                         },
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = RoundedCornerShape(4.dp),
                                 )
-                                .background(MaterialTheme.colorScheme.surfaceContainerLow)
                                 .clickable(enabled = !state.isFetchingImage && !state.isSubmitting) {
                                     if (state.imageBytes != null) {
                                         showFullscreenViewer = true
@@ -831,49 +838,57 @@ fun SubmitPage(
                 modifier = modifier,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                Text(
+                    text = stringResource(R.string.submit_label_artwork_info),
+                    style = MaterialTheme.typography.labelLarge,
+                )
                 OutlinedTextField(
                     value = state.sourceUrl,
                     onValueChange = { state = state.copy(sourceUrl = it) },
+                    leadingIcon = { Icon(Icons.Outlined.Link, contentDescription = null) },
                     label = {
                         Text(
                             stringResource(R.string.submit_label_source) + " *",
-                            color = MaterialTheme.colorScheme.error,
+                            color = if (state.validationAttempted && state.sourceUrl.isBlank()) MaterialTheme.colorScheme.error else Color.Unspecified,
                         )
                     },
                     placeholder = { Text(stringResource(R.string.submit_hint_source)) },
                     singleLine = true,
+                    isError = state.validationAttempted && state.sourceUrl.isBlank(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next, keyboardType = KeyboardType.Uri),
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !state.isSubmitting,
                 )
-
                 OutlinedTextField(
                     value = state.artistName,
                     onValueChange = { state = state.copy(artistName = it) },
+                    leadingIcon = { Icon(Icons.Outlined.Person, contentDescription = null) },
                     label = {
                         Text(
                             stringResource(R.string.submit_label_artist) + " *",
-                            color = MaterialTheme.colorScheme.error,
+                            color = if (state.validationAttempted && state.artistName.isBlank()) MaterialTheme.colorScheme.error else Color.Unspecified,
                         )
                     },
                     placeholder = { Text(stringResource(R.string.submit_hint_artist)) },
                     singleLine = true,
+                    isError = state.validationAttempted && state.artistName.isBlank(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !state.isSubmitting,
                 )
-
                 OutlinedTextField(
                     value = state.artistUrl,
                     onValueChange = { state = state.copy(artistUrl = it) },
+                    leadingIcon = { Icon(Icons.Outlined.Person, contentDescription = null) },
                     label = {
                         Text(
                             stringResource(R.string.submit_label_artist_url) + " *",
-                            color = MaterialTheme.colorScheme.error,
+                            color = if (state.validationAttempted && state.artistUrl.isBlank()) MaterialTheme.colorScheme.error else Color.Unspecified,
                         )
                     },
                     placeholder = { Text(stringResource(R.string.submit_hint_artist_url)) },
                     singleLine = true,
+                    isError = state.validationAttempted && state.artistUrl.isBlank(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next, keyboardType = KeyboardType.Uri),
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !state.isSubmitting,
@@ -924,20 +939,30 @@ fun SubmitPage(
                     }
                 }
 
-                IconButton(
+                Button(
                     onClick = { scope.launch { characterSearchBarState.animateToExpanded() } },
                     enabled = !state.isSubmitting,
+                    contentPadding = ButtonDefaults.contentPaddingFor(ButtonDefaults.MinHeight, hasStartIcon = true),
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.submit_label_characters))
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(ButtonDefaults.iconSizeFor(ButtonDefaults.MinHeight)),
+                    )
+                    Spacer(Modifier.size(ButtonDefaults.iconSpacingFor(ButtonDefaults.MinHeight)))
+                    Text(stringResource(R.string.submit_action_add_character))
                 }
 
+                Text(
+                    text = stringResource(R.string.submit_label_comment),
+                    style = MaterialTheme.typography.labelLarge,
+                )
                 OutlinedTextField(
                     value = state.comment,
                     onValueChange = { state = state.copy(comment = it) },
-                    label = { Text(stringResource(R.string.submit_label_comment)) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Comment, contentDescription = null) },
                     placeholder = { Text(stringResource(R.string.submit_hint_comment)) },
-                    singleLine = false,
-                    maxLines = 3,
+                    singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !state.isSubmitting,
@@ -965,6 +990,8 @@ fun SubmitPage(
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
+
+                HorizontalDivider()
 
                 // Confirm guidelines checkbox
                 val bgmDomain = SessionManager.loadDomain(context)
@@ -1099,15 +1126,14 @@ fun SubmitPage(
                             },
                     color = colorScheme.surfaceContainerLow,
                 ) {
-                    Column(modifier = Modifier.fillMaxHeight()) {
-                        FormContent(
-                            modifier =
-                                Modifier
-                                    .weight(1f)
-                                    .verticalScroll(rememberScrollState())
-                                    .padding(16.dp),
-                        )
-                    }
+                    SubmitTipBanner(Modifier.padding(16.dp))
+                    FormContent(
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .verticalScroll(rememberScrollState())
+                                .padding(16.dp),
+                    )
                 }
             }
         } else {
@@ -1120,6 +1146,7 @@ fun SubmitPage(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                SubmitTipBanner()
                 ImagePicker()
                 FormContent()
             }

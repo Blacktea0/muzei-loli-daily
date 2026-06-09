@@ -245,6 +245,7 @@
     <string name="submit_image_hint">Tap to select an image</string>
     <string name="submit_image_formats">JPG / PNG / WebP / AVIF · Max 3 MB</string>
     <string name="submit_image_preview">Selected image preview</string>
+    <string name="submit_label_artwork_info">Artwork Info</string>
     <string name="submit_label_source">Source URL</string>
     <string name="submit_hint_source">Link to the artist\'s original post</string>
     <string name="submit_label_artist">Artist Name</string>
@@ -252,9 +253,12 @@
     <string name="submit_label_artist_url">Artist Link</string>
     <string name="submit_hint_artist_url">e.g. pixiv, twitter profile, or BGM character page</string>
     <string name="submit_label_characters">Characters</string>
+    <string name="submit_action_add_character">Add Character</string>
     <string name="submit_label_comment">Comment</string>
     <string name="submit_hint_comment">Say something about this artwork…</string>
     <string name="submit_anonymous">Submit anonymously</string>
+    <string name="banner_submit_tip_title">Quick Fill</string>
+    <string name="banner_submit_tip_description">Share a link from other apps directly to this app, or paste a link into the source URL field to auto-fetch the image and artist info.</string>
     <string name="submit_guidelines_link">Submission Guidelines</string>
     <string name="submit_confirm_guidelines">I confirm that the uploaded work complies with the %1$s *</string>
     <string name="submit_button">Submit</string>
@@ -264,7 +268,6 @@
     <string name="submit_error_size">Image exceeds 3 MB — please resize first</string>
     <string name="submit_compressed_to_webp">Image exceeded 3 MB — automatically converted to WebP</string>
     <string name="submit_error_read">Failed to read image file</string>
-    <string name="submit_error_no_image">Please select an image first</string>
     <string name="submit_error_source_required">\"Source URL\" is required</string>
     <string name="submit_error_artist_required">\"Artist Name\" is required</string>
     <string name="submit_error_artist_url_required">\"Artist Link\" is required</string>

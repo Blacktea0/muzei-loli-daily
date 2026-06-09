@@ -245,6 +245,7 @@
     <string name="submit_image_hint">タップして画像を選択</string>
     <string name="submit_image_formats">JPG / PNG / WebP / AVIF · 最大 3 MB</string>
     <string name="submit_image_preview">選択した画像のプレビュー</string>
+    <string name="submit_label_artwork_info">作品情報</string>
     <string name="submit_label_source">ソースURL</string>
     <string name="submit_hint_source">作者のオリジナル投稿ページへのリンク</string>
     <string name="submit_label_artist">絵師名</string>
@@ -252,9 +253,12 @@
     <string name="submit_label_artist_url">絵師リンク</string>
     <string name="submit_hint_artist_url">例：pixiv、twitterプロフィール、BGMキャラクターページ</string>
     <string name="submit_label_characters">キャラクター</string>
+    <string name="submit_action_add_character">キャラクター追加</string>
     <string name="submit_label_comment">コメント</string>
     <string name="submit_hint_comment">イラストについて何か一言……</string>
     <string name="submit_anonymous">投稿者名を非表示</string>
+    <string name="banner_submit_tip_title">クイック入力</string>
+    <string name="banner_submit_tip_description">他のアプリからリンクを直接共有するか、ソースURL欄にリンクを貼り付けると、画像と絵師情報を自動取得します。</string>
     <string name="submit_guidelines_link">投稿ガイドライン</string>
     <string name="submit_confirm_guidelines">アップロード作品が%1$sに準拠していることを確認しました *</string>
     <string name="submit_button">送信</string>
@@ -264,7 +268,6 @@
     <string name="submit_error_size">画像が3MBを超えています — サイズを調整してください</string>
     <string name="submit_compressed_to_webp">画像が3MBを超えたため、自動的にWebPに変換しました</string>
     <string name="submit_error_read">画像ファイルの読み込みに失敗しました</string>
-    <string name="submit_error_no_image">画像を選択してください</string>
     <string name="submit_error_source_required">"ソースURL"は必須項目です</string>
     <string name="submit_error_artist_required">"絵師名"は必須項目です</string>
     <string name="submit_error_artist_url_required">"絵師リンク"は必須項目です</string>
