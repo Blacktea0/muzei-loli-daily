@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.ViewGroup
 import android.webkit.CookieManager
+import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -48,22 +49,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import me.eroi.lolidaily.muzei.api.SessionManager
 import me.eroi.lolidaily.muzei.ui.theme.LoliDailyTheme
+import org.json.JSONObject
 
 private const val TAG = "PixivLoginActivity"
 private const val PIXIV_LOGIN_URL = "https://accounts.pixiv.net/login"
 private const val PIXIV_COOKIE_DOMAIN = ".pixiv.net"
 private const val PHPSESSID = "PHPSESSID"
+
 class PixivLoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
-        val existing = SessionManager.loadPixivSessionId(this)
-        if (existing != null) {
-            Toast.makeText(this, getString(R.string.msg_pixiv_already_logged_in), Toast.LENGTH_SHORT).show()
-            finish()
-            return
-        }
 
         setContent {
             LoliDailyTheme {
@@ -159,26 +155,61 @@ private fun PixivLoginScreen(
                             view?.title?.let { if (it.isNotBlank()) pageTitle = it }
                             val currentUrl = url.orEmpty()
                             Log.d(TAG, "onPageFinished: $currentUrl")
-                            // Check for PHPSESSID on every page load.
-                            // PHPSESSID is HttpOnly → use CookieManager, not document.cookie.
-                            // Pixiv sets it after successful login regardless of final URL.
-                            val cookieManager = CookieManager.getInstance()
-                            val cookies = cookieManager.getCookie(currentUrl)
-                            Log.d(TAG, "Cookies for $currentUrl: ${cookies?.take(200)}")
-                            if (cookies != null) {
-                                val phpSessId = cookies.split(";")
-                                    .map { it.trim() }
-                                    .find { it.startsWith("$PHPSESSID=") }
+                            // Validate login by calling /ajax/user/self —
+                            // PHPSESSID alone is not proof of login (Pixiv sets it for all visitors).
+                            val js = """
+                            (async function() {
+                              try {
+                                var r = await fetch('/ajax/user/self', {credentials:'include'});
+                                var t = await r.text();
+                                Android.onUserSelf(t, r.status);
+                              } catch(e) { Android.onUserSelfError(e.toString()); }
+                            })();
+                            """.trimIndent()
+                            view?.evaluateJavascript(js, null)
+                        }
+                    }
+
+                addJavascriptInterface(object {
+                    @JavascriptInterface
+                    fun onUserSelf(json: String, status: Int) {
+                        Log.d(TAG, "/ajax/user/self status=$status, body=${json.take(200)}")
+                        if (status == 401) {
+                            Log.w(TAG, "Pixiv session expired (401)")
+                            return
+                        }
+                        try {
+                            val root = JSONObject(json)
+                            val userData = root.optJSONObject("userData")
+                            if (userData != null && !userData.has("error")) {
+                                // User is actually logged in — capture PHPSESSID
+                                val cookieManager = CookieManager.getInstance()
+                                val cookies = cookieManager.getCookie("https://www.pixiv.net")
+                                val phpSessId = cookies?.split(";")
+                                    ?.map { it.trim() }
+                                    ?.find { it.startsWith("$PHPSESSID=") }
                                     ?.substringAfter("=", "")
                                     ?.takeIf { it.isNotBlank() }
                                 if (phpSessId != null) {
                                     authDone = true
-                                    Log.d(TAG, "Pixiv login successful, PHPSESSID captured")
+                                    Log.d(TAG, "Pixiv login validated, PHPSESSID captured")
                                     onSessionReceived(phpSessId)
+                                } else {
+                                    Log.w(TAG, "userData present but PHPSESSID cookie missing")
                                 }
+                            } else {
+                                Log.d(TAG, "userData is null — not logged in yet")
                             }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Failed to parse /ajax/user/self response", e)
                         }
                     }
+
+                    @JavascriptInterface
+                    fun onUserSelfError(error: String) {
+                        Log.w(TAG, "/ajax/user/self fetch error: $error")
+                    }
+                }, "Android")
 
                 Log.d(TAG, "Loading Pixiv login page")
                 loadUrl(PIXIV_LOGIN_URL)

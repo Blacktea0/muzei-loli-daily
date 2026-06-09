@@ -35,10 +35,12 @@ object PixivParser : SourceLinkParser {
     override suspend fun fetchSourceImage(context: Context, url: String): Pair<ByteArray, String>? {
         val m = URL_RE.find(url) ?: return null
         val illustId = m.groupValues[1]
-        val sessionId = SessionManager.loadPixivSessionId(context)
+        var sessionId = SessionManager.loadPixivSessionId(context)
         Log.d(TAG, "fetchSourceImage: illustId=$illustId, sessionId=${sessionId?.take(8)}")
         val imageUrl = resolveImageUrlViaWebView(context, illustId, sessionId) ?: return null
         Log.d(TAG, "Resolved image URL: ${imageUrl.take(100)}")
+        // Re-read session in case validation cleared it
+        sessionId = SessionManager.loadPixivSessionId(context)
         // Download using OkHttp with all cookies (works for pximg.net — no Cloudflare)
         val cookies = CookieManager.getInstance().getCookie(imageUrl)
             ?: sessionId?.let { "PHPSESSID=$it" }
@@ -84,9 +86,19 @@ object PixivParser : SourceLinkParser {
                     override fun onPageFinished(view: WebView?, url: String?) {
                         if (fetched) return
                         fetched = true
-                        // Use a flag variable in JS to prevent DOM fallback after API success
+                        // First validate session, then resolve image URL
                         val js = """
                         (async function() {
+                          // Validate session — if expired (401), clear it on the native side
+                          var validSession = true;
+                          try {
+                            var vr = await fetch('/ajax/user/self', {credentials:'include'});
+                            if (vr.status === 401) {
+                              validSession = false;
+                              Android.onSessionExpired();
+                            }
+                          } catch(e) {}
+                          // Resolve image URL via API
                           var done = false;
                           try {
                             var r = await fetch('/ajax/illust/$illustId/pages', {credentials:'include'});
@@ -137,6 +149,11 @@ object PixivParser : SourceLinkParser {
                     fun onError(error: String) {
                         Log.w(TAG, "WebView fetch error: $error")
                         result.complete(null)
+                    }
+                    @JavascriptInterface
+                    fun onSessionExpired() {
+                        Log.w(TAG, "Pixiv session expired (401) — clearing stored session")
+                        SessionManager.clearPixivSession(context)
                     }
                 }, "Android")
                 loadUrl("https://www.pixiv.net/artworks/$illustId")
