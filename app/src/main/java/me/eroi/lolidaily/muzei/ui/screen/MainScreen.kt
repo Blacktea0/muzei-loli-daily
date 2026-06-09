@@ -247,6 +247,7 @@ fun MainScreen(
                         isLoggedIn = isLoggedIn,
                         onLogin = onLogin,
                         initialSourceUrl = initialSourceUrl,
+                        windowSizeClass = windowSizeClass.widthSizeClass,
                         modifier = if (selectedTab == 2) Modifier else Modifier.size(0.dp),
                     )
                 }
@@ -385,11 +386,11 @@ fun MainScreen(
                             )
                         }
                 }
-                // SubmitPage stays mounted regardless of selected tab
                 SubmitPage(
                     isLoggedIn = isLoggedIn,
                     onLogin = onLogin,
                     initialSourceUrl = initialSourceUrl,
+                    windowSizeClass = windowSizeClass.widthSizeClass,
                     modifier = if (selectedTab == 2) Modifier else Modifier.size(0.dp),
                 )
             }

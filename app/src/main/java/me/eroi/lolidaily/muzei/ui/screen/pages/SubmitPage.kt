@@ -91,8 +91,15 @@ import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
@@ -167,13 +174,14 @@ private data class SubmitFormState(
  * - Source URL auto-resolve for known platforms (twitter/pixiv/bilibili)
  * - Image validation: jpg/png/webp/avif, ≤ 3 MB
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class, ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun SubmitPage(
     isLoggedIn: Boolean,
     onLogin: () -> Unit,
     modifier: Modifier = Modifier,
     initialSourceUrl: String? = null,
+    windowSizeClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
 ) {
     val context = LocalContext.current
     val res = context.applicationContext.resources
@@ -525,401 +533,596 @@ fun SubmitPage(
             }
             return@Scaffold
         }
-        Column(
-            modifier =
-                Modifier.fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            // ── Tag selector ──
-            Text(
-                text = stringResource(R.string.submit_tag_label),
-                style = MaterialTheme.typography.labelLarge,
-            )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("LC0", "LC YJ", "LC ES").forEach { tag ->
-                    FilterChip(
-                        selected = state.selectedTag == tag,
-                        onClick = { state = state.copy(selectedTag = tag) },
-                        label = { Text(tag) },
-                        leadingIcon =
-                            if (state.selectedTag == tag) {
-                                { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                            } else {
-                                null
-                            },
-                    )
-                }
-            }
+        val isExpanded = windowSizeClass == WindowWidthSizeClass.Expanded
 
-            // ── Image picker ──
-            Text(
-                text = stringResource(R.string.submit_image_label),
-                style = MaterialTheme.typography.labelLarge,
-            )
-            Box(
-                modifier =
-                    Modifier.fillMaxWidth()
-                        .aspectRatio(16f / 9f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .border(
-                            width = 2.dp,
-                            color =
-                                if (state.imageUri != null) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.outlineVariant
-                                },
-                            shape = RoundedCornerShape(12.dp),
-                        )
-                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                        .clickable(enabled = !state.isFetchingImage && !state.isSubmitting) {
-                            if (state.imageBytes != null) {
-                                showFullscreenViewer = true
-                            } else {
-                                photoPicker.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            }
-                        },
-                contentAlignment = Alignment.Center,
-            ) {
-                if (state.imageUri != null) {
-                    AsyncImage(
-                        model = state.imageBytes ?: state.imageUri,
-                        contentDescription = stringResource(R.string.submit_image_preview),
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit,
-                    )
-                    // Clear button
-                    IconButton(
-                        onClick = {
-                            state =
-                                state.copy(
-                                    imageUri = null,
-                                    imageBytes = null,
-                                    imageName = "",
-                                    imageMimeType = "",
-                                )
-                        },
-                        modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
-                    ) {
-                        Icon(
-                            Icons.Filled.Close,
-                            contentDescription = stringResource(R.string.content_desc_clear),
-                            tint = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                } else if (state.isFetchingImage) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(modifier = Modifier.size(40.dp))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = stringResource(R.string.submit_fetching_image),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                } else {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Filled.AddPhotoAlternate,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = stringResource(R.string.submit_image_hint),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = stringResource(R.string.submit_image_formats),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline,
-                        )
-                    }
-                }
-            }
-
-            // ── Image info ──
-            if (state.imageBytes != null) {
-                val imageInfo = remember(state.imageBytes) {
-                    val bytes = state.imageBytes!!
-                    val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
-                    val w = opts.outWidth
-                    val h = opts.outHeight
-                    val format = when {
-                        state.imageMimeType.contains("png") -> "PNG"
-                        state.imageMimeType.contains("webp") -> "WebP"
-                        state.imageMimeType.contains("avif") -> "AVIF"
-                        else -> "JPEG"
-                    }
-                    val sizeStr = when {
-                        bytes.size >= 1_048_576 -> "%.1f MB".format(bytes.size / 1_048_576.0)
-                        else -> "%.0f KB".format(bytes.size / 1024.0)
-                    }
-                    Triple(format, "${w} × ${h}", sizeStr)
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    Text(
-                        text = imageInfo.first,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = imageInfo.second,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = imageInfo.third,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            // ── Form fields ──
-            OutlinedTextField(
-                value = state.sourceUrl,
-                onValueChange = { state = state.copy(sourceUrl = it) },
-                label = {
-                    Text(
-                        stringResource(R.string.submit_label_source) + " *",
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                },
-                placeholder = { Text(stringResource(R.string.submit_hint_source)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next, keyboardType = KeyboardType.Uri),
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !state.isSubmitting,
-            )
-
-            OutlinedTextField(
-                value = state.artistName,
-                onValueChange = { state = state.copy(artistName = it) },
-                label = {
-                    Text(
-                        stringResource(R.string.submit_label_artist) + " *",
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                },
-                placeholder = { Text(stringResource(R.string.submit_hint_artist)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !state.isSubmitting,
-            )
-
-            OutlinedTextField(
-                value = state.artistUrl,
-                onValueChange = { state = state.copy(artistUrl = it) },
-                label = {
-                    Text(
-                        stringResource(R.string.submit_label_artist_url) + " *",
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                },
-                placeholder = { Text(stringResource(R.string.submit_hint_artist_url)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next, keyboardType = KeyboardType.Uri),
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !state.isSubmitting,
-            )
-
-            // ── Character search ──
-            Text(
-                text = stringResource(R.string.submit_label_characters),
-                style = MaterialTheme.typography.labelLarge,
-            )
-
-            // Selected character chips
-            if (state.selectedCharacters.isNotEmpty()) {
+        // Shared composables for image picker area
+        @Composable
+        fun TagSelector() {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = stringResource(R.string.submit_tag_label),
+                    style = MaterialTheme.typography.labelLarge,
+                )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    state.selectedCharacters.forEach { character ->
-                        val chipLabel = character.nameCN.ifBlank { character.name }
-                        val avatarUrl = character.images?.small
-                        InputChip(
-                            selected = true,
-                            onClick = {
-                                state = state.copy(selectedCharacters = state.selectedCharacters - character)
-                            },
-                            label = { Text(chipLabel) },
-                            avatar = {
-                                if (!avatarUrl.isNullOrBlank()) {
-                                    AsyncImage(
-                                        model = avatarUrl,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(InputChipDefaults.AvatarSize).clip(RoundedCornerShape(4.dp)),
-                                        contentScale = ContentScale.Crop,
-                                    )
+                    listOf("LC0", "LC YJ", "LC ES").forEach { tag ->
+                        FilterChip(
+                            selected = state.selectedTag == tag,
+                            onClick = { state = state.copy(selectedTag = tag) },
+                            label = { Text(tag) },
+                            leadingIcon =
+                                if (state.selectedTag == tag) {
+                                    { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
                                 } else {
-                                    Icon(
-                                        Icons.Filled.Person,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(InputChipDefaults.AvatarSize),
+                                    null
+                                },
+                        )
+                    }
+                }
+            }
+        }
+
+        @Composable
+        fun ImagePicker(modifier: Modifier = Modifier, isTablet: Boolean = false) {
+            if (isTablet) {
+                // Tablet: fill parent, no rounded corners, info + delete overlaid inside
+                Box(
+                    modifier =
+                        modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                            .clickable(enabled = !state.isFetchingImage && !state.isSubmitting) {
+                                if (state.imageBytes != null) {
+                                    showFullscreenViewer = true
+                                } else {
+                                    photoPicker.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                     )
                                 }
                             },
-                            trailingIcon = {
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (state.imageUri != null) {
+                        AsyncImage(
+                            model = state.imageBytes ?: state.imageUri,
+                            contentDescription = stringResource(R.string.submit_image_preview),
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit,
+                        )
+                        // Delete button — top end
+                        IconButton(
+                            onClick = {
+                                state =
+                                    state.copy(
+                                        imageUri = null,
+                                        imageBytes = null,
+                                        imageName = "",
+                                        imageMimeType = "",
+                                    )
+                            },
+                            modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                        ) {
+                            Icon(
+                                Icons.Filled.Close,
+                                contentDescription = stringResource(R.string.content_desc_clear),
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                        // Image info — bottom start overlay
+                        if (state.imageBytes != null) {
+                            val imageInfo = remember(state.imageBytes) {
+                                val bytes = state.imageBytes!!
+                                val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+                                val w = opts.outWidth
+                                val h = opts.outHeight
+                                val format = when {
+                                    state.imageMimeType.contains("png") -> "PNG"
+                                    state.imageMimeType.contains("webp") -> "WebP"
+                                    state.imageMimeType.contains("avif") -> "AVIF"
+                                    else -> "JPEG"
+                                }
+                                val sizeStr = when {
+                                    bytes.size >= 1_048_576 -> "%.1f MB".format(bytes.size / 1_048_576.0)
+                                    else -> "%.0f KB".format(bytes.size / 1024.0)
+                                }
+                                Triple(format, "${w} × ${h}", sizeStr)
+                            }
+                            Row(
+                                modifier =
+                                    Modifier
+                                        .align(Alignment.BottomStart)
+                                        .padding(12.dp)
+                                        .background(
+                                            MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f),
+                                            RoundedCornerShape(8.dp),
+                                        )
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Text(
+                                    text = imageInfo.first,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.surface,
+                                )
+                                Text(
+                                    text = imageInfo.second,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.surface,
+                                )
+                                Text(
+                                    text = imageInfo.third,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.surface,
+                                )
+                            }
+                        }
+                    } else if (state.isFetchingImage) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(modifier = Modifier.size(40.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = stringResource(R.string.submit_fetching_image),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    } else {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Filled.AddPhotoAlternate,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = stringResource(R.string.submit_image_hint),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = stringResource(R.string.submit_image_formats),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.outline,
+                            )
+                        }
+                    }
+                }
+            } else {
+                // Portrait: original layout with rounded corners, aspect ratio, info outside
+                Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = stringResource(R.string.submit_image_label),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    Box(
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .aspectRatio(16f / 9f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .border(
+                                    width = 2.dp,
+                                    color =
+                                        if (state.imageUri != null) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.outlineVariant
+                                        },
+                                    shape = RoundedCornerShape(12.dp),
+                                )
+                                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                                .clickable(enabled = !state.isFetchingImage && !state.isSubmitting) {
+                                    if (state.imageBytes != null) {
+                                        showFullscreenViewer = true
+                                    } else {
+                                        photoPicker.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
+                                    }
+                                },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (state.imageUri != null) {
+                            AsyncImage(
+                                model = state.imageBytes ?: state.imageUri,
+                                contentDescription = stringResource(R.string.submit_image_preview),
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Fit,
+                            )
+                            IconButton(
+                                onClick = {
+                                    state =
+                                        state.copy(
+                                            imageUri = null,
+                                            imageBytes = null,
+                                            imageName = "",
+                                            imageMimeType = "",
+                                        )
+                                },
+                                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
+                            ) {
                                 Icon(
-                                    Icons.Default.Close,
+                                    Icons.Filled.Close,
+                                    contentDescription = stringResource(R.string.content_desc_clear),
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            }
+                        } else if (state.isFetchingImage) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator(modifier = Modifier.size(40.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = stringResource(R.string.submit_fetching_image),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        } else {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    Icons.Filled.AddPhotoAlternate,
                                     contentDescription = null,
-                                    modifier = Modifier.size(InputChipDefaults.AvatarSize),
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = stringResource(R.string.submit_image_hint),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    text = stringResource(R.string.submit_image_formats),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.outline,
+                                )
+                            }
+                        }
+                    }
+
+                    // Image info
+                    if (state.imageBytes != null) {
+                        val imageInfo = remember(state.imageBytes) {
+                            val bytes = state.imageBytes!!
+                            val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+                            val w = opts.outWidth
+                            val h = opts.outHeight
+                            val format = when {
+                                state.imageMimeType.contains("png") -> "PNG"
+                                state.imageMimeType.contains("webp") -> "WebP"
+                                state.imageMimeType.contains("avif") -> "AVIF"
+                                else -> "JPEG"
+                            }
+                            val sizeStr = when {
+                                bytes.size >= 1_048_576 -> "%.1f MB".format(bytes.size / 1_048_576.0)
+                                else -> "%.0f KB".format(bytes.size / 1024.0)
+                            }
+                            Triple(format, "${w} × ${h}", sizeStr)
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            Text(
+                                text = imageInfo.first,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = imageInfo.second,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = imageInfo.third,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        @Composable
+        fun FormFields(modifier: Modifier = Modifier) {
+            Column(
+                modifier = modifier,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                OutlinedTextField(
+                    value = state.sourceUrl,
+                    onValueChange = { state = state.copy(sourceUrl = it) },
+                    label = {
+                        Text(
+                            stringResource(R.string.submit_label_source) + " *",
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                    placeholder = { Text(stringResource(R.string.submit_hint_source)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next, keyboardType = KeyboardType.Uri),
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.isSubmitting,
+                )
+
+                OutlinedTextField(
+                    value = state.artistName,
+                    onValueChange = { state = state.copy(artistName = it) },
+                    label = {
+                        Text(
+                            stringResource(R.string.submit_label_artist) + " *",
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                    placeholder = { Text(stringResource(R.string.submit_hint_artist)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.isSubmitting,
+                )
+
+                OutlinedTextField(
+                    value = state.artistUrl,
+                    onValueChange = { state = state.copy(artistUrl = it) },
+                    label = {
+                        Text(
+                            stringResource(R.string.submit_label_artist_url) + " *",
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                    placeholder = { Text(stringResource(R.string.submit_hint_artist_url)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next, keyboardType = KeyboardType.Uri),
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.isSubmitting,
+                )
+
+                // Character search
+                Text(
+                    text = stringResource(R.string.submit_label_characters),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+
+                if (state.selectedCharacters.isNotEmpty()) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        state.selectedCharacters.forEach { character ->
+                            val chipLabel = character.nameCN.ifBlank { character.name }
+                            val avatarUrl = character.images?.small
+                            InputChip(
+                                selected = true,
+                                onClick = {
+                                    state = state.copy(selectedCharacters = state.selectedCharacters - character)
+                                },
+                                label = { Text(chipLabel) },
+                                avatar = {
+                                    if (!avatarUrl.isNullOrBlank()) {
+                                        AsyncImage(
+                                            model = avatarUrl,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(InputChipDefaults.AvatarSize).clip(RoundedCornerShape(4.dp)),
+                                            contentScale = ContentScale.Crop,
+                                        )
+                                    } else {
+                                        Icon(
+                                            Icons.Filled.Person,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(InputChipDefaults.AvatarSize),
+                                        )
+                                    }
+                                },
+                                trailingIcon = {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(InputChipDefaults.AvatarSize),
+                                    )
+                                },
+                            )
+                        }
+                    }
+                }
+
+                IconButton(
+                    onClick = { scope.launch { characterSearchBarState.animateToExpanded() } },
+                    enabled = !state.isSubmitting,
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.submit_label_characters))
+                }
+
+                OutlinedTextField(
+                    value = state.comment,
+                    onValueChange = { state = state.copy(comment = it) },
+                    label = { Text(stringResource(R.string.submit_label_comment)) },
+                    placeholder = { Text(stringResource(R.string.submit_hint_comment)) },
+                    singleLine = false,
+                    maxLines = 3,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.isSubmitting,
+                )
+
+                // Anonymous toggle
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(enabled = !state.isSubmitting) {
+                                state = state.copy(anonymous = !state.anonymous)
+                            }
+                            .padding(horizontal = 4.dp),
+                ) {
+                    Checkbox(
+                        checked = state.anonymous,
+                        onCheckedChange = { state = state.copy(anonymous = it) },
+                        enabled = !state.isSubmitting,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.submit_anonymous),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+
+                // Confirm guidelines checkbox
+                val bgmDomain = SessionManager.loadDomain(context)
+                val guidelinesUrl = "https://$bgmDomain/group/topic/417120"
+                val guidelinesLabel = stringResource(R.string.submit_guidelines_link)
+                val fullText = stringResource(R.string.submit_confirm_guidelines, guidelinesLabel)
+                val annotatedText = buildAnnotatedString {
+                    val start = fullText.indexOf(guidelinesLabel)
+                    if (start >= 0) {
+                        append(fullText.substring(0, start))
+                        pushLink(
+                            LinkAnnotation.Clickable(
+                                tag = "URL",
+                                styles = TextLinkStyles(
+                                    style = SpanStyle(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+                                    ),
+                                ),
+                            ) {
+                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
+                                intent.data = guidelinesUrl.toUri()
+                                context.startActivity(intent)
+                            },
+                        )
+                        append(guidelinesLabel)
+                        pop()
+                        append(fullText.substring(start + guidelinesLabel.length))
+                    } else {
+                        append(fullText)
+                    }
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(enabled = !state.isSubmitting) {
+                                state = state.copy(confirmGuidelines = !state.confirmGuidelines)
+                            }
+                            .padding(horizontal = 4.dp),
+                ) {
+                    Checkbox(
+                        checked = state.confirmGuidelines,
+                        onCheckedChange = { state = state.copy(confirmGuidelines = it) },
+                        enabled = !state.isSubmitting,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = annotatedText,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+
+                // Submit button + progress
+                if (state.isSubmitting) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+                Button(
+                    onClick = { doSubmit() },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    enabled = !state.isSubmitting && state.confirmGuidelines,
+                ) {
+                    if (state.isSubmitting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.submit_sending))
+                    } else {
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.submit_button))
+                    }
+                }
+
+                // Status message
+                AnimatedVisibility(visible = state.statusMessage != null, enter = fadeIn(), exit = fadeOut()) {
+                    Text(
+                        text = state.statusMessage ?: "",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color =
+                            if (state.isError) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        textAlign = TextAlign.Center,
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+
+        @Composable
+        fun FormContent(modifier: Modifier = Modifier) {
+            Column(
+                modifier = modifier,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                TagSelector()
+                FormFields()
+            }
+        }
+
+        if (isExpanded) {
+            // Tablet: two-pane layout — image left, form right
+            val colorScheme = MaterialTheme.colorScheme
+            Row(
+                modifier = Modifier.fillMaxSize().padding(padding),
+            ) {
+                // Left: image fills the full side panel
+                ImagePicker(isTablet = true, modifier = Modifier.weight(1f))
+                // Right: shared form content
+                Surface(
+                    modifier =
+                        Modifier
+                            .width(400.dp)
+                            .fillMaxHeight()
+                            .drawBehind {
+                                drawLine(
+                                    color = colorScheme.outlineVariant,
+                                    start = Offset(0f, 0f),
+                                    end = Offset(0f, size.height),
+                                    strokeWidth = 1.dp.toPx(),
                                 )
                             },
+                    color = colorScheme.surfaceContainerLow,
+                ) {
+                    Column(modifier = Modifier.fillMaxHeight()) {
+                        FormContent(
+                            modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(16.dp),
                         )
                     }
                 }
             }
-
-            // Add character button — opens full-screen search
-            IconButton(
-                onClick = { scope.launch { characterSearchBarState.animateToExpanded() } },
-                enabled = !state.isSubmitting,
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.submit_label_characters))
-            }
-
-            OutlinedTextField(
-                value = state.comment,
-                onValueChange = { state = state.copy(comment = it) },
-                label = { Text(stringResource(R.string.submit_label_comment)) },
-                placeholder = { Text(stringResource(R.string.submit_hint_comment)) },
-                singleLine = false,
-                maxLines = 3,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !state.isSubmitting,
-            )
-
-            // ── Anonymous toggle ──
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+        } else {
+            // Portrait: single column — image first, then shared form content
+            Column(
                 modifier =
-                    Modifier.fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable(enabled = !state.isSubmitting) {
-                            state = state.copy(anonymous = !state.anonymous)
-                        }
-                        .padding(horizontal = 4.dp),
+                    Modifier.fillMaxSize()
+                        .padding(padding)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Checkbox(
-                    checked = state.anonymous,
-                    onCheckedChange = { state = state.copy(anonymous = it) },
-                    enabled = !state.isSubmitting,
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.submit_anonymous),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                ImagePicker()
+                FormContent()
             }
-
-            // ── Confirm guidelines checkbox ──
-            val bgmDomain = SessionManager.loadDomain(context)
-            val guidelinesUrl = "https://$bgmDomain/group/topic/417120"
-            val guidelinesLabel = stringResource(R.string.submit_guidelines_link)
-            val fullText = stringResource(R.string.submit_confirm_guidelines, guidelinesLabel)
-            val annotatedText = buildAnnotatedString {
-                val start = fullText.indexOf(guidelinesLabel)
-                if (start >= 0) {
-                    append(fullText.substring(0, start))
-                    pushLink(
-                        LinkAnnotation.Clickable(
-                            tag = "URL",
-                            styles = TextLinkStyles(
-                                style = SpanStyle(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
-                                ),
-                            ),
-                        ) {
-                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
-                            intent.data = guidelinesUrl.toUri()
-                            context.startActivity(intent)
-                        },
-                    )
-                    append(guidelinesLabel)
-                    pop()
-                    append(fullText.substring(start + guidelinesLabel.length))
-                } else {
-                    append(fullText)
-                }
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier =
-                    Modifier.fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable(enabled = !state.isSubmitting) {
-                            state = state.copy(confirmGuidelines = !state.confirmGuidelines)
-                        }
-                        .padding(horizontal = 4.dp),
-            ) {
-                Checkbox(
-                    checked = state.confirmGuidelines,
-                    onCheckedChange = { state = state.copy(confirmGuidelines = it) },
-                    enabled = !state.isSubmitting,
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = annotatedText,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-
-            // ── Submit button + progress ──
-            if (state.isSubmitting) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(4.dp))
-            }
-            Button(
-                onClick = { doSubmit() },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                enabled = !state.isSubmitting && state.confirmGuidelines,
-            ) {
-                if (state.isSubmitting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.submit_sending))
-                } else {
-                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.submit_button))
-                }
-            }
-
-            // ── Status message ──
-            AnimatedVisibility(visible = state.statusMessage != null, enter = fadeIn(), exit = fadeOut()) {
-                Text(
-                    text = state.statusMessage ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color =
-                        if (state.isError) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.primary
-                        },
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    textAlign = TextAlign.Center,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 
