@@ -38,6 +38,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -470,6 +471,22 @@ fun TodayPage(
                     ),
                 )
 
+
+            // Scrim overlay when FAB menu is expanded
+            val scrimAlpha by animateFloatAsState(
+                targetValue = if (fabMenuExpanded) 0.32f else 0f,
+                animationSpec = tween(durationMillis = 200),
+                label = "fabMenuScrim",
+            )
+            if (scrimAlpha > 0f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { alpha = scrimAlpha }
+                        .background(Color.Black)
+                        .clickable { fabMenuExpanded = false },
+                )
+            }
             FloatingActionButtonMenu(
                 modifier = Modifier.align(Alignment.BottomEnd),
                 expanded = fabMenuExpanded,
