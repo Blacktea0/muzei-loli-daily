@@ -278,7 +278,9 @@
     <string name="submit_resolve_failed">TwT 捕捉绘师失败，请手动填写名称和链接</string>
     <string name="submit_fetching_image">正在从来源获取图片……</string>
     <string name="submit_image_picker_title">选择图片</string>
-    <string name="submit_image_picker_subtitle">发现 %1$d 张图片 — 点击选择</string>
+    <plurals name="submit_image_picker_subtitle">
+        <item quantity="other">发现 %1$d 张图片 — 点击选择</item>
+    </plurals>
     <string name="submit_image_picker_item_desc">第 %1$d 张图片</string>
     <string name="submit_hint_character_search">搜索角色名称……</string>
     <string name="action_clear_form">清空表单</string>
@@ -292,7 +294,6 @@
     <string name="label_pixiv_login_hint">登录后可拉取 R-18 图片</string>
     <string name="title_login_pixiv">登录 Pixiv</string>
     <string name="msg_connecting_pixiv">正在连接 Pixiv…</string>
-    <string name="msg_pixiv_already_logged_in">已登录 Pixiv</string>
     <string name="msg_pixiv_logged_in">Pixiv 登录成功</string>
     <string name="msg_pixiv_logged_out">已退出 Pixiv 登录</string>
 </resources>

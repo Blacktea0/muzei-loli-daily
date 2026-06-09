@@ -278,7 +278,10 @@
     <string name="submit_resolve_failed">Could not auto-detect artist — please fill in manually</string>
     <string name="submit_fetching_image">Fetching image from source…</string>
     <string name="submit_image_picker_title">Select an Image</string>
-    <string name="submit_image_picker_subtitle">%1$d images found — tap one to select</string>
+    <plurals name="submit_image_picker_subtitle">
+        <item quantity="one">%1$d image found — tap to select</item>
+        <item quantity="other">%1$d images found — tap one to select</item>
+    </plurals>
     <string name="submit_image_picker_item_desc">Image %1$d</string>
     <string name="submit_hint_character_search">Search character name…</string>
     <string name="action_clear_form">Clear form</string>
@@ -292,7 +295,6 @@
     <string name="label_pixiv_login_hint">Login to fetch R-18 images</string>
     <string name="title_login_pixiv">Login to Pixiv</string>
     <string name="msg_connecting_pixiv">Connecting to Pixiv…</string>
-    <string name="msg_pixiv_already_logged_in">Already logged in to Pixiv</string>
     <string name="msg_pixiv_logged_in">Pixiv login successful</string>
     <string name="msg_pixiv_logged_out">Pixiv logged out</string>
 </resources>

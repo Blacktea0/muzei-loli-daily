@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -88,7 +89,7 @@ fun ImagePickerDialog(
                 modifier = Modifier.padding(bottom = 4.dp),
             )
             Text(
-                text = stringResource(R.string.submit_image_picker_subtitle, variants.size),
+                text = pluralStringResource(R.plurals.submit_image_picker_subtitle, variants.size, variants.size),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 16.dp),
