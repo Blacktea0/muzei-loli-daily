@@ -33,21 +33,30 @@ object PixivParser : SourceLinkParser {
     }
 
     override suspend fun fetchSourceImage(context: Context, url: String): Pair<ByteArray, String>? {
+        val variants = fetchSourceImageUrls(context, url)
+        val first = variants?.firstOrNull() ?: return null
+        return downloadPixivImage(context, first.fullUrl)
+    }
+
+    override suspend fun fetchSourceImageUrls(context: Context, url: String): List<SourceImageVariant>? {
         val m = URL_RE.find(url) ?: return null
         val illustId = m.groupValues[1]
-        var sessionId = SessionManager.loadPixivSessionId(context)
-        Log.d(TAG, "fetchSourceImage: illustId=$illustId, sessionId=${sessionId?.take(8)}")
-        val imageUrl = resolveImageUrlViaWebView(context, illustId, sessionId) ?: return null
-        Log.d(TAG, "Resolved image URL: ${imageUrl.take(100)}")
-        // Re-read session in case validation cleared it
-        sessionId = SessionManager.loadPixivSessionId(context)
-        // Download using OkHttp with all cookies (works for pximg.net — no Cloudflare)
+        val sessionId = SessionManager.loadPixivSessionId(context)
+        Log.d(TAG, "fetchSourceImageUrls: illustId=$illustId, sessionId=${sessionId?.take(8)}")
+        val variants = resolveImageUrlsViaWebView(context, illustId, sessionId)
+        Log.d(TAG, "Resolved ${variants?.size ?: 0} image variants")
+        return variants
+    }
+
+    /**
+     * Downloads a single pixiv image by its full-quality URL.
+     */
+    private fun downloadPixivImage(context: Context, imageUrl: String): Pair<ByteArray, String>? {
+        val sessionId = SessionManager.loadPixivSessionId(context)
         val cookies = CookieManager.getInstance().getCookie(imageUrl)
             ?: sessionId?.let { "PHPSESSID=$it" }
         Log.d(TAG, "Downloading image with cookie=${cookies?.take(20)}")
-        val result = LoliApiClient.downloadImage(imageUrl, referer = "https://www.pixiv.net/", cookie = cookies)
-        Log.d(TAG, "Download result: ${if (result != null) "${result.first.size} bytes, ${result.second}" else "null"}")
-        return result
+        return LoliApiClient.downloadImage(imageUrl, referer = "https://www.pixiv.net/", cookie = cookies)
     }
 
     override suspend fun resolveArtist(context: Context, resourceId: String): ArtistResolveResponse? {
@@ -55,17 +64,17 @@ object PixivParser : SourceLinkParser {
     }
 
     /**
-     * Uses a hidden WebView to resolve the image URL.
+     * Uses a hidden WebView to resolve all image URLs for a pixiv illustration.
      * Pixiv API is behind Cloudflare which blocks OkHttp (TLS fingerprint mismatch),
      * but lets WebView through since it shares the browser's TLS stack and cookies.
      */
     @SuppressLint("SetJavaScriptEnabled")
-    private suspend fun resolveImageUrlViaWebView(
+    private suspend fun resolveImageUrlsViaWebView(
         context: Context,
         illustId: String,
         sessionId: String?,
-    ): String? {
-        val result = CompletableDeferred<String?>()
+    ): List<SourceImageVariant>? {
+        val result = CompletableDeferred<List<SourceImageVariant>?>()
         var fetched = false
         var webViewRef: WebView? = null
         runOnUiThread(context) {
@@ -86,7 +95,7 @@ object PixivParser : SourceLinkParser {
                     override fun onPageFinished(view: WebView?, url: String?) {
                         if (fetched) return
                         fetched = true
-                        // First validate session, then resolve image URL
+                        // First validate session, then resolve image URLs
                         val js = """
                         (async function() {
                           // Validate session — if expired (401), clear it on the native side
@@ -98,7 +107,7 @@ object PixivParser : SourceLinkParser {
                               Android.onSessionExpired();
                             }
                           } catch(e) {}
-                          // Resolve image URL via API
+                          // Resolve image URLs via API
                           var done = false;
                           try {
                             var r = await fetch('/ajax/illust/$illustId/pages', {credentials:'include'});
@@ -137,13 +146,13 @@ object PixivParser : SourceLinkParser {
                     @JavascriptInterface
                     fun onJson(json: String) {
                         Log.d(TAG, "WebView API fetch OK, len=${json.length}")
-                        val parsed = parseImageUrl(json.replace("<br>", "").replace("<br/>", "").replace("<br />", ""), sessionId)
+                        val parsed = parseImageUrls(json.replace("<br>", "").replace("<br/>", "").replace("<br />", ""), sessionId)
                         result.complete(parsed)
                     }
                     @JavascriptInterface
                     fun onImageUrl(url: String) {
                         Log.d(TAG, "WebView DOM fallback: ${url.take(100)}")
-                        result.complete(url)
+                        result.complete(listOf(SourceImageVariant(url, url)))
                     }
                     @JavascriptInterface
                     fun onError(error: String) {
@@ -167,11 +176,20 @@ object PixivParser : SourceLinkParser {
         return withTimeout(result, 30_000)
     }
 
-    private fun parseImageUrl(json: String, sessionId: String?): String? {
+    /**
+     * Parses all image variants from the Pixiv pages API response.
+     * Returns a list of [SourceImageVariant] (thumb + full URL pairs) for each page.
+     */
+    private fun parseImageUrls(json: String, sessionId: String?): List<SourceImageVariant>? {
         // Prefer regular over original — original can exceed the 3 MB upload limit
-        fun extractUrl(urls: Map<String, kotlinx.serialization.json.JsonElement>): String? {
-            return urls["regular"]?.jsonPrimitive?.content
+        fun extractVariant(urls: Map<String, kotlinx.serialization.json.JsonElement>): SourceImageVariant? {
+            val full = urls["regular"]?.jsonPrimitive?.content
                 ?: urls["original"]?.jsonPrimitive?.content
+                ?: return null
+            val thumb = urls["small"]?.jsonPrimitive?.content
+                ?: urls["thumb_mini"]?.jsonPrimitive?.content
+                ?: full
+            return SourceImageVariant(thumb, full)
         }
         return try {
             val root = LoliApiClient.json.parseToJsonElement(json).jsonObject
@@ -179,16 +197,18 @@ object PixivParser : SourceLinkParser {
             val body = root["body"] ?: return null
             // /pages endpoint: body is an array of page objects
             val pages = body.jsonArray
-            val urls = pages.firstOrNull()?.jsonObject?.get("urls")?.jsonObject ?: return null
-            extractUrl(urls)
+            pages.mapNotNull { page ->
+                page.jsonObject["urls"]?.jsonObject?.let { extractVariant(it) }
+            }.ifEmpty { null }
         } catch (e: Exception) {
             // body might be an object (from /ajax/illust/{id})
             try {
                 val root = LoliApiClient.json.parseToJsonElement(json).jsonObject
                 val urls = root["body"]?.jsonObject?.get("urls")?.jsonObject ?: return null
-                extractUrl(urls)
+                val variant = extractVariant(urls) ?: return null
+                listOf(variant)
             } catch (e2: Exception) {
-                Log.w(TAG, "Failed to parse image URL", e2)
+                Log.w(TAG, "Failed to parse image URLs", e2)
                 null
             }
         }

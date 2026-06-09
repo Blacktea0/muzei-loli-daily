@@ -12,6 +12,18 @@ data class SourceMatch(
 )
 
 /**
+ * A single image from a multi-image source, with separate thumbnail and full-quality URLs.
+ *
+ * @param thumbUrl Low-resolution URL suitable for grid preview (may be the same as [fullUrl] if
+ *   the platform does not provide a distinct thumbnail).
+ * @param fullUrl  Full-quality URL to download when the user selects this image.
+ */
+data class SourceImageVariant(
+    val thumbUrl: String,
+    val fullUrl: String,
+)
+
+/**
  * Parses source URLs from specific platforms.
  *
  * Each implementation handles one domain: URL matching, image resolution,
@@ -44,6 +56,16 @@ interface SourceLinkParser {
      * Returns (imageBytes, mimeType) or null.
      */
     suspend fun fetchSourceImage(context: Context, url: String): Pair<ByteArray, String>?
+
+    /**
+     * Fetches all image URLs from the source page **without downloading them**.
+     * Returns a list of [SourceImageVariant] (thumbnail + full-quality URL pairs),
+     * or `null` if the platform does not support multi-image enumeration.
+     *
+     * The default implementation returns `null`, meaning the caller should fall back
+     * to the single-image [fetchSourceImage] path.
+     */
+    suspend fun fetchSourceImageUrls(context: Context, url: String): List<SourceImageVariant>? = null
 
     /**
      * Resolves artist name and profile URL from the resource ID.

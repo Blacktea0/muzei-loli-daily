@@ -54,6 +54,28 @@ object SourceLinkParserRegistry {
     }
 
     /**
+     * Fetches all image URLs (thumbnail + full-quality pairs) from a known source URL.
+     * Returns a list of [SourceImageVariant], or null if no parser matches or
+     * the platform does not support multi-image enumeration.
+     */
+    suspend fun fetchSourceImageUrls(context: Context, url: String): List<SourceImageVariant>? {
+        for (parser in parsers) {
+            if (parser.match(url) != null) {
+                return parser.fetchSourceImageUrls(context, url)
+            }
+        }
+        return null
+    }
+
+    /**
+     * Downloads a single image from [imageUrl] with platform-appropriate headers.
+     * Delegates to [LoliApiClient.downloadImage] with pixiv referer/cookie when needed.
+     */
+    fun downloadImage(imageUrl: String): Pair<ByteArray, String>? {
+        return LoliApiClient.downloadImage(imageUrl)
+    }
+
+    /**
      * Resolves artist info for a known source type and resource ID.
      * Falls back to the Loli Commons /v1/daily/resolve API.
      */

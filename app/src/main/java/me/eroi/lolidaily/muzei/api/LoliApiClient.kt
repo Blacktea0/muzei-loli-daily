@@ -308,6 +308,14 @@ object LoliApiClient {
     }
 
     /**
+     * Fetches all image URLs (thumbnail + full-quality pairs) from a known source URL.
+     * Returns a list of [me.eroi.lolidaily.muzei.api.link.SourceImageVariant], or null.
+     */
+    suspend fun fetchSourceImageUrls(context: Context, url: String): List<me.eroi.lolidaily.muzei.api.link.SourceImageVariant>? {
+        return SourceLinkParserRegistry.fetchSourceImageUrls(context, url)
+    }
+
+    /**
      * Downloads an image from [imageUrl].
      * Optionally sets a Referer header (needed for pixiv) and Cookie header (for authenticated pixiv).
      */

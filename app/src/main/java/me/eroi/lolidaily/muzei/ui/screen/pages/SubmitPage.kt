@@ -116,6 +116,7 @@ import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.BangumiApiClient
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.api.SessionManager
+import me.eroi.lolidaily.muzei.api.link.SourceImageVariant
 import me.eroi.lolidaily.muzei.api.link.SourceLinkParserRegistry
 import me.eroi.lolidaily.muzei.api.link.isShortLink
 import me.eroi.lolidaily.muzei.api.link.resolveShortLink
@@ -124,6 +125,7 @@ import me.eroi.lolidaily.muzei.model.SlimCharacter
 import me.eroi.lolidaily.muzei.ui.screen.components.CharacterSearchBar
 import me.eroi.lolidaily.muzei.ui.screen.components.CharacterSearchBarState
 import me.eroi.lolidaily.muzei.ui.screen.components.FullscreenImageViewer
+import me.eroi.lolidaily.muzei.ui.screen.components.ImagePickerDialog
 import me.eroi.lolidaily.muzei.ui.screen.components.SubmitTipBanner
 import me.eroi.lolidaily.muzei.ui.screen.components.rememberCharacterSearchBarState
 import kotlinx.coroutines.Job
@@ -172,6 +174,7 @@ private data class SubmitFormState(
     val statusMessage: String? = null,
     val isError: Boolean = false,
     val validationAttempted: Boolean = false,
+    val pendingImageVariants: List<SourceImageVariant>? = null,
 )
 
 /**
@@ -328,12 +331,41 @@ fun SubmitPage(
         val artistDeferred = async(Dispatchers.IO) {
             SourceLinkParserRegistry.resolveArtist(context, currentMatch.type, currentMatch.resourceId)
         }
-        val imageDeferred = async(Dispatchers.IO) {
-            LoliApiClient.fetchSourceImage(context, currentUrl)
-        }
+        // First, resolve all image URLs (thumbnail + full pairs) without downloading
+        val imageUrls = try {
+            withContext(Dispatchers.IO) {
+                LoliApiClient.fetchSourceImageUrls(context, currentUrl)
+            }
+        } catch (_: Exception) { null }
 
         val artist = try { artistDeferred.await() } catch (e: Exception) { Log.w(TAG, "resolveArtist failed", e); null }
-        val imageResult = try { imageDeferred.await() } catch (_: Exception) { null }
+
+        if (imageUrls != null && imageUrls.size > 1) {
+            // Multiple images — show picker, defer download until user selects
+            withContext(Dispatchers.Main) {
+                state = state.copy(
+                    isFetchingImage = false,
+                    fetchedSourceUrl = currentUrl,
+                    pendingImageVariants = imageUrls,
+                    artistName = artist?.name ?: state.artistName,
+                    artistUrl = artist?.link ?: state.artistUrl,
+                )
+            }
+            return@LaunchedEffect
+        }
+
+        // Single image (or fallback) — download immediately
+        val singleUrl = imageUrls?.firstOrNull()?.fullUrl
+        val imageResult = if (singleUrl != null) {
+            try {
+                withContext(Dispatchers.IO) { LoliApiClient.downloadImage(singleUrl) }
+            } catch (_: Exception) { null }
+        } else {
+            // Fallback: parsers that don't implement fetchSourceImageUrls
+            try {
+                withContext(Dispatchers.IO) { LoliApiClient.fetchSourceImage(context, currentUrl) }
+            } catch (_: Exception) { null }
+        }
 
         // Attempt AVIF/WebP compression if image exceeds size limit
         val finalResult = if (imageResult != null) {
@@ -1158,6 +1190,66 @@ fun SubmitPage(
             model = state.imageBytes!!,
             filename = state.imageName.ifEmpty { "image" },
             onDismiss = { showFullscreenViewer = false },
+        )
+    }
+
+    // Multi-image picker — shown when source has multiple images
+    val pendingVariants = state.pendingImageVariants
+    if (pendingVariants != null) {
+        val currentMatch = remember(pendingVariants) {
+            SourceLinkParserRegistry.match(state.sourceUrl)
+        }
+        ImagePickerDialog(
+            variants = pendingVariants,
+            onImageSelected = { variant ->
+                state = state.copy(pendingImageVariants = null, isFetchingImage = true)
+                scope.launch(Dispatchers.IO) {
+                    val imageResult = try {
+                        LoliApiClient.downloadImage(variant.fullUrl)
+                    } catch (_: Exception) { null }
+
+                    val finalResult = if (imageResult != null) {
+                        val (bytes, mime) = imageResult
+                        if (bytes.size > MAX_IMAGE_SIZE) {
+                            val c = compressIfNeeded(bytes)
+                            if (c != null) c.first to c.second else null
+                        } else {
+                            bytes to mime
+                        }
+                    } else null
+
+                    withContext(Dispatchers.Main) {
+                        if (finalResult != null) {
+                            val (bytes, mime) = finalResult
+                            val wasCompressed = imageResult != null && imageResult.first.size > MAX_IMAGE_SIZE
+                            state = state.copy(
+                                imageUri = "source_image".toUri(),
+                                imageBytes = bytes,
+                                imageName = "source_${(currentMatch?.resourceId ?: "image").replace("/", "_")}.${
+                                    when (mime) {
+                                        "image/png" -> "png"
+                                        "image/webp" -> "webp"
+                                        else -> "jpg"
+                                    }
+                                }",
+                                imageMimeType = mime,
+                                isFetchingImage = false,
+                                statusMessage = if (wasCompressed)
+                                    res.getString(R.string.submit_compressed_to_webp) else null,
+                            )
+                        } else {
+                            state = state.copy(
+                                isFetchingImage = false,
+                                statusMessage = res.getString(R.string.submit_error_generic),
+                                isError = true,
+                            )
+                        }
+                    }
+                }
+            },
+            onDismiss = {
+                state = state.copy(pendingImageVariants = null, isFetchingImage = false)
+            },
         )
     }
 }

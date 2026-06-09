@@ -277,6 +277,9 @@
     <string name="submit_error_generic">何かがうまくいきませんでした…</string>
     <string name="submit_resolve_failed">絵師の自動検出に失敗しました — 手動で入力してください</string>
     <string name="submit_fetching_image">ソースから画像を取得中……</string>
+    <string name="submit_image_picker_title">画像を選択</string>
+    <string name="submit_image_picker_subtitle">%1$d 枚の画像が見つかりました — タップして選択</string>
+    <string name="submit_image_picker_item_desc">%1$d 枚目の画像</string>
     <string name="submit_hint_character_search">キャラクター名で検索……</string>
     <string name="action_clear_form">フォームをクリア</string>
     <string name="submit_clear_title">フォームをクリア</string>

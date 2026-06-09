@@ -33,10 +33,20 @@ object BilibiliParser : SourceLinkParser {
     }
 
     override suspend fun fetchSourceImage(context: Context, url: String): Pair<ByteArray, String>? {
+        val variants = fetchSourceImageUrls(context, url)
+        val first = variants?.firstOrNull() ?: return null
+        return LoliApiClient.downloadImage(first.fullUrl)
+    }
+
+    override suspend fun fetchSourceImageUrls(context: Context, url: String): List<SourceImageVariant>? {
         val m = URL_RE.find(url) ?: return null
         val opusId = m.groupValues[1]
-        val imageUrl = resolveImageViaWebView(context, opusId) ?: return null
-        return LoliApiClient.downloadImage(imageUrl)
+        val imageUrls = resolveImagesViaWebView(context, opusId) ?: return null
+        return imageUrls.map { url ->
+            // Bilibili supports on-the-fly resizing via URL suffix
+            val thumbUrl = "$url@240w_240h.jpg"
+            SourceImageVariant(thumbUrl, url)
+        }
     }
 
     override suspend fun resolveArtist(context: Context, resourceId: String): ArtistResolveResponse? {
@@ -48,10 +58,10 @@ object BilibiliParser : SourceLinkParser {
     }
 
     /**
-     * Resolves bilibili opus image URL using a WebView to bypass captcha.
-     * Loads the page with real WebView UA, extracts image from __INITIAL_STATE__.
+     * Resolves all bilibili opus image URLs using a WebView to bypass captcha.
+     * Loads the page with real WebView UA, extracts images from __INITIAL_STATE__.
      */
-    private suspend fun resolveImageViaWebView(context: Context, opusId: String): String? {
+    private suspend fun resolveImagesViaWebView(context: Context, opusId: String): List<String>? {
         val url = "https://www.bilibili.com/opus/$opusId"
         return withTimeoutOrNull(15_000) {
             suspendCancellableCoroutine { cont ->
@@ -72,15 +82,29 @@ object BilibiliParser : SourceLinkParser {
                                     "(function(){var s=window.__INITIAL_STATE__;" +
                                         "if(!s)return null;" +
                                         "var j=JSON.stringify(s);" +
-                                        "var m=j.match(/https?:\\/\\/i\\d+\\.hdslb\\.com\\/bfs\\/new_dyn\\/[^\"'\\\\\\s@]+/);" +
-                                        "return m?m[0].replace('http://','https://'):null})()"
+                                        "var m=j.match(/https?:\\/\\/i\\d+\\.hdslb\\.com\\/bfs\\/new_dyn\\/[^\"'\\\\\\s@]+/g);" +
+                                        "if(!m)return null;" +
+                                        "return JSON.stringify(m.map(function(u){return u.replace('http://','https://')}))})()"
                                 ) { value ->
                                     if (!cont.isActive) return@evaluateJavascript
-                                    val cleaned = value?.removeSurrounding("\"")?.removeSurrounding("null")
-                                    cont.resume(
-                                        if (cleaned.isNullOrEmpty() || cleaned == "null") null else cleaned,
-                                        onCancellation = { _, _, _ -> },
-                                    )
+                                    if (value.isNullOrEmpty() || value == "null") {
+                                        cont.resume(emptyList(), onCancellation = { _, _, _ -> })
+                                        return@evaluateJavascript
+                                    }
+                                    try {
+                                        // evaluateJavascript wraps string results in JSON quotes
+                                        val inner = org.json.JSONObject("{\"v\":$value}").optString("v", "")
+                                        if (inner.isEmpty()) {
+                                            cont.resume(emptyList(), onCancellation = { _, _, _ -> })
+                                            return@evaluateJavascript
+                                        }
+                                        val arr = org.json.JSONArray(inner)
+                                        val urls = (0 until arr.length()).mapNotNull { arr.optString(it).takeIf(String::isNotEmpty) }
+                                        cont.resume(urls, onCancellation = { _, _, _ -> })
+                                    } catch (e: Exception) {
+                                        Log.w(TAG, "Failed to parse images from __INITIAL_STATE__", e)
+                                        cont.resume(emptyList(), onCancellation = { _, _, _ -> })
+                                    }
                                 }
                             }
                         }
@@ -89,7 +113,7 @@ object BilibiliParser : SourceLinkParser {
                     webView.loadUrl(url)
                 }
             }
-        }
+        }?.ifEmpty { null }
     }
 
     /**
