@@ -236,6 +236,12 @@
     <string name="about_highlight_nonprofit">国際非営利</string>
     <string name="about_official_site">公式サイト</string>
     <string name="about_source_code">ソースコード</string>
+    <string name="about_acknowledgments">謝辞</string>
+    <string name="about_acknowledgments_subtitle">サードパーティサービスとライブラリ</string>
+    <string name="title_acknowledgments">謝辞</string>
+    <string name="section_third_party_services">サードパーティAPIサービス</string>
+    <string name="section_third_party_libraries">サードパーティライブラリ</string>
+    <string name="label_license">ライセンス</string>
 
     <!-- Submit -->
     <string name="tab_submit">投稿</string>

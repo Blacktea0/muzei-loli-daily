@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -52,6 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import me.eroi.lolidaily.muzei.AcknowledgmentsActivity
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.ui.screen.components.*
 
@@ -168,6 +170,16 @@ fun AboutScreen(onBack: () -> Unit) {
                         onClick = {
                             context.startActivity(
                                 Intent(Intent.ACTION_VIEW, GITHUB_URL.toUri()),
+                            )
+                        },
+                    )
+                    GroupedSettingsRow(
+                        icon = Icons.Default.Favorite,
+                        title = stringResource(R.string.about_acknowledgments),
+                        subtitle = stringResource(R.string.about_acknowledgments_subtitle),
+                        onClick = {
+                            context.startActivity(
+                                Intent(context, AcknowledgmentsActivity::class.java),
                             )
                         },
                     )

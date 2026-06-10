@@ -60,6 +60,12 @@
             android:exported="false"
             android:label="About" />
 
+        <!-- Acknowledgments — third-party services and libraries -->
+        <activity
+            android:name="me.eroi.lolidaily.muzei.AcknowledgmentsActivity"
+            android:exported="false"
+            android:label="Acknowledgments" />
+
 
         <!-- BroadcastReceiver for force-refresh command from Muzei -->
         <receiver

@@ -236,6 +236,12 @@
     <string name="about_highlight_nonprofit">international nonprofit</string>
     <string name="about_official_site">Official Website</string>
     <string name="about_source_code">Source Code</string>
+    <string name="about_acknowledgments">Acknowledgments</string>
+    <string name="about_acknowledgments_subtitle">Third-party services and libraries</string>
+    <string name="title_acknowledgments">Acknowledgments</string>
+    <string name="section_third_party_services">Third-party API Services</string>
+    <string name="section_third_party_libraries">Third-party Libraries</string>
+    <string name="label_license">License</string>
 
     <!-- Submit -->
     <string name="tab_submit">Submit</string>

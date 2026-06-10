@@ -236,6 +236,12 @@
     <string name="about_highlight_nonprofit">国际非盈利</string>
     <string name="about_official_site">官方网站</string>
     <string name="about_source_code">源代码</string>
+    <string name="about_acknowledgments">致谢</string>
+    <string name="about_acknowledgments_subtitle">第三方服务与组件</string>
+    <string name="title_acknowledgments">致谢</string>
+    <string name="section_third_party_services">第三方 API 服务</string>
+    <string name="section_third_party_libraries">第三方组件</string>
+    <string name="label_license">开源协议</string>
 
     <!-- Submit -->
     <string name="tab_submit">投稿</string>
