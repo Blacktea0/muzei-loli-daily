@@ -982,6 +982,7 @@ fun SubmitPage(
                                             contentDescription = null,
                                             modifier = Modifier.size(InputChipDefaults.AvatarSize).clip(RoundedCornerShape(4.dp)),
                                             contentScale = ContentScale.Crop,
+                                            alignment = Alignment.TopCenter,
                                         )
                                     } else {
                                         Icon(

@@ -232,6 +232,7 @@ fun CharacterSearchBar(
                                 contentDescription = null,
                                 modifier = Modifier.size(40.dp).clip(RoundedCornerShape(4.dp)),
                                 contentScale = ContentScale.Crop,
+                                alignment = Alignment.TopCenter,
                             )
                         } else {
                             Spacer(modifier = Modifier.size(40.dp))
@@ -292,6 +293,7 @@ fun CharacterSearchBar(
                                 contentDescription = null,
                                 modifier = Modifier.size(40.dp).clip(RoundedCornerShape(4.dp)),
                                 contentScale = ContentScale.Crop,
+                                alignment = Alignment.TopCenter,
                             )
                         } else {
                             Spacer(modifier = Modifier.size(40.dp))
