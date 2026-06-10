@@ -66,34 +66,6 @@ All commits MUST follow [Conventional Commits](https://www.conventionalcommits.o
 <type>[(<scope>)]: <description>
 ```
 
-### Types
-
-- `feat` — New feature
-- `fix` — Bug fix
-- `chore` — Build, CI, dependencies, tooling
-- `refactor` — Code restructuring without behavior change
-- `docs` — Documentation only
-- `style` — Formatting, whitespace (no logic change)
-
-### Scopes
-
-Use scope to indicate the affected area. Pick the narrowest applicable scope. Common scopes:
-
-- `ui` — Screens, pages, components, theme
-- `settings` — Settings UI and preferences
-- `api` — API clients, session management, reaction service
-- `db` — Room database, DAOs, entities
-- `worker` — WorkManager workers, schedulers, image downloader
-- `model` — Data models, API response types
-- `provider` — Muzei art provider
-- `auth` — OAuth login, Bangumi session
-- `link` — Source link parsers (Pixiv, Twitter, Bilibili)
-- `build` — Gradle config, signing, CI workflows
-
-Add new scopes as needed when none of the above fit. Omit scope when the change spans multiple areas.
-
-### Rules
-
 - Description MUST be lowercase, imperative, no trailing period
 - English only
 - Examples:
