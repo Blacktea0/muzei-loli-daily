@@ -95,7 +95,7 @@ fun TodayPage(
         remember {
             LocalDate.now().format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG))
         }
-    val tags = remember(todayArtwork) { todayArtwork.map { it.tags }.distinct() }
+    val tags = remember(todayArtwork) { todayArtwork.map { it.tags }.filter { it.isNotBlank() }.distinct() }
     val showTabs = tags.size > 1
     val pagerState =
         rememberPagerState(
