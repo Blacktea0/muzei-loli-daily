@@ -4,7 +4,6 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuOpen
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.Image
@@ -20,7 +19,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
-import kotlinx.coroutines.launch
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
@@ -92,9 +90,7 @@ fun MainScreen(
     var fullscreenPreview by remember { mutableStateOf<ArtworkPreview?>(null) }
     var bookmarkSearchQuery by remember { mutableStateOf("") }
     var bookmarkSelectedTag by remember { mutableStateOf<String?>(null) }
-    var railExpanded by remember { mutableStateOf(false) }
     val railState = rememberWideNavigationRailState()
-    val scope = rememberCoroutineScope()
 
     LaunchedEffect(selectedTab) {
         prefs.edit { putInt(KEY_LAST_TAB, selectedTab) }
@@ -130,31 +126,11 @@ fun MainScreen(
         Row(modifier = modifier.fillMaxSize()) {
             WideNavigationRail(
                 state = railState,
-                header = {
-                    IconButton(
-                        modifier = Modifier.padding(start = 24.dp),
-                        onClick = {
-                            scope.launch {
-                                if (railState.targetValue == WideNavigationRailValue.Expanded) {
-                                    railState.collapse()
-                                } else {
-                                    railState.expand()
-                                }
-                            }
-                        },
-                    ) {
-                        if (railState.targetValue == WideNavigationRailValue.Expanded) {
-                            Icon(Icons.AutoMirrored.Filled.MenuOpen, "Collapse rail")
-                        } else {
-                            Icon(Icons.Default.Menu, "Expand rail")
-                        }
-                    }
-                },
+                arrangement = Arrangement.Center,
             ) {
-                val isExpanded = railState.targetValue == WideNavigationRailValue.Expanded
                 navigationItems.forEach { (icon, label, index) ->
                     WideNavigationRailItem(
-                        railExpanded = isExpanded,
+                        railExpanded = false,
                         icon = {
                             Icon(
                                 imageVector = icon,
