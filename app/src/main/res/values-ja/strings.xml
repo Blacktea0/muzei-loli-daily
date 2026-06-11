@@ -112,6 +112,12 @@
     <string name="banner_update_available">アップデートがあります</string>
     <string name="banner_update_description">新しいバージョン（%1$s）が利用可能です。最新の機能と修正を入手するにはアップデートしてください。</string>
     <string name="action_download_update">アップデートをダウンロード</string>
+    <string name="content_desc_check_update">アップデートを確認</string>
+    <string name="msg_checking_update">アップデートを確認中…</string>
+    <string name="msg_update_available_title">アップデートがあります</string>
+    <string name="msg_update_available_desc">新しいバージョン（%1$s）が利用可能です。最新の機能と修正を入手するにはアップデートしてください。</string>
+    <string name="msg_up_to_date">最新バージョンです</string>
+    <string name="msg_up_to_date_desc">現在のバージョン：%1$s</string>
 
     <!-- Account -->
     <string name="status_logged_in">Bangumi にログイン済み</string>

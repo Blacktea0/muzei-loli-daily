@@ -1,7 +1,6 @@
 package me.eroi.lolidaily.muzei.util
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.util.Log
 import androidx.core.content.edit
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +16,7 @@ import java.util.concurrent.TimeUnit
 object VersionChecker {
     private const val TAG = "VersionChecker"
     private const val GITHUB_API_URL = "https://api.github.com/repos/Blacktea0/muzei-loli-daily/releases/latest"
+    private const val GITHUB_RELEASES_LATEST_URL = "https://github.com/Blacktea0/muzei-loli-daily/releases/latest"
     private const val GITHUB_RELEASES_URL = "https://github.com/Blacktea0/muzei-loli-daily/releases"
     private const val CACHE_KEY_LATEST_VERSION = "cached_latest_version"
     private const val CACHE_KEY_LATEST_URL = "cached_latest_url"
@@ -46,8 +46,9 @@ object VersionChecker {
     /**
      * Check for updates by comparing the current version with the latest GitHub release.
      * Uses a 24-hour cache to avoid excessive API calls.
+     * @param forceRefresh bypass the cache and always fetch from the API.
      */
-    suspend fun checkForUpdate(context: Context): UpdateCheckResult =
+    suspend fun checkForUpdate(context: Context, forceRefresh: Boolean = false): UpdateCheckResult =
         withContext(Dispatchers.IO) {
             val prefs =
                 context.getSharedPreferences(
@@ -58,7 +59,7 @@ object VersionChecker {
             val cachedTimestamp = prefs.getLong(CACHE_KEY_TIMESTAMP, 0)
             val now = System.currentTimeMillis()
 
-            if (now - cachedTimestamp < CACHE_TTL_MS) {
+            if (!forceRefresh && now - cachedTimestamp < CACHE_TTL_MS) {
                 val cachedVersion = prefs.getString(CACHE_KEY_LATEST_VERSION, null)
                 if (cachedVersion != null) {
                     return@withContext UpdateCheckResult(
@@ -69,64 +70,100 @@ object VersionChecker {
                 }
             }
 
-            try {
-                val request =
-                    Request.Builder()
-                        .url(GITHUB_API_URL)
-                        .header("Accept", "application/vnd.github.v3+json")
-                        .build()
+            // Try GitHub API first; fall back to HTML releases page on failure (e.g. rate limit)
+            val result = tryApiCheck() ?: tryHtmlFallback()
 
-                client.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) {
-                        Log.w(TAG, "GitHub API returned ${response.code}")
-                        return@withContext UpdateCheckResult(
-                            hasUpdate = false,
-                            latestVersion = BuildConfig.VERSION_NAME,
-                            downloadUrl = GITHUB_RELEASES_URL,
-                        )
-                    }
+            prefs.edit {
+                putString(CACHE_KEY_LATEST_VERSION, result.latestVersion)
+                putString(CACHE_KEY_LATEST_URL, result.downloadUrl)
+                putLong(CACHE_KEY_TIMESTAMP, now)
+            }
 
-                    val body =
-                        response.body?.string()
-                            ?: return@withContext UpdateCheckResult(
-                                hasUpdate = false,
-                                latestVersion = BuildConfig.VERSION_NAME,
-                                downloadUrl = GITHUB_RELEASES_URL,
-                            )
+            result
+        }
 
-                    val release = json.decodeFromString<GitHubRelease>(body)
-                    val tagName =
-                        release.tag_name
-                            ?: return@withContext UpdateCheckResult(
-                                hasUpdate = false,
-                                latestVersion = BuildConfig.VERSION_NAME,
-                                downloadUrl = GITHUB_RELEASES_URL,
-                            )
+    /**
+     * Try the GitHub REST API. Returns null if the request fails (rate limit, network error, etc.)
+     * so the caller can fall back to [tryHtmlFallback].
+     */
+    private fun tryApiCheck(): UpdateCheckResult? {
+        return try {
+            val request =
+                Request.Builder()
+                    .url(GITHUB_API_URL)
+                    .header("Accept", "application/vnd.github.v3+json")
+                    .build()
 
-                    val versionName = tagName.removePrefix("v")
-                    val downloadUrl = release.html_url ?: GITHUB_RELEASES_URL
-
-                    prefs.edit {
-                        putString(CACHE_KEY_LATEST_VERSION, versionName)
-                        putString(CACHE_KEY_LATEST_URL, downloadUrl)
-                        putLong(CACHE_KEY_TIMESTAMP, now)
-                    }
-
-                    UpdateCheckResult(
-                        hasUpdate = isNewerVersion(versionName, BuildConfig.VERSION_NAME),
-                        latestVersion = versionName,
-                        downloadUrl = downloadUrl,
-                    )
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    Log.w(TAG, "GitHub API returned ${response.code}, falling back to HTML")
+                    return null
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to check for updates", e)
+
+                val body = response.body?.string() ?: return null
+                val release = json.decodeFromString<GitHubRelease>(body)
+                val tagName = release.tag_name ?: return null
+                val versionName = tagName.removePrefix("v")
+                val downloadUrl = release.html_url ?: GITHUB_RELEASES_URL
+
                 UpdateCheckResult(
-                    hasUpdate = false,
-                    latestVersion = BuildConfig.VERSION_NAME,
-                    downloadUrl = GITHUB_RELEASES_URL,
+                    hasUpdate = isNewerVersion(versionName, BuildConfig.VERSION_NAME),
+                    latestVersion = versionName,
+                    downloadUrl = downloadUrl,
                 )
             }
+        } catch (e: Exception) {
+            Log.w(TAG, "GitHub API check failed, falling back to HTML", e)
+            null
         }
+    }
+
+    /**
+     * Fallback: request /releases/latest which 302-redirects to /releases/tag/vX.Y.Z.
+     * OkHttp follows redirects by default, so we can read the final URL to extract the version.
+     * This endpoint is not subject to the same aggressive rate limiting as the REST API.
+     */
+    private fun tryHtmlFallback(): UpdateCheckResult {
+        return try {
+            val request =
+                Request.Builder()
+                    .url(GITHUB_RELEASES_LATEST_URL)
+                    .build()
+
+            client.newCall(request).execute().use { response ->
+                // Even if the page returns 200, the effective URL after redirect holds the tag
+                val effectiveUrl = response.request.url.toString()
+                val tagPrefix = "/releases/tag/"
+                val tagIndex = effectiveUrl.indexOf(tagPrefix)
+
+                if (tagIndex < 0) {
+                    Log.w(TAG, "Could not extract version from redirect URL: $effectiveUrl")
+                    return UpdateCheckResult(
+                        hasUpdate = false,
+                        latestVersion = BuildConfig.VERSION_NAME,
+                        downloadUrl = GITHUB_RELEASES_URL,
+                    )
+                }
+
+                val tagName = effectiveUrl.substring(tagIndex + tagPrefix.length)
+                val versionName = tagName.removePrefix("v")
+                val downloadUrl = effectiveUrl
+
+                UpdateCheckResult(
+                    hasUpdate = isNewerVersion(versionName, BuildConfig.VERSION_NAME),
+                    latestVersion = versionName,
+                    downloadUrl = downloadUrl,
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "HTML fallback check failed", e)
+            UpdateCheckResult(
+                hasUpdate = false,
+                latestVersion = BuildConfig.VERSION_NAME,
+                downloadUrl = GITHUB_RELEASES_URL,
+            )
+        }
+    }
 
     /**
      * Compare two semver version strings.

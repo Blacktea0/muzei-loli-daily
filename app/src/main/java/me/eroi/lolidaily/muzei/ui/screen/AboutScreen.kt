@@ -20,12 +20,18 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
@@ -34,6 +40,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -53,19 +60,32 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import kotlinx.coroutines.launch
 import me.eroi.lolidaily.muzei.AcknowledgmentsActivity
+import me.eroi.lolidaily.muzei.BuildConfig
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.ui.screen.components.*
+import me.eroi.lolidaily.muzei.util.VersionChecker
 
 private const val GITHUB_URL = "https://github.com/Blacktea0/muzei-loli-daily"
 private const val OFFICIAL_SITE_URL = "https://lolicommons.tsuki.ga/"
 
 private val LoliSCFont = FontFamily(Font(R.font.lolisc_light))
 
-@OptIn(ExperimentalMaterial3Api::class)
+private enum class UpdateCheckState {
+    IDLE,
+    CHECKING,
+    RESULT,
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AboutScreen(onBack: () -> Unit) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    var updateState by remember { mutableStateOf(UpdateCheckState.IDLE) }
+    var updateResult by remember { mutableStateOf<VersionChecker.UpdateCheckResult?>(null) }
 
     Scaffold(
         topBar = {
@@ -76,6 +96,26 @@ fun AboutScreen(onBack: () -> Unit) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.content_desc_back),
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            if (updateState == UpdateCheckState.IDLE) {
+                                updateState = UpdateCheckState.CHECKING
+                                scope.launch {
+                                    val result = VersionChecker.checkForUpdate(context, forceRefresh = true)
+                                    updateResult = result
+                                    updateState = UpdateCheckState.RESULT
+                                }
+                            }
+                        },
+                        enabled = updateState == UpdateCheckState.IDLE,
+                    ) {
+                        Icon(
+                            Icons.Default.SystemUpdate,
+                            contentDescription = stringResource(R.string.content_desc_check_update),
                         )
                     }
                 },
@@ -186,6 +226,78 @@ fun AboutScreen(onBack: () -> Unit) {
                 }
             }
         }
+    }
+
+    // ── Update check dialog ──
+    when (updateState) {
+        UpdateCheckState.CHECKING -> {
+            AlertDialog(
+                onDismissRequest = {},
+                icon = {
+                    LoadingIndicator()
+                },
+                title = { Text(stringResource(R.string.msg_checking_update)) },
+                text = null,
+                confirmButton = {},
+            )
+        }
+        UpdateCheckState.RESULT -> {
+            val result = updateResult
+            if (result != null) {
+                if (result.hasUpdate) {
+                    AlertDialog(
+                        onDismissRequest = { updateState = UpdateCheckState.IDLE },
+                        icon = {
+                            Icon(
+                                Icons.Default.SystemUpdate,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        },
+                        title = { Text(stringResource(R.string.msg_update_available_title)) },
+                        text = {
+                            Text(stringResource(R.string.msg_update_available_desc, result.latestVersion))
+                        },
+                        confirmButton = {
+                            FilledTonalButton(onClick = {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, result.downloadUrl.toUri()),
+                                )
+                                updateState = UpdateCheckState.IDLE
+                            }) {
+                                Text(stringResource(R.string.action_download_update))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { updateState = UpdateCheckState.IDLE }) {
+                                Text(stringResource(R.string.action_cancel))
+                            }
+                        },
+                    )
+                } else {
+                    AlertDialog(
+                        onDismissRequest = { updateState = UpdateCheckState.IDLE },
+                        icon = {
+                            Icon(
+                                Icons.Default.SystemUpdate,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        title = { Text(stringResource(R.string.msg_up_to_date)) },
+                        text = {
+                            Text(stringResource(R.string.msg_up_to_date_desc, BuildConfig.VERSION_NAME))
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { updateState = UpdateCheckState.IDLE }) {
+                                Text(stringResource(R.string.action_ok))
+                            }
+                        },
+                    )
+                }
+            }
+        }
+        UpdateCheckState.IDLE -> {}
     }
 }
 
