@@ -34,7 +34,7 @@ android {
         applicationId = "me.eroi.lolidaily.muzei"
         minSdk = 28
         targetSdk = 37
-        versionName = envOrProp("VERSION_NAME") ?: "0.1.0"
+        versionName = envOrProp("VERSION_NAME") ?: "0.2.0"
         versionCode = envOrProp("VERSION_CODE")?.toIntOrNull()
             ?: versionName?.split(".")?.let { parts ->
                 val major = parts.getOrElse(0) { "0" }.toIntOrNull() ?: 0
@@ -137,10 +137,10 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
 
     // Coil — image loading in Compose
-    implementation("io.coil-kt.coil3:coil-compose:3.4.0")
-    implementation("io.coil-kt.coil3:coil-network-okhttp:3.4.0")
-    implementation("io.coil-kt.coil3:coil-gif:3.4.0")
-    implementation("io.coil-kt.coil3:coil-svg:3.4.0")
+    implementation("io.coil-kt.coil3:coil-compose:3.5.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.5.0")
+    implementation("io.coil-kt.coil3:coil-gif:3.5.0")
+    implementation("io.coil-kt.coil3:coil-svg:3.5.0")
 
     // Zoomable — pinch-to-zoom with snap-back
     implementation("net.engawapg.lib:zoomable:2.12.0")
