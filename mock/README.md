@@ -33,6 +33,25 @@ set PORT=8080 && gradlew.bat startMockServer
 
 Server output is written to `mock/server.log`. The PID is tracked in `mock/.server.pid`; `startMockServer` automatically kills any previously running instance before starting a new one.
 
+## Emulator Setup (adb reverse)
+
+The Android emulator cannot reach the host's `localhost` directly. Use `adb reverse` to forward a TCP port from the emulator back to the host:
+
+```bash
+adb reverse tcp:50303 tcp:50303
+```
+
+After this, `http://localhost:50303` on the emulator maps to `http://localhost:50303` on the host machine. The app's `DEFAULT_API_BASE_URL` is already set to `http://localhost:50303`.
+
+This must be run once per emulator boot (the reverse mapping is lost on restart). Verify with:
+
+```bash
+adb reverse --list
+# Expected: host-10 tcp:50303 tcp:50303
+```
+
+> **Physical devices:** Replace `localhost` with your computer's LAN IP (e.g. `http://192.168.1.100:50303`) and configure via in-app Additional Settings or SharedPreferences.
+
 ## API Endpoints
 
 ### Health Check
@@ -81,7 +100,7 @@ Parameters:
 }
 ```
 
-- The `{{mockServer}}` placeholder in `imgUrl` is replaced at runtime with `http://10.0.2.2:<port>` (emulator → host)
+- The `{{mockServer}}` placeholder in `imgUrl` is replaced at runtime with `http://localhost:<port>` (requires `adb reverse` — see Emulator Setup)
 - `date` uses a shifted calendar where the day boundary is 07:21 GMT+8
 - `tags` accepts values like `LC0`, `LC ES`, `LC YJ`, etc. (see tag list below)
 
@@ -141,6 +160,46 @@ Parameters:
   "nickname": "Mock User",
   "avatar": { "small": "...", "medium": "...", "large": "..." }
 }
+```
+
+### Submit Flow (`/api/v1/daily/submit`)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/v1/daily/submit` | Submit artwork metadata — returns `{ otc }` (requires Bearer auth) |
+| `POST` | `/api/v1/daily/img-upload-presign` | Get a presigned upload URL — returns `{ signedUrl }` (requires Bearer auth) |
+| `PUT` | `/api/v1/daily/upload/<otc>` | Image upload target — receives raw bytes, returns `{ ok, bytes }` |
+| `GET` | `/api/v1/daily/resolve?type=<type>&rid=<rid>` | Resolve artist info from source URL (twitter/pixiv/bilibili) |
+
+**Submit request body** (`POST /api/v1/daily/submit`):
+
+```json
+{
+  "sourceUrl": "https://...",
+  "artistName": "Artist",
+  "artistUrl": "https://...",
+  "characters": [1, 2],
+  "tags": "LC0",
+  "comment": "optional",
+  "anonymous": false
+}
+```
+
+**Presign request body** (`POST /api/v1/daily/img-upload-presign`):
+
+```json
+{
+  "filename": "image.jpg",
+  "contentType": "image/jpeg",
+  "contentLength": 123456,
+  "otc": "<otc from submit>"
+}
+```
+
+**Resolve response** (`GET /api/v1/daily/resolve`):
+
+```json
+{ "name": "Mock Pixiv Artist", "link": "https://www.pixiv.net/users/12345" }
 ```
 
 ## Fixture Files
@@ -236,14 +295,16 @@ The app stores configuration in SharedPreferences file `lolidaily_prefs` under p
 
 ### Pointing the App at the Mock Server
 
-**Option A — Write SharedPreferences directly via ADB (recommended)**
+With `adb reverse tcp:50303 tcp:50303` configured (see Emulator Setup), the app's default URL `http://localhost:50303` works out of the box. The following options are for overriding or simulating specific states.
+
+**Option A — Write SharedPreferences directly via ADB**
 
 ```bash
 adb shell 'run-as me.eroi.lolidaily.muzei sh -c "cat > /data/data/me.eroi.lolidaily.muzei/shared_prefs/lolidaily_prefs.xml << EOF
 <?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\" ?>
 <map>
-    <string name=\"debug_api_base_url\">http://10.0.2.2:50303</string>
-    <string name=\"debug_bangumi_base_url\">http://10.0.2.2:50303</string>
+    <string name=\"debug_api_base_url\">http://localhost:50303</string>
+    <string name=\"debug_bangumi_base_url\">http://localhost:50303</string>
 </map>
 EOF"'
 ```
@@ -257,17 +318,15 @@ EOF"'
 adb shell 'run-as me.eroi.lolidaily.muzei cat /data/data/me.eroi.lolidaily.muzei/shared_prefs/lolidaily_prefs.xml'
 
 # Then manually edit the XML to add or change:
-#   debug_api_base_url       = http://10.0.2.2:50303
-#   debug_bangumi_base_url   = http://10.0.2.2:50303
+#   debug_api_base_url       = http://localhost:50303
+#   debug_bangumi_base_url   = http://localhost:50303
 ```
 
 **Option C — Use the in-app settings screen**
 
 1. Open the app → Settings → Additional Settings
 2. Under "API", change the LC API URL and Bangumi API URL
-3. Enter `http://10.0.2.2:50303`
-
-> `10.0.2.2` is the Android emulator's alias for the host machine. Replace with your computer's LAN IP when testing on a physical device.
+3. Enter `http://localhost:50303` (with `adb reverse`) or `http://<your-lan-ip>:50303` (physical device)
 
 ### Simulating a Logged-In State
 
@@ -275,8 +334,8 @@ adb shell 'run-as me.eroi.lolidaily.muzei cat /data/data/me.eroi.lolidaily.muzei
 adb shell 'run-as me.eroi.lolidaily.muzei sh -c "cat > /data/data/me.eroi.lolidaily.muzei/shared_prefs/lolidaily_prefs.xml << EOF
 <?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\" ?>
 <map>
-    <string name=\"debug_api_base_url\">http://10.0.2.2:50303</string>
-    <string name=\"debug_bangumi_base_url\">http://10.0.2.2:50303</string>
+    <string name=\"debug_api_base_url\">http://localhost:50303</string>
+    <string name=\"debug_bangumi_base_url\">http://localhost:50303</string>
     <string name=\"lc_session\">{\"token\":\"mock_lc_token_test\",\"expiresAt\":9999999999999}</string>
     <string name=\"bgm_username\">mock_user</string>
     <string name=\"bgm_nickname\">Mock User</string>
@@ -330,15 +389,19 @@ adb logcat -s LoliApiClient BangumiApiClient ReactionService LoliDailyWorker
 
 ## Allowing Cleartext HTTP
 
-The app blocks cleartext HTTP by default. Connecting to a local mock server (`http://10.0.2.2`) requires allowing it:
-
-- **Debug builds** — Android Studio permits cleartext to `localhost` / `10.0.2.2` by default
-- **If still blocked** — temporarily edit `app/src/main/res/xml/network_security_config.xml`:
+The app blocks cleartext HTTP by default. The debug build's `network_security_config.xml` already whitelists `localhost` and `10.0.2.2`:
 
 ```xml
-<network-security-config>
-    <base-config cleartextTrafficPermitted="true" />
-</network-security-config>
+<domain-config cleartextTrafficPermitted="true">
+    <domain includeSubdomains="false">localhost</domain>
+    <domain includeSubdomains="false">10.0.2.2</domain>
+</domain-config>
+```
+
+If you need to allow cleartext for other hosts (e.g. a LAN IP), temporarily edit `app/src/main/res/xml/network_security_config.xml`:
+
+```xml
+<base-config cleartextTrafficPermitted="true" />
 ```
 
 > ⚠️ Revert to `false` after testing. Never commit this change.

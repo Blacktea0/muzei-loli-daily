@@ -29,7 +29,7 @@ app.use((req, res, next) => {
 app.use((_req, res, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "*");
-  res.header("Access-Control-Allow-Methods", "GET, PATCH, POST, OPTIONS");
+  res.header("Access-Control-Allow-Methods", "GET, PATCH, POST, PUT, OPTIONS");
   if (_req.method === "OPTIONS") return res.sendStatus(200);
   next();
 });
@@ -133,8 +133,8 @@ app.get("/image", async (req, res) => {
 app.get("/api/v1/daily", (req, res) => {
   const fixture = readFixture("daily");
   if (fixture) {
-    // Use 10.0.2.2 for emulator access to host machine
-    const baseUrl = `http://10.0.2.2:${PORT}`;
+    // Use localhost — adb reverse forwards emulator localhost to host
+    const baseUrl = `http://localhost:${PORT}`;
     const timestamp = Date.now();
 
     fixture.cards.forEach((card, index) => {
@@ -166,6 +166,73 @@ app.get("/api/v1/daily/react", (_req, res) => {
 // PATCH /api/v1/daily/react?cardTypeIdx=...
 app.patch("/api/v1/daily/react", (req, res) => {
   res.json({ ok: true });
+});
+
+// ── Submit flow ────────────────────────────────────────────
+
+// POST /api/v1/daily/submit — submit artwork metadata, returns a one-time code
+app.post("/api/v1/daily/submit", (req, res) => {
+  const authHeader = req.headers.authorization || "";
+  if (!authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "missing or invalid authorization header" });
+  }
+  const { sourceUrl, artistName, artistUrl, characters, tags, comment, anonymous } = req.body;
+  console.log(
+    `[mock] submit: sourceUrl=${sourceUrl}, artist=${artistName}, tags=${tags}, ` +
+    `characters=${JSON.stringify(characters)}, anonymous=${anonymous}`
+  );
+  if (!sourceUrl || !artistName) {
+    return res.status(400).json({ error: "sourceUrl and artistName are required" });
+  }
+  const otc = "mock_otc_" + Math.random().toString(36).substring(2, 10);
+  res.json({ otc });
+});
+
+// POST /api/v1/daily/img-upload-presign — returns a presigned URL for image upload
+app.post("/api/v1/daily/img-upload-presign", (req, res) => {
+  const authHeader = req.headers.authorization || "";
+  if (!authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "missing or invalid authorization header" });
+  }
+  const { filename, contentType, contentLength, otc } = req.body;
+  console.log(
+    `[mock] presign: filename=${filename}, contentType=${contentType}, ` +
+    `contentLength=${contentLength}, otc=${otc}`
+  );
+  if (!otc || !filename) {
+    return res.status(400).json({ error: "otc and filename are required" });
+  }
+  // Signed URL points back to the mock server's own upload handler
+  const signedUrl = `http://localhost:${PORT}/api/v1/daily/upload/${encodeURIComponent(otc)}`;
+  res.json({ signedUrl });
+});
+
+// PUT /api/v1/daily/upload/:otc — mock image upload target (receives raw bytes)
+app.put("/api/v1/daily/upload/:otc", (req, res) => {
+  const chunks = [];
+  req.on("data", (chunk) => chunks.push(chunk));
+  req.on("end", () => {
+    const totalBytes = Buffer.concat(chunks).length;
+    console.log(`[mock] upload: otc=${req.params.otc}, bytes=${totalBytes}`);
+    res.json({ ok: true, bytes: totalBytes });
+  });
+});
+
+// GET /api/v1/daily/resolve?type=<type>&rid=<rid> — resolve artist info from source URL
+app.get("/api/v1/daily/resolve", (req, res) => {
+  const { type, rid } = req.query;
+  console.log(`[mock] resolve: type=${type}, rid=${rid}`);
+  if (!type || !rid) {
+    return res.status(400).json({ error: "type and rid are required" });
+  }
+  // Return mock artist info based on source type
+  const artists = {
+    twitter: { name: "Mock Twitter Artist", link: `https://twitter.com/${rid}` },
+    pixiv: { name: "Mock Pixiv Artist", link: `https://www.pixiv.net/users/${rid}` },
+    bilibili: { name: "Mock Bilibili Artist", link: `https://space.bilibili.com/${rid}` },
+  };
+  const artist = artists[type] || { name: null, link: null };
+  res.json(artist);
 });
 
 // GET /p1/groups/-/topics/:topicID — Bangumi group topic
