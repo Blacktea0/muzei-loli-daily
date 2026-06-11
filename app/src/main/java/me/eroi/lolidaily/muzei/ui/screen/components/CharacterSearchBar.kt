@@ -86,19 +86,19 @@ fun rememberCharacterSearchBarState(): CharacterSearchBarState {
  *
  * @param selectedCharacters already selected characters (excluded from results and history)
  * @param onCharacterSelected called when user taps a search result or history entry
+ * @param modifier modifier for the outer [ExpandedFullScreenContainedSearchBar]
  * @param recentCharacters recently selected characters shown when input is empty
  * @param onRemoveHistory called when user taps the dismiss button on a history entry
  * @param state state holder — use [rememberCharacterSearchBarState] to create
- * @param modifier modifier for the outer [ExpandedFullScreenContainedSearchBar]
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CharacterSearchBar(
     selectedCharacters: List<SlimCharacter>,
     onCharacterSelected: (SlimCharacter) -> Unit,
+    modifier: Modifier = Modifier,
     recentCharacters: List<CharacterHistoryEntity> = emptyList(),
     onRemoveHistory: (Int) -> Unit = {},
-    modifier: Modifier = Modifier,
     state: CharacterSearchBarState = rememberCharacterSearchBarState(),
 ) {
     val scope = rememberCoroutineScope()
