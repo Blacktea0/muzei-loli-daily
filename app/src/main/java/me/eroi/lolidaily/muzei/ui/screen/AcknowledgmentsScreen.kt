@@ -128,11 +128,6 @@ private val libraries = listOf(
         license = "Apache-2.0",
     ),
     ThirdPartyLibrary(
-        name = "Wavy Slider",
-        description = "Wave-style slider component",
-        license = "Apache-2.0",
-    ),
-    ThirdPartyLibrary(
         name = "Palette KTX",
         description = "Extract dominant colors from bitmaps",
         license = "Apache-2.0",

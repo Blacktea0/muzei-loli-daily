@@ -170,9 +170,6 @@ dependencies {
     // Palette — extract dominant color from bitmap
     implementation("androidx.palette:palette-ktx:1.0.0")
 
-    // Wavy Slider — wave-style progress indicator
-    implementation("ir.mahozad.multiplatform:wavy-slider:2.2.0")
-
     // Room — local database for artwork metadata persistence
     val roomVersion = "2.8.4"
     implementation("androidx.room:room-runtime:$roomVersion")
