@@ -194,7 +194,7 @@ class MainActivity : AppCompatActivity() {
                         removeBookmark(preview)
                     },
                     refreshProgress = refreshProgress,
-                    initialTab = if (fromMuzei || sharedUrl != null) 2 else 0,
+                    initialTab = if (fromMuzei) 3 else if (sharedUrl != null) 2 else 0,
                     initialSourceUrl = sharedUrl,
                     onTodayPageOpened = { loadPreview() },
                 )
