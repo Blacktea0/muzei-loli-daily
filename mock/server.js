@@ -227,7 +227,7 @@ app.get("/api/v1/daily/resolve", (req, res) => {
   }
   // Return mock artist info based on source type
   const artists = {
-    twitter: { name: "Mock Twitter Artist", link: `https://twitter.com/${rid}` },
+    twitter: { name: "Mock Twitter Artist", link: `https://x.com/${rid}` },
     pixiv: { name: "Mock Pixiv Artist", link: `https://www.pixiv.net/users/${rid}` },
     bilibili: { name: "Mock Bilibili Artist", link: `https://space.bilibili.com/${rid}` },
   };

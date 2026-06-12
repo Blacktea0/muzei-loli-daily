@@ -28,7 +28,9 @@ object PixivParser : SourceLinkParser {
     }
 
     override fun canonicalUrl(url: String): String {
-        val canonical = url.replace("://touch.pixiv.net/", "://www.pixiv.net/")
+        val canonical = url
+            .replace("://touch.pixiv.net/", "://www.pixiv.net/")
+            .replace(Regex("://www\\.pixiv\\.net/[a-z]{2}/"), "://www.pixiv.net/")
         return stripTrackingParams(canonical)
     }
 

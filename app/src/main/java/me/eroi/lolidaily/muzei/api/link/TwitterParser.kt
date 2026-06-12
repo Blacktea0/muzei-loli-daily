@@ -23,8 +23,8 @@ object TwitterParser : SourceLinkParser {
 
     override fun canonicalUrl(url: String): String {
         val canonical = url
-            .replace("://x.com/", "://twitter.com/")
-            .replace("://mobile.twitter.com/", "://twitter.com/")
+            .replace("://twitter.com/", "://x.com/")
+            .replace("://mobile.twitter.com/", "://x.com/")
         return stripTrackingParams(canonical)
     }
 

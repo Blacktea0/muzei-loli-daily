@@ -46,7 +46,7 @@ interface SourceLinkParser {
     /**
      * Converts a platform URL to its canonical desktop form.
      * Handles mobile subdomains (m.bilibili.com → www.bilibili.com),
-     * platform short links (x.com → twitter.com), and strips tracking params.
+     * platform short links (twitter.com → x.com), and strips tracking params.
      * Returns the canonical URL, or the original if no conversion is needed.
      */
     fun canonicalUrl(url: String): String = url
