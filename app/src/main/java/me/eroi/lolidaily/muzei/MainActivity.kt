@@ -95,7 +95,7 @@ class MainActivity : AppCompatActivity() {
         WorkScheduler.ensureDailyRefreshScheduled(this)
 
         // Muzei launches with an explicit Intent (no action); launcher uses ACTION_MAIN
-        val fromMuzei = intent?.action != Intent.ACTION_MAIN
+        val fromMuzei = intent?.action.let { it != Intent.ACTION_MAIN && it != Intent.ACTION_SEND }
 
         // Handle share intent: extract URL from shared text
         // Short link resolution and canonicalization happen in SubmitPage
