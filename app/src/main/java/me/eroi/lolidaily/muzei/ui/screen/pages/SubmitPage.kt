@@ -127,6 +127,7 @@ import me.eroi.lolidaily.muzei.ui.screen.components.FullscreenImageViewer
 import me.eroi.lolidaily.muzei.ui.screen.components.ImagePickerDialog
 import me.eroi.lolidaily.muzei.ui.screen.components.SubmitTipBanner
 import me.eroi.lolidaily.muzei.ui.screen.components.rememberCharacterSearchBarState
+import me.eroi.lolidaily.muzei.ui.screen.components.DomainPickerDialog
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import me.eroi.lolidaily.muzei.db.CharacterHistoryEntity
@@ -192,6 +193,8 @@ fun SubmitPage(
     isLoggedIn: Boolean,
     onLogin: () -> Unit,
     modifier: Modifier = Modifier,
+    bgmDomain: String = "chii.in",
+    onDomainChanged: (String) -> Unit = {},
     initialSourceUrl: String? = null,
     windowSizeClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
 ) {
@@ -200,6 +203,7 @@ fun SubmitPage(
     val scope = rememberCoroutineScope()
     var state by remember { mutableStateOf(SubmitFormState()) }
     var showFullscreenViewer by remember { mutableStateOf(false) }
+    var showDomainPicker by remember { mutableStateOf(false) }
     val photoPicker =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             if (uri == null) return@rememberLauncherForActivityResult
@@ -600,8 +604,19 @@ fun SubmitPage(
                         textAlign = TextAlign.Center,
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = onLogin) { Text(stringResource(R.string.action_login)) }
+                    Button(onClick = { showDomainPicker = true }) { Text(stringResource(R.string.action_login)) }
                 }
+            }
+            if (showDomainPicker) {
+                DomainPickerDialog(
+                    currentDomain = bgmDomain,
+                    onDomainSelected = { domain ->
+                        showDomainPicker = false
+                        onDomainChanged(domain)
+                        onLogin()
+                    },
+                    onDismiss = { showDomainPicker = false },
+                )
             }
             return@Scaffold
         }

@@ -222,6 +222,8 @@ fun MainScreen(
                     SubmitPage(
                         isLoggedIn = isLoggedIn,
                         onLogin = onLogin,
+                        bgmDomain = bgmDomain,
+                        onDomainChanged = onDomainChanged,
                         initialSourceUrl = initialSourceUrl,
                         windowSizeClass = windowSizeClass.widthSizeClass,
                         modifier = if (selectedTab == 2) Modifier else Modifier.size(0.dp),
@@ -365,6 +367,8 @@ fun MainScreen(
                 SubmitPage(
                     isLoggedIn = isLoggedIn,
                     onLogin = onLogin,
+                    bgmDomain = bgmDomain,
+                    onDomainChanged = onDomainChanged,
                     initialSourceUrl = initialSourceUrl,
                     windowSizeClass = windowSizeClass.widthSizeClass,
                     modifier = if (selectedTab == 2) Modifier else Modifier.size(0.dp),
