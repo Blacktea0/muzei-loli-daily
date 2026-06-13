@@ -112,11 +112,14 @@
     <!-- Update banner -->
     <string name="banner_update_available">Update available</string>
     <string name="banner_update_description">A new version (%1$s) is available. Update to get the latest features and fixes.</string>
+    <string name="action_view_update_details">View Details</string>
     <string name="action_download_update">Download Update</string>
     <string name="content_desc_check_update">Check for updates</string>
     <string name="msg_checking_update">Checking for updates…</string>
     <string name="msg_update_available_title">Update Available</string>
     <string name="msg_update_available_desc">A new version (%1$s) is available. Update to get the latest features and fixes.</string>
+    <string name="title_release_notes">Release notes</string>
+    <string name="msg_release_notes_empty">No release notes were provided for this version.</string>
     <string name="msg_up_to_date">You\'re up to date!</string>
     <string name="msg_up_to_date_desc">Current version: %1$s</string>
 

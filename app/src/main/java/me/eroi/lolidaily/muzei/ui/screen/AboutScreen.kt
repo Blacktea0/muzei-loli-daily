@@ -25,7 +25,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -245,34 +244,11 @@ fun AboutScreen(onBack: () -> Unit) {
             val result = updateResult
             if (result != null) {
                 if (result.hasUpdate) {
-                    AlertDialog(
-                        onDismissRequest = { updateState = UpdateCheckState.IDLE },
-                        icon = {
-                            Icon(
-                                Icons.Default.SystemUpdate,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                        },
-                        title = { Text(stringResource(R.string.msg_update_available_title)) },
-                        text = {
-                            Text(stringResource(R.string.msg_update_available_desc, result.latestVersion))
-                        },
-                        confirmButton = {
-                            FilledTonalButton(onClick = {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, result.downloadUrl.toUri()),
-                                )
-                                updateState = UpdateCheckState.IDLE
-                            }) {
-                                Text(stringResource(R.string.action_download_update))
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { updateState = UpdateCheckState.IDLE }) {
-                                Text(stringResource(R.string.action_cancel))
-                            }
-                        },
+                    UpdateReleaseNotesDialog(
+                        latestVersion = result.latestVersion,
+                        downloadUrl = result.downloadUrl,
+                        releaseNotes = result.releaseNotes,
+                        onDismiss = { updateState = UpdateCheckState.IDLE },
                     )
                 } else {
                     AlertDialog(

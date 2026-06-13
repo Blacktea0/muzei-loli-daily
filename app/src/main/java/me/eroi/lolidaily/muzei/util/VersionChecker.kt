@@ -20,6 +20,7 @@ object VersionChecker {
     private const val GITHUB_RELEASES_URL = "https://github.com/Blacktea0/muzei-loli-daily/releases"
     private const val CACHE_KEY_LATEST_VERSION = "cached_latest_version"
     private const val CACHE_KEY_LATEST_URL = "cached_latest_url"
+    private const val CACHE_KEY_RELEASE_NOTES = "cached_release_notes"
     private const val CACHE_KEY_TIMESTAMP = "version_check_timestamp"
     private const val CACHE_TTL_MS = 24 * 60 * 60 * 1000L // 24 hours
 
@@ -27,12 +28,14 @@ object VersionChecker {
     private data class GitHubRelease(
         val tag_name: String? = null,
         val html_url: String? = null,
+        val body: String? = null,
     )
 
     data class UpdateCheckResult(
         val hasUpdate: Boolean,
         val latestVersion: String,
         val downloadUrl: String,
+        val releaseNotes: String? = null,
     )
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -66,6 +69,7 @@ object VersionChecker {
                         hasUpdate = isNewerVersion(cachedVersion, BuildConfig.VERSION_NAME),
                         latestVersion = cachedVersion,
                         downloadUrl = prefs.getString(CACHE_KEY_LATEST_URL, null) ?: GITHUB_RELEASES_URL,
+                        releaseNotes = prefs.getString(CACHE_KEY_RELEASE_NOTES, null),
                     )
                 }
             }
@@ -76,6 +80,7 @@ object VersionChecker {
             prefs.edit {
                 putString(CACHE_KEY_LATEST_VERSION, result.latestVersion)
                 putString(CACHE_KEY_LATEST_URL, result.downloadUrl)
+                putString(CACHE_KEY_RELEASE_NOTES, result.releaseNotes)
                 putLong(CACHE_KEY_TIMESTAMP, now)
             }
 
@@ -110,6 +115,7 @@ object VersionChecker {
                     hasUpdate = isNewerVersion(versionName, BuildConfig.VERSION_NAME),
                     latestVersion = versionName,
                     downloadUrl = downloadUrl,
+                    releaseNotes = release.body?.trim()?.takeIf { it.isNotEmpty() },
                 )
             }
         } catch (e: Exception) {
@@ -142,6 +148,7 @@ object VersionChecker {
                         hasUpdate = false,
                         latestVersion = BuildConfig.VERSION_NAME,
                         downloadUrl = GITHUB_RELEASES_URL,
+                        releaseNotes = null,
                     )
                 }
 
@@ -153,6 +160,7 @@ object VersionChecker {
                     hasUpdate = isNewerVersion(versionName, BuildConfig.VERSION_NAME),
                     latestVersion = versionName,
                     downloadUrl = downloadUrl,
+                    releaseNotes = null,
                 )
             }
         } catch (e: Exception) {
@@ -161,6 +169,7 @@ object VersionChecker {
                 hasUpdate = false,
                 latestVersion = BuildConfig.VERSION_NAME,
                 downloadUrl = GITHUB_RELEASES_URL,
+                releaseNotes = null,
             )
         }
     }

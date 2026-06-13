@@ -113,6 +113,7 @@ fun SettingsPage(
                 UpdateBanner(
                     latestVersion = info.latestVersion,
                     downloadUrl = info.downloadUrl,
+                    releaseNotes = info.releaseNotes,
                     onDismiss = { updateInfo = null },
                 )
             }
