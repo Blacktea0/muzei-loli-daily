@@ -262,9 +262,9 @@
     <string name="submit_label_source">Source URL</string>
     <string name="submit_hint_source">Link to the artist\'s original post</string>
     <string name="submit_label_artist">Artist Name</string>
-    <string name="submit_hint_artist">e.g. a familiar magic user of lines and colors</string>
-    <string name="submit_label_artist_url">Artist Link</string>
-    <string name="submit_hint_artist_url">e.g. pixiv, twitter profile, or BGM character page</string>
+    <string name="submit_hint_artist">Magician of lines and colors</string>
+    <string name="submit_label_artist_url">Artist profile url</string>
+    <string name="submit_hint_artist_url">e.g. pixiv, twitter profile, or bangumi page</string>
     <string name="submit_label_characters">Characters</string>
     <string name="submit_action_add_character">Add Character</string>
     <string name="submit_label_comment">Comment</string>

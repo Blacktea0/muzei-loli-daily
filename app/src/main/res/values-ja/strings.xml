@@ -263,8 +263,8 @@
     <string name="submit_hint_source">作者のオリジナル投稿ページへのリンク</string>
     <string name="submit_label_artist">絵師名</string>
     <string name="submit_hint_artist">線と色彩の魔法使い</string>
-    <string name="submit_label_artist_url">絵師リンク</string>
-    <string name="submit_hint_artist_url">例：pixiv、twitterプロフィール、BGMキャラクターページ</string>
+    <string name="submit_label_artist_url">絵師プロフィールURL</string>
+    <string name="submit_hint_artist_url">例：pixiv、twitterプロフィール、BGM人物ページ</string>
     <string name="submit_label_characters">キャラクター</string>
     <string name="submit_action_add_character">キャラクター追加</string>
     <string name="submit_label_comment">コメント</string>
