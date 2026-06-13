@@ -9,6 +9,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -183,13 +184,18 @@ object PixivParser : SourceLinkParser {
      * Returns a list of [SourceImageVariant] (thumb + full URL pairs) for each page.
      */
     private fun parseImageUrls(json: String, sessionId: String?): List<SourceImageVariant>? {
-        // Prefer regular over original — original can exceed the 3 MB upload limit
+        // Prefer original; the submit flow compresses it only if it exceeds the upload limit.
         fun extractVariant(urls: Map<String, kotlinx.serialization.json.JsonElement>): SourceImageVariant? {
-            val full = urls["regular"]?.jsonPrimitive?.content
-                ?: urls["original"]?.jsonPrimitive?.content
+            fun urlValue(key: String): String? =
+                urls[key]
+                    ?.jsonPrimitive
+                    ?.contentOrNull
+                    ?.takeIf { it.startsWith("http://") || it.startsWith("https://") }
+            val full = urlValue("original")
+                ?: urlValue("regular")
                 ?: return null
-            val thumb = urls["small"]?.jsonPrimitive?.content
-                ?: urls["thumb_mini"]?.jsonPrimitive?.content
+            val thumb = urlValue("small")
+                ?: urlValue("thumb_mini")
                 ?: full
             return SourceImageVariant(thumb, full)
         }

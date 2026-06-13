@@ -3,6 +3,7 @@ package me.eroi.lolidaily.muzei.api
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import android.webkit.CookieManager
 import kotlinx.serialization.json.Json
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.api.link.SourceLinkParserRegistry
@@ -349,6 +350,20 @@ object LoliApiClient {
             null
         }
     }
+
+    /**
+     * Downloads a resolved source image with platform-specific request headers.
+     */
+    internal fun downloadSourceImage(context: Context, imageUrl: String): Pair<ByteArray, String>? {
+        if (!imageUrl.contains("pximg.net")) {
+            return downloadImage(imageUrl)
+        }
+        val sessionId = SessionManager.loadPixivSessionId(context)
+        val cookies = CookieManager.getInstance().getCookie(imageUrl)
+            ?: sessionId?.let { "PHPSESSID=$it" }
+        return downloadImage(imageUrl, referer = "https://www.pixiv.net/", cookie = cookies)
+    }
+
     internal fun escapeJson(s: String): String =
         s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r")
         .replace("\t", "\\t")

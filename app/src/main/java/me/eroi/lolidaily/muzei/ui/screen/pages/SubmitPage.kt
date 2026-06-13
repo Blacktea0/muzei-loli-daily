@@ -363,7 +363,7 @@ fun SubmitPage(
         val singleUrl = imageUrls?.firstOrNull()?.fullUrl
         val imageResult = if (singleUrl != null) {
             try {
-                withContext(Dispatchers.IO) { LoliApiClient.downloadImage(singleUrl) }
+                withContext(Dispatchers.IO) { LoliApiClient.downloadSourceImage(context, singleUrl) }
             } catch (_: Exception) { null }
         } else {
             // Fallback: parsers that don't implement fetchSourceImageUrls
@@ -1255,7 +1255,7 @@ fun SubmitPage(
                 state = state.copy(pendingImageVariants = null, isFetchingImage = true)
                 scope.launch(Dispatchers.IO) {
                     val imageResult = try {
-                        LoliApiClient.downloadImage(variant.fullUrl)
+                        LoliApiClient.downloadSourceImage(context, variant.fullUrl)
                     } catch (_: Exception) { null }
 
                     val finalResult = if (imageResult != null) {

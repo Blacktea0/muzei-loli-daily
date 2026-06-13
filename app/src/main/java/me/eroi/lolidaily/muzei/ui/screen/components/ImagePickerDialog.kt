@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -59,6 +60,7 @@ fun ImagePickerDialog(
 ) {
     @Suppress("DEPRECATION")
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val context = LocalContext.current
 
     // Download thumbnails in background; index-aligned with [variants]
     val thumbBytes = remember { mutableStateListOf<Pair<ByteArray, String>?>() }
@@ -67,7 +69,7 @@ fun ImagePickerDialog(
         thumbBytes.addAll(List(variants.size) { null })
         variants.forEachIndexed { index, variant ->
             val result = withContext(Dispatchers.IO) {
-                try { LoliApiClient.downloadImage(variant.thumbUrl) } catch (_: Exception) { null }
+                try { LoliApiClient.downloadSourceImage(context, variant.thumbUrl) } catch (_: Exception) { null }
             }
             if (index < thumbBytes.size) thumbBytes[index] = result
         }
