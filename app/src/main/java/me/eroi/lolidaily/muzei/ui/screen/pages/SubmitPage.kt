@@ -714,33 +714,45 @@ fun SubmitPage(
                                 }
                                 Triple(format, "${w} × ${h}", sizeStr)
                             }
-                            Row(
-                                modifier =
-                                    Modifier
-                                        .align(Alignment.BottomStart)
-                                        .padding(12.dp)
-                                        .background(
-                                            MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f),
-                                            RoundedCornerShape(8.dp),
-                                        )
-                                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            FlowRow(
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
-                                Text(
-                                    text = imageInfo.first,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.surface,
-                                )
-                                Text(
-                                    text = imageInfo.second,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.surface,
-                                )
-                                Text(
-                                    text = imageInfo.third,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.surface,
-                                )
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+                                ) {
+                                    Text(
+                                        text = imageInfo.first,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    )
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+                                ) {
+                                    Text(
+                                        text = imageInfo.second,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    )
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+                                ) {
+                                    Text(
+                                        text = imageInfo.third,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    )
+                                }
                             }
                         }
                     } else if (state.isFetchingImage) {
@@ -776,7 +788,7 @@ fun SubmitPage(
                     }
                 }
             } else {
-                // Portrait: original layout with rounded corners, aspect ratio, info outside
+                // Portrait layout with image info overlay
                 Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
                         text = stringResource(R.string.submit_image_label),
@@ -833,6 +845,66 @@ fun SubmitPage(
                                     tint = MaterialTheme.colorScheme.error,
                                 )
                             }
+                            if (state.imageBytes != null) {
+                                val imageInfo = remember(state.imageBytes) {
+                                    val bytes = state.imageBytes!!
+                                    val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+                                    val w = opts.outWidth
+                                    val h = opts.outHeight
+                                    val format = when {
+                                        state.imageMimeType.contains("png") -> "PNG"
+                                        state.imageMimeType.contains("webp") -> "WebP"
+                                        state.imageMimeType.contains("avif") -> "AVIF"
+                                        else -> "JPEG"
+                                    }
+                                    val sizeStr = when {
+                                        bytes.size >= 1_048_576 -> "%.1f MB".format(bytes.size / 1_048_576.0)
+                                        else -> "%.0f KB".format(bytes.size / 1024.0)
+                                    }
+                                    Triple(format, "${w} × ${h}", sizeStr)
+                                }
+                                FlowRow(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomStart)
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(50),
+                                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+                                    ) {
+                                        Text(
+                                            text = imageInfo.first,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        )
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(50),
+                                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+                                    ) {
+                                        Text(
+                                            text = imageInfo.second,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        )
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(50),
+                                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f),
+                                    ) {
+                                        Text(
+                                            text = imageInfo.third,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        )
+                                    }
+                                }
+                            }
                         } else if (state.isFetchingImage) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 CircularProgressIndicator(modifier = Modifier.size(40.dp))
@@ -863,48 +935,6 @@ fun SubmitPage(
                                     color = MaterialTheme.colorScheme.outline,
                                 )
                             }
-                        }
-                    }
-
-                    // Image info
-                    if (state.imageBytes != null) {
-                        val imageInfo = remember(state.imageBytes) {
-                            val bytes = state.imageBytes!!
-                            val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
-                            val w = opts.outWidth
-                            val h = opts.outHeight
-                            val format = when {
-                                state.imageMimeType.contains("png") -> "PNG"
-                                state.imageMimeType.contains("webp") -> "WebP"
-                                state.imageMimeType.contains("avif") -> "AVIF"
-                                else -> "JPEG"
-                            }
-                            val sizeStr = when {
-                                bytes.size >= 1_048_576 -> "%.1f MB".format(bytes.size / 1_048_576.0)
-                                else -> "%.0f KB".format(bytes.size / 1024.0)
-                            }
-                            Triple(format, "${w} × ${h}", sizeStr)
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        ) {
-                            Text(
-                                text = imageInfo.first,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                text = imageInfo.second,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                text = imageInfo.third,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
                         }
                     }
                 }
