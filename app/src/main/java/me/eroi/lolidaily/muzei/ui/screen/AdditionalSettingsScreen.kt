@@ -535,12 +535,15 @@ private fun LanguageCard() {
     var showDialog by remember { mutableStateOf(false) }
 
     val currentLocales = AppCompatDelegate.getApplicationLocales()
-    val currentTag = if (currentLocales.isEmpty) "" else currentLocales[0]?.language ?: ""
+    val currentTag = if (currentLocales.isEmpty) "" else currentLocales[0]?.toLanguageTag() ?: ""
     val currentLabel =
-        when (currentTag) {
-            "zh" -> stringResource(R.string.label_language_zh)
-            "ja" -> stringResource(R.string.label_language_ja)
-            "en" -> stringResource(R.string.label_language_en)
+        when {
+            currentTag.startsWith("zh-Hans") ->
+                stringResource(R.string.label_language_zh_hans)
+            currentTag.startsWith("zh-Hant") ->
+                stringResource(R.string.label_language_zh_hant)
+            currentTag == "ja" -> stringResource(R.string.label_language_ja)
+            currentTag == "en" -> stringResource(R.string.label_language_en)
             else -> stringResource(R.string.label_language_system)
         }
 

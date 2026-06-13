@@ -205,9 +205,9 @@
     <string name="title_select_api_tag">APIタグを選択</string>
 
     <!-- Debug: Refresh -->
-    <string name="section_debug_refresh">更新スケジュール</string>
-    <string name="title_refresh_time">毎日の更新時間</string>
-    <string name="title_refresh_time_gmt">更新時間（GMT+8）</string>
+    <string name="section_debug_refresh">画像の自動取得</string>
+    <string name="title_refresh_time">毎日の画像自動取得時刻</string>
+    <string name="title_refresh_time_gmt">画像自動取得時刻（GMT+8）</string>
     <string name="action_ok">OK</string>
 
     <!-- Debug: Language -->
@@ -215,7 +215,8 @@
     <string name="title_language">言語</string>
     <string name="label_language_system">システムに従う</string>
     <string name="label_language_en">English</string>
-    <string name="label_language_zh">中文</string>
+    <string name="label_language_zh_hans">简体中文</string>
+    <string name="label_language_zh_hant">繁體中文</string>
     <string name="label_language_ja">日本語</string>
 
     <!-- Debug: Privacy -->

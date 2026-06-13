@@ -77,7 +77,8 @@ fun LanguagePickerDialog(
         listOf(
             "" to stringResource(R.string.label_language_system),
             "en" to stringResource(R.string.label_language_en),
-            "zh" to stringResource(R.string.label_language_zh),
+            "zh-Hans" to stringResource(R.string.label_language_zh_hans),
+            "zh-Hant" to stringResource(R.string.label_language_zh_hant),
             "ja" to stringResource(R.string.label_language_ja),
         )
 

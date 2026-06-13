@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Loli Daily 桌布</string>
+    <string name="source_title">Loli Daily</string>
+    <string name="source_description">每日 Loli Daily 精選畫作</string>
+    <string name="share_target_label">投稿</string>
+
+    <!-- Navigation -->
+    <string name="tab_today">今日</string>
+    <string name="tab_bookmark">收藏</string>
+    <string name="tab_settings">設定</string>
+
+    <!-- Settings -->
+    <string name="title_settings">每日蘿莉 (๑• ‸ •๑)</string>
+    <string name="title_muzei_wallpaper">Muzei 桌布</string>
+    <string name="title_bangumi_account">Bangumi</string>
+    <string name="title_theme_colors">主題與配色</string>
+    <string name="status_enabled_short">已啟用</string>
+    <string name="status_not_enabled_short">未啟用</string>
+
+    <!-- Theme -->
+    <string name="label_appearance_mode">外觀模式</string>
+    <string name="label_theme_system">系統</string>
+    <string name="label_theme_light">淺色</string>
+    <string name="label_theme_dark">深色</string>
+
+    <!-- Color source -->
+    <string name="section_color_source">顏色來源</string>
+    <string name="title_color_style_preview">配色風格預覽</string>
+    <string name="label_color_source_default">預設</string>
+    <string name="label_color_source_image">畫作</string>
+    <string name="label_color_source_manual">手動</string>
+    <string name="label_hex_color">十六進位顏色</string>
+    <string name="msg_invalid_hex_color">請輸入有效的 #RRGGBB 顏色</string>
+    <string name="title_color_picker">選擇顏色</string>
+    <string name="hint_no_artwork_for_color">沒有可用於擷取顏色的畫作</string>
+    <string name="label_style_tonal_spot">色調斑點</string>
+    <string name="label_style_vibrant">鮮豔</string>
+    <string name="label_style_content">內容擷取</string>
+    <string name="label_style_fidelity">忠實還原</string>
+    <string name="label_style_expressive">表現力</string>
+    <string name="label_style_monochrome">單色</string>
+    <string name="label_style_neutral">中性</string>
+    <string name="label_style_rainbow">彩虹</string>
+    <string name="label_style_fruit_salad">水果沙拉</string>
+
+    <!-- Additional settings entry -->
+    <string name="title_debug_settings">更多設定</string>
+    <string name="label_debug_subtitle">一些有用的沒用的設定</string>
+
+    <!-- Bookmark gallery -->
+    <string name="msg_no_bookmarks">還沒有收藏的畫作。\n點選今日畫作上的收藏圖示即可儲存。</string>
+    <string name="msg_no_artwork">暫無畫作。</string>
+    <string name="label_end_of_gallery">— 收藏到底了 —</string>
+    <string name="label_unknown_artist">未知繪師</string>
+    <string name="content_desc_export_artwork">儲存</string>
+    <string name="content_desc_remove_bookmark">從收藏中移除</string>
+    <string name="btn_detail">詳情</string>
+    <string name="btn_save">儲存</string>
+    <string name="title_remove_bookmark">從收藏中移除</string>
+    <string name="msg_remove_bookmark_confirm">確定要從收藏中刪除此畫作嗎？此操作無法復原。</string>
+    <string name="action_remove">移除</string>
+    <string name="action_cancel">取消</string>
+    <string name="hint_search_bookmarks">搜尋收藏…</string>
+    <string name="label_all">全部</string>
+    <string name="content_desc_close">關閉</string>
+    <string name="content_desc_clear">清除</string>
+
+    <!-- Today gallery -->
+    <string name="msg_no_tag_artwork">今天沒有 %1$s 的畫作。\n下拉重新整理試試。</string>
+    <string name="label_suggested_by">由 %1$s 推薦</string>
+    <string name="label_suggested_by_anonymous">由某位不願透露姓名的蘿莉控推薦</string>
+    <string name="label_characters">角色</string>
+    <string name="label_source">來源</string>
+    <string name="label_artist">繪師</string>
+    <string name="content_desc_react">貼貼</string>
+    <string name="content_desc_react_active">取消貼貼</string>
+    <string name="content_desc_bookmark">收藏</string>
+    <string name="content_desc_bookmark_active">取消收藏</string>
+    <string name="content_desc_add_reaction">新增貼貼</string>
+    <string name="content_desc_more_actions">更多操作</string>
+    <string name="label_anonymous_comment">某位不願透露姓名的蘿莉控的評論</string>
+
+    <!-- Artwork detail bottom sheet -->
+    <string name="title_artwork_details">畫作詳情</string>
+    <string name="label_date">日期</string>
+    <string name="label_unknown">未知</string>
+    <string name="label_classification">分類</string>
+    <string name="label_suggested_by_title">推薦人</string>
+    <string name="label_comment">評論</string>
+    <string name="label_uploader_comment">%1$s的評論</string>
+    <string name="msg_no_comment_available">暫無評論</string>
+
+    <!-- Source status -->
+    <string name="status_muzei_not_installed">未安裝 Muzei</string>
+    <string name="label_get_play_store">前往 Play Store 取得</string>
+    <string name="status_muzei_enabled">已在 Muzei 中啟用</string>
+    <string name="label_tap_open_muzei">點選開啟 Muzei</string>
+    <string name="status_not_enabled">未啟用</string>
+    <string name="label_select_source_muzei">在 Muzei 中選擇此來源</string>
+
+    <!-- Setup banner -->
+    <string name="banner_muzei_not_installed">未安裝 Muzei</string>
+    <string name="banner_source_not_enabled">來源未啟用</string>
+    <string name="content_desc_dismiss">關閉</string>
+    <string name="msg_browse_without_muzei">不安裝 Muzei 也能瀏覽畫作。但若要將畫作設為桌布，請安裝 Muzei 並啟用此來源。</string>
+    <string name="action_install_muzei">安裝 Muzei</string>
+    <string name="action_open_muzei">開啟 Muzei</string>
+    <string name="action_dismiss">關閉</string>
+
+    <!-- Update banner -->
+    <string name="banner_update_available">有可用更新</string>
+    <string name="banner_update_description">新版本（%1$s）已可用。更新以取得最新功能和修正。</string>
+    <string name="action_download_update">下載更新</string>
+    <string name="content_desc_check_update">檢查更新</string>
+    <string name="msg_checking_update">正在檢查更新…</string>
+    <string name="msg_update_available_title">發現新版本</string>
+    <string name="msg_update_available_desc">新版本（%1$s）已可用。更新以取得最新功能和修正。</string>
+    <string name="msg_up_to_date">已是最新版本</string>
+    <string name="msg_up_to_date_desc">目前版本：%1$s</string>
+
+    <!-- Account -->
+    <string name="status_logged_in">已登入 Bangumi</string>
+    <string name="status_not_logged_in">未登入</string>
+    <string name="label_via_domain">透過 %1$s</string>
+    <string name="label_login_to_react">登入後可對圖片貼貼</string>
+    <string name="action_logout">登出</string>
+    <string name="action_login">登入</string>
+    <string name="title_choose_login_site">選擇登入站點</string>
+    <string name="action_confirm">確認</string>
+    <string name="msg_badge_update_failed">徽章更新失敗</string>
+    <string name="title_badge_picker">選擇你的許可證</string>
+    <string name="badge_q1">與蘿莉互動時，你可以接受到哪種程度？</string>
+    <string name="badge_q1_a0">牽手抱抱舉高高</string>
+    <string name="badge_q1_a1">愛的親親摸摸嘿嘿嘿</string>
+    <string name="badge_q1_a2">讓她掉小珍珠的親親摸摸嘿嘿嘿</string>
+    <string name="badge_q1_a3">嘿嘿……等下"有點"痛喔（拿出███</string>
+    <string name="badge_q2">對你來說，幼女是怎樣的存在？</string>
+    <string name="badge_q2_a0">幼女和蘿莉我都萌呀</string>
+    <string name="badge_q2_a1">我不太感興趣</string>
+    <string name="badge_q3">請問您今天要來點西瓜肚嗎？</string>
+    <string name="badge_q3_a0">hso，多來點</string>
+    <string name="badge_q3_a1">不了不了</string>
+
+    <!-- Reactions -->
+    <string name="reaction_title">貼貼</string>
+    <string name="msg_login_to_react">請先登入 Bangumi 再貼貼</string>
+    <string name="label_tap_emoji_react">點選表情貼貼</string>
+
+    <!-- Comments -->
+    <string name="label_comments">評論</string>
+    <string name="msg_no_comments_today">今天還沒有評論</string>
+
+    <!-- Tablet detail pane section labels -->
+    <string name="section_reactions">貼貼</string>
+    <string name="section_details">詳情</string>
+    <string name="btn_set_wallpaper">設定桌布</string>
+
+    <string name="label_anonymous">匿名</string>
+    <string name="time_just_now">剛剛</string>
+    <string name="time_minutes_ago">%1$d 分鐘前</string>
+    <string name="time_hours_ago">%1$d 小時前</string>
+    <string name="time_days_ago">%1$d 天前</string>
+
+    <!-- Login -->
+    <string name="msg_already_logged_in">已登入</string>
+    <string name="msg_logged_in">登入成功</string>
+    <string name="title_login_bangumi">登入 Bangumi</string>
+    <string name="msg_connecting_bangumi">正在連線到 Bangumi…</string>
+    <string name="msg_loading">載入中…</string>
+    <string name="msg_loading_artwork">正在載入圖片…</string>
+    <string name="msg_authenticating">正在驗證 Bangumi…</string>
+    <string name="msg_waiting_auth">等待授權…</string>
+    <string name="msg_processing">處理中…</string>
+    <string name="msg_redirecting">重新導向中…</string>
+    <string name="msg_login_failed">登入失敗</string>
+    <string name="content_desc_back">返回</string>
+    <string name="content_desc_refresh">重新整理</string>
+
+    <!-- Toast messages -->
+    <string name="msg_logged_out">已登出</string>
+    <string name="msg_reaction_failed">貼貼失敗 — 工作階段可能已過期</string>
+    <string name="msg_muzei_not_installed_opening">未安裝 Muzei — 正在開啟 Play Store</string>
+    <string name="msg_no_app_store">沒有可用的應用程式商店</string>
+
+    <!-- Export -->
+    <string name="msg_already_exported">已儲存到 Pictures/LoliDaily</string>
+    <string name="msg_export_file_failed">建立檔案失敗</string>
+    <string name="msg_saved_to_pictures">已儲存到 Pictures/LoliDaily</string>
+    <string name="msg_export_failed">儲存失敗：%1$s</string>
+
+    <!-- Debug: API -->
+    <string name="section_debug_api">API</string>
+    <string name="title_api_server">Loli Commons 伺服器</string>
+    <string name="label_custom">自訂</string>
+    <string name="label_server_url">伺服器 URL</string>
+
+    <string name="title_bangumi_api_server">Bangumi API 伺服器</string>
+    <string name="label_bangumi_server_url">Bangumi 伺服器 URL</string>
+
+    <string name="title_skip_cache">略過 API 快取</string>
+    <string name="desc_skip_cache">一律從 API 取得，略過快取</string>
+
+    <string name="title_override_api_tag">覆寫 API 標籤</string>
+    <string name="title_select_api_tag">選擇 API 標籤</string>
+
+    <!-- Debug: Refresh -->
+    <string name="section_debug_refresh">自動取得圖片</string>
+    <string name="title_refresh_time">每日自動取得圖片時間</string>
+    <string name="title_refresh_time_gmt">自動取得圖片時間（GMT+8）</string>
+    <string name="action_ok">確定</string>
+
+    <!-- Debug: Language -->
+    <string name="section_language">語言</string>
+    <string name="title_language">語言</string>
+    <string name="label_language_system">跟隨系統</string>
+    <string name="label_language_en">English</string>
+    <string name="label_language_zh_hans">简体中文</string>
+    <string name="label_language_zh_hant">繁體中文</string>
+    <string name="label_language_ja">日本語</string>
+
+    <!-- Debug: Privacy -->
+    <string name="section_privacy">隱私</string>
+    <string name="title_hide_recents">在最近任務中隱藏內容</string>
+
+    <!-- Muzei commands -->
+    <string name="cmd_view_source">查看來源</string>
+    <string name="cmd_view_artist">查看繪師</string>
+    <string name="cmd_force_refresh">強制重新整理</string>
+    <string name="cmd_force_refresh_desc">從 API 取得最新畫作（略過快取）</string>
+
+    <!-- Battery optimization -->
+    <string name="banner_battery_title">背景重新整理</string>
+    <string name="banner_battery_desc">如果桌布無法正常重新整理，請嘗試停用此應用的背景最佳化，並將應用固定在最近任務。</string>
+    <string name="action_battery_settings">電池設定</string>
+
+    <!-- About -->
+    <string name="title_about">關於每日蘿莉</string>
+    <string name="about_version_info">目前版本 %1$s</string>
+    <string name="about_hero_title">蘿莉共享</string>
+    <string name="about_hero_subtitle">是一個國際非營利組織，\n旨在促進蘿莉控作品的流通\n與蘿莉控之間的交流</string>
+    <string name="about_hero_tagline">世界 需要更多蘿莉 &lt;3</string>
+    <string name="about_highlight_nonprofit">國際非營利</string>
+    <string name="about_official_site">官方網站</string>
+    <string name="about_source_code">原始碼</string>
+    <string name="about_acknowledgments">致謝</string>
+    <string name="about_acknowledgments_subtitle">第三方服務與元件</string>
+    <string name="title_acknowledgments">致謝</string>
+    <string name="section_third_party_services">第三方 API 服務</string>
+    <string name="section_third_party_libraries">第三方元件</string>
+    <string name="label_license">開源授權</string>
+
+    <!-- Submit -->
+    <string name="tab_submit">投稿</string>
+    <string name="title_submit">投稿插畫</string>
+    <string name="submit_login_required">請先登入 Bangumi 以投稿插畫。</string>
+    <string name="submit_tag_label">分級</string>
+    <string name="submit_image_label">圖片 *</string>
+    <string name="submit_image_hint">點選選擇要上傳的圖片</string>
+    <string name="submit_image_formats">JPG / PNG / WebP / AVIF · 最大 3 MB</string>
+    <string name="submit_image_preview">已選圖片預覽</string>
+    <string name="submit_label_artwork_info">作品資訊</string>
+    <string name="submit_label_source">來源連結</string>
+    <string name="submit_hint_source">原作者發布頁面的連結</string>
+    <string name="submit_label_artist">繪師名</string>
+    <string name="submit_hint_artist">線條與色彩法術使用者</string>
+    <string name="submit_label_artist_url">繪師連結</string>
+    <string name="submit_hint_artist_url">例如 pixiv、twitter 首頁、bgm 人物連結</string>
+    <string name="submit_label_characters">角色</string>
+    <string name="submit_action_add_character">新增角色</string>
+    <string name="submit_label_comment">說點什麼</string>
+    <string name="submit_hint_comment">圖文是否無關，令人深思……</string>
+    <string name="submit_anonymous">不顯示投稿者</string>
+    <string name="banner_submit_tip_title">快速填入</string>
+    <string name="banner_submit_tip_description">從其他應用直接將連結分享到本應用，或將連結貼到來源連結輸入框，即可自動抓取圖片和繪師資訊。</string>
+    <string name="banner_submit_review_title">留意 Bangumi 私訊</string>
+    <string name="banner_submit_review_description">投稿完成後，請關注你的 Bangumi 私訊。如果需要調整或審核未通過，我們會透過私訊聯絡你。</string>
+    <string name="submit_guidelines_link">投稿須知</string>
+    <string name="submit_confirm_guidelines">我已閱讀並確保上傳的作品符合%1$s *</string>
+    <string name="submit_button">送出</string>
+    <string name="submit_sending">送出中……</string>
+    <string name="submit_success">心意……傳達到了呢</string>
+    <string name="submit_error_format">不支援的圖片格式</string>
+    <string name="submit_error_size">圖片超過 3MB 了，請先調整尺寸</string>
+    <string name="submit_compressed_to_webp">圖片超過 3MB，已自動轉換為 WebP 格式</string>
+    <string name="submit_error_read">讀取圖片檔案失敗</string>
+    <string name="submit_error_source_required">"來源連結"一欄為必填項目</string>
+    <string name="submit_error_artist_required">"繪師名"一欄為必填項目</string>
+    <string name="submit_error_artist_url_required">"繪師連結"一欄為必填項目</string>
+    <string name="submit_error_invalid_url">"%1$s"一欄應填寫連結</string>
+    <string name="submit_error_login">請先登入</string>
+    <string name="submit_error_generic">嘶……好像網路卡了或伺服器炸了……</string>
+    <string name="submit_resolve_failed">TwT 捕捉繪師失敗，請手動填寫名稱和連結</string>
+    <string name="submit_fetching_image">正在從來源取得圖片……</string>
+    <string name="submit_image_picker_title">選擇圖片</string>
+    <plurals name="submit_image_picker_subtitle">
+        <item quantity="other">發現 %1$d 張圖片 — 點選選擇</item>
+    </plurals>
+    <string name="submit_image_picker_item_desc">第 %1$d 張圖片</string>
+    <string name="submit_hint_character_search">搜尋角色名稱……</string>
+    <string name="action_clear_form">清空表單</string>
+    <string name="submit_clear_title">清空表單</string>
+    <string name="submit_clear_message">確定要清空所有表單內容嗎？</string>
+    <string name="submit_action_cancel">取消</string>
+
+    <!-- Third-party accounts -->
+    <string name="section_third_party_accounts">第三方帳號</string>
+    <string name="title_pixiv_account">Pixiv</string>
+    <string name="status_pixiv_logged_in">已登入 Pixiv</string>
+    <string name="label_pixiv_login_hint">登入後可抓取 R-18 圖片</string>
+    <string name="title_login_pixiv">登入 Pixiv</string>
+    <string name="msg_connecting_pixiv">正在連線到 Pixiv…</string>
+    <string name="msg_pixiv_logged_in">Pixiv 登入成功</string>
+    <string name="msg_pixiv_logged_out">已登出 Pixiv</string>
+</resources>
