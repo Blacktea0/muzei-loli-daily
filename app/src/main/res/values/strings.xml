@@ -272,6 +272,8 @@
     <string name="submit_anonymous">Submit anonymously</string>
     <string name="banner_submit_tip_title">Quick Fill</string>
     <string name="banner_submit_tip_description">Share a link from other apps directly to this app, or paste a link into the source URL field to auto-fetch the image and artist info.</string>
+    <string name="banner_submit_review_title">Check Bangumi Messages</string>
+    <string name="banner_submit_review_description">After submitting, please keep an eye on your Bangumi private messages. We may reach out if adjustments are needed or if the submission is not approved.</string>
     <string name="submit_guidelines_link">Submission Guidelines</string>
     <string name="submit_confirm_guidelines">I confirm that the uploaded work complies with the %1$s *</string>
     <string name="submit_button">Submit</string>

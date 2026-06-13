@@ -272,6 +272,8 @@
     <string name="submit_anonymous">不显示投稿者</string>
     <string name="banner_submit_tip_title">快速填入</string>
     <string name="banner_submit_tip_description">从其他应用直接将链接分享到本应用，或将链接粘贴到来源链接输入框，即可自动拉取图片和画师信息。</string>
+    <string name="banner_submit_review_title">留意 Bangumi 私信</string>
+    <string name="banner_submit_review_description">投稿完成后，请关注你的 Bangumi 私信。如果需要调整或审核未通过，我们会通过私信联系你。</string>
     <string name="submit_guidelines_link">投稿须知</string>
     <string name="submit_confirm_guidelines">我已阅读并确保上传的作品符合%1$s *</string>
     <string name="submit_button">发送</string>

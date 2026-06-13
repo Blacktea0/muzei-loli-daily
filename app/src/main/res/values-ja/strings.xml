@@ -272,6 +272,8 @@
     <string name="submit_anonymous">投稿者名を非表示</string>
     <string name="banner_submit_tip_title">クイック入力</string>
     <string name="banner_submit_tip_description">他のアプリからリンクを直接共有するか、ソースURL欄にリンクを貼り付けると、画像と絵師情報を自動取得します。</string>
+    <string name="banner_submit_review_title">Bangumiのメッセージを確認</string>
+    <string name="banner_submit_review_description">投稿後、Bangumiのダイレクトメッセージをご確認ください。修正が必要な場合や投稿が承認されない場合は、DMにてご連絡いたします。</string>
     <string name="submit_guidelines_link">投稿ガイドライン</string>
     <string name="submit_confirm_guidelines">アップロード作品が%1$sに準拠していることを確認しました *</string>
     <string name="submit_button">送信</string>

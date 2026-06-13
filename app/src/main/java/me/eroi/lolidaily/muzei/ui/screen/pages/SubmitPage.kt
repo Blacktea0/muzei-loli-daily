@@ -131,6 +131,7 @@ import me.eroi.lolidaily.muzei.ui.screen.components.DomainPickerDialog
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import me.eroi.lolidaily.muzei.db.CharacterHistoryEntity
+import me.eroi.lolidaily.muzei.ui.screen.components.SubmitReviewBanner
 import me.eroi.lolidaily.muzei.db.DatabaseProvider
 
 private const val TAG = "SubmitPage"
@@ -1238,6 +1239,7 @@ fun SubmitPage(
                 ) {
                     Column(modifier = Modifier.padding(top = 16.dp)) {
                         SubmitTipBanner(Modifier.padding(horizontal = 16.dp))
+                        SubmitReviewBanner(Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
                         FormContent(
                             modifier =
                                 Modifier
@@ -1259,6 +1261,7 @@ fun SubmitPage(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 SubmitTipBanner()
+                SubmitReviewBanner()
                 ImagePicker()
                 FormContent()
             }
