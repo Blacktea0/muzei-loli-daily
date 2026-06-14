@@ -243,7 +243,7 @@ class MainActivity : AppCompatActivity() {
             if (isLoggedIn && needsProfile) {
                 refreshAccountProfile()
             }
-            buildPreviews()
+            loadPreview()
         }
     }
 
@@ -508,18 +508,25 @@ class MainActivity : AppCompatActivity() {
 
         // Background fetch — mirrors the JS lazy-load behaviour:
         // reactions are fetched each time the gallery is opened.
-        // Gated by a 1-minute cooldown to avoid spamming the API.
+        // Gated by a 1-minute cooldown per daily batch to avoid spamming the API.
         Thread {
+            val (_, apiDate) = loadCachedDaily()
             if (!forceRefresh) {
                 val lastFetch = prefs.getLong(LoliDailyArtWorker.KEY_LAST_REACTION_FETCH, 0)
+                val lastFetchDate =
+                    prefs.getString(LoliDailyArtWorker.KEY_LAST_REACTION_FETCH_DATE, null)
                 val cooldownMs = 60 * 1000L
-                if (System.currentTimeMillis() - lastFetch < cooldownMs) {
+                val isSameDailyBatch = apiDate.isNotBlank() && lastFetchDate == apiDate
+                if (isSameDailyBatch && System.currentTimeMillis() - lastFetch < cooldownMs) {
                     return@Thread
                 }
             }
             LoliDailyArtWorker.fetchAndCacheReactions(this@MainActivity)
             prefs.edit {
                 putLong(LoliDailyArtWorker.KEY_LAST_REACTION_FETCH, System.currentTimeMillis())
+                if (apiDate.isNotBlank()) {
+                    putString(LoliDailyArtWorker.KEY_LAST_REACTION_FETCH_DATE, apiDate)
+                }
             }
             runOnUiThread { buildPreviews() }
         }
