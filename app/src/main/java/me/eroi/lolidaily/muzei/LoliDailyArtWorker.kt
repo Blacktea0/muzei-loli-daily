@@ -79,7 +79,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                     didFetchApi = true
                     cards = fetched.first
                     apiDate = fetched.second
-                    isNewDay = forceRefresh || cachedDate == null || cachedDate != apiDate
+                    isNewDay = cachedDate == null || cachedDate != apiDate
                     syncCardsToDisk(cards, apiDate, forceRefresh, isNewDay)
                 }
             }
@@ -385,14 +385,6 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
         if (currentTokens == newTokens) {
             Log.d(TAG, "Artwork tokens unchanged — skipping setArtwork() (no notification)")
-            if (isNewDay) {
-                applicationContext.sendBroadcast(
-                    Intent("com.google.android.apps.muzei.action.NEXT_ARTWORK").apply {
-                        setPackage("net.nurik.roman.muzei")
-                    },
-                )
-                Log.d(TAG, "New day — advancing Muzei rotation")
-            }
             return
         }
 
