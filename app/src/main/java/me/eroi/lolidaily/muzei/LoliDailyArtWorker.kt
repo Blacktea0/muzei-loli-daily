@@ -505,7 +505,9 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
             context: Context,
             cardIndex: Int,
             emojiValue: Int,
-        ) = ReactionService.patchReaction(context, cardIndex, emojiValue)
+            token: String,
+            nextEmoji: Int?,
+        ) = ReactionService.patchReaction(context, cardIndex, emojiValue, token, nextEmoji)
 
         fun loadSession(context: Context): Session? = SessionManager.loadSession(context)
 

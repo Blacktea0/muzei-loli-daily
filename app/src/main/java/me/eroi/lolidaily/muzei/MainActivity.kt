@@ -33,6 +33,7 @@ import me.eroi.lolidaily.muzei.worker.WorkScheduler
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyResponse
+import me.eroi.lolidaily.muzei.model.ReactionCount
 import me.eroi.lolidaily.muzei.ui.screen.KEY_HIDE_RECENTS_CONTENT
 import me.eroi.lolidaily.muzei.ui.screen.MainScreen
 import me.eroi.lolidaily.muzei.ui.theme.ColorSource
@@ -72,6 +73,7 @@ class MainActivity : AppCompatActivity() {
     private var manualColorArgb by mutableIntStateOf(0xFFF09199.toInt())
     private var extractedArgb by mutableStateOf<Int?>(null)
     private var refreshProgress by mutableStateOf<Float?>(null)
+    private var pendingReactionTokens = emptySet<String>()
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -252,13 +254,33 @@ class MainActivity : AppCompatActivity() {
         emojiValue: Int,
     ) {
         val cardIndex = LoliDailyArtWorker.getCardIndex(this, token) ?: return
+        if (token in pendingReactionTokens) return
+
+        val previousTodayPreviews = todayPreviews
+        val previousBookmarkPreviews = bookmarkPreviews
+        val optimisticReaction = applyOptimisticReaction(token, emojiValue) ?: return
+
+        pendingReactionTokens += token
         Thread {
-            val ok = LoliDailyArtWorker.patchReaction(this, cardIndex, emojiValue)
+            val ok =
+                LoliDailyArtWorker.patchReaction(
+                    this,
+                    cardIndex,
+                    emojiValue,
+                    token,
+                    optimisticReaction.nextEmoji,
+                )
             if (ok) {
                 LoliDailyArtWorker.fetchAndCacheReactions(this)
-                runOnUiThread { buildPreviews() }
+                runOnUiThread {
+                    pendingReactionTokens -= token
+                    buildPreviews()
+                }
             } else {
                 runOnUiThread {
+                    pendingReactionTokens -= token
+                    todayPreviews = previousTodayPreviews
+                    bookmarkPreviews = previousBookmarkPreviews
                     Toast.makeText(
                         this,
                         getString(R.string.msg_reaction_failed),
@@ -270,6 +292,89 @@ class MainActivity : AppCompatActivity() {
         }
             .start()
     }
+
+    private fun applyOptimisticReaction(
+        token: String,
+        emojiValue: Int,
+    ): OptimisticReaction? {
+        val currentPreview =
+            todayPreviews.firstOrNull { it.filename.substringBeforeLast('.') == token }
+                ?: bookmarkPreviews.firstOrNull { it.filename.substringBeforeLast('.') == token }
+                ?: return null
+        val previousEmoji = currentPreview.userEmoji
+        val nextEmoji = if (previousEmoji == emojiValue) null else emojiValue
+
+        todayPreviews = todayPreviews.withOptimisticReaction(token, previousEmoji, nextEmoji)
+        bookmarkPreviews = bookmarkPreviews.withOptimisticReaction(token, previousEmoji, nextEmoji)
+        return OptimisticReaction(nextEmoji)
+    }
+
+    private data class OptimisticReaction(val nextEmoji: Int?)
+
+    private fun List<ArtworkPreview>.withOptimisticReaction(
+        token: String,
+        previousEmoji: Int?,
+        nextEmoji: Int?,
+    ): List<ArtworkPreview> =
+        map { preview ->
+            if (preview.filename.substringBeforeLast('.') != token) {
+                preview
+            } else {
+                preview.copy(
+                    reactions = preview.reactions.withOptimisticReactionCount(previousEmoji, nextEmoji),
+                    userEmoji = nextEmoji,
+                )
+            }
+        }
+
+    private fun List<ReactionCount>.withOptimisticReactionCount(
+        previousEmoji: Int?,
+        nextEmoji: Int?,
+    ): List<ReactionCount> {
+        val currentUser = bgmNickname ?: bgmUsername
+        val counts = associateBy { it.emojiValue }.toMutableMap()
+
+        if (previousEmoji != null) {
+            val previous = counts[previousEmoji]
+            if (previous != null) {
+                val nextCount = previous.count - 1
+                if (nextCount > 0) {
+                    counts[previousEmoji] =
+                        previous.copy(
+                            count = nextCount,
+                            users = previous.users.withoutCurrentUser(currentUser),
+                        )
+                } else {
+                    counts.remove(previousEmoji)
+                }
+            }
+        }
+
+        if (nextEmoji != null) {
+            val next = counts[nextEmoji]
+            counts[nextEmoji] =
+                if (next != null) {
+                    next.copy(
+                        count = next.count + 1,
+                        users = next.users.withCurrentUser(currentUser),
+                    )
+                } else {
+                    ReactionCount(
+                        emojiValue = nextEmoji,
+                        count = 1,
+                        users = currentUser?.let { listOf(it) } ?: emptyList(),
+                    )
+                }
+        }
+
+        return counts.values.sortedByDescending { it.count }
+    }
+
+    private fun List<String>.withCurrentUser(currentUser: String?): List<String> =
+        if (currentUser.isNullOrBlank() || currentUser in this) this else this + currentUser
+
+    private fun List<String>.withoutCurrentUser(currentUser: String?): List<String> =
+        if (currentUser.isNullOrBlank()) this else filterNot { it == currentUser }
 
     private fun loadState() {
         val enabledTags = prefs.getStringSet(LoliDailyArtWorker.KEY_ENABLED_TAGS, null)

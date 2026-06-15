@@ -230,6 +230,8 @@ object ReactionService {
         context: Context,
         cardIndex: Int,
         emojiValue: Int,
+        token: String,
+        nextEmoji: Int?,
     ): Boolean {
         val session = SessionManager.loadSession(context) ?: return false
         val body = "{\"react\":$emojiValue}".toRequestBody("application/json".toMediaType())
@@ -264,10 +266,11 @@ object ReactionService {
                     } else {
                         mutableMapOf()
                     }
-                val cacheFile = File(context.filesDir, "api_cache.json")
-                val daily = json.decodeFromString<DailyResponse>(cacheFile.readText())
-                val token = Md5.hash(daily.cards[cardIndex].imgUrl)
-                map[token] = emojiValue
+                if (nextEmoji != null) {
+                    map[token] = nextEmoji
+                } else {
+                    map.remove(token)
+                }
                 prefs
                     .edit {
                         putString(
