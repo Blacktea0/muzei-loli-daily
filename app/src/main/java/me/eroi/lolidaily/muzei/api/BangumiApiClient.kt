@@ -121,7 +121,7 @@ object BangumiApiClient {
      */
     fun searchCharacters(keyword: String): CharacterSearchPage {
         val raw = searchChiiAi(keyword) ?: return CharacterSearchPage(emptyList(), null, 0)
-        val characters = fetchCharacterImages(raw.celebrities)
+        val characters = raw.celebrities.toSlimCharacters()
         return CharacterSearchPage(characters, raw.scrollId, raw.total)
     }
 
@@ -130,7 +130,7 @@ object BangumiApiClient {
      */
     fun searchCharactersNextPage(scrollId: String): CharacterSearchPage {
         val raw = scrollChiiAi(scrollId) ?: return CharacterSearchPage(emptyList(), null, 0)
-        val characters = fetchCharacterImages(raw.celebrities)
+        val characters = raw.celebrities.toSlimCharacters()
         return CharacterSearchPage(characters, raw.scrollId, raw.total)
     }
 
@@ -187,15 +187,14 @@ object BangumiApiClient {
 
     private data class CharacterDetail(val name: String, val nameCN: String, val images: SlimCharacterImages?)
 
-    private fun fetchCharacterImages(celebrities: List<ChiiCelebrity>): List<SlimCharacter> {
-        return celebrities.map { celeb ->
+    private fun List<ChiiCelebrity>.toSlimCharacters(): List<SlimCharacter> {
+        return map { celeb ->
             val charId = celeb.id.substringAfter("character_").toIntOrNull() ?: return@map null
-            val detail = fetchCharacterDetail(charId)
             SlimCharacter(
                 id = charId,
-                name = detail?.name?.ifBlank { celeb.name } ?: celeb.name,
-                nameCN = detail?.nameCN?.ifBlank { celeb.alias.firstOrNull() ?: "" } ?: (celeb.alias.firstOrNull() ?: ""),
-                images = detail?.images,
+                name = celeb.name,
+                nameCN = celeb.alias.firstOrNull().orEmpty(),
+                images = null,
             )
         }.filterNotNull()
     }
