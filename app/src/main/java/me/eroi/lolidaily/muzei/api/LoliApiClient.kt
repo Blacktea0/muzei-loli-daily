@@ -242,35 +242,43 @@ object LoliApiClient {
         imageBytes: ByteArray,
         token: String,
     ): Result<Unit> {
-        // Step 1: Get presigned URL
-        val presignUrl = "${getApiBaseUrl(context)}/api/v1/daily/img-upload-presign"
-        val presignBody =
-            """{"filename":"${escapeJson(fileName)}","contentType":"${escapeJson(contentType)}",""" +
-                """"contentLength":$contentLength,"otc":"${escapeJson(otc)}"}"""
-        val presignRequest =
-            Request.Builder()
-                .url(presignUrl)
-                .header("User-Agent", USER_AGENT)
-                .header("Authorization", "Bearer $token")
-                .post(presignBody.toRequestBody("application/json".toMediaType()))
-                .build()
-        val presignResponse = httpClient.newCall(presignRequest).execute()
-        val presignBodyStr = presignResponse.body?.string() ?: ""
-        if (!presignResponse.isSuccessful) {
-            Log.w(TAG, "presign returned ${presignResponse.code}: $presignBodyStr")
-            return Result.failure(Exception("上传请求被拒绝"))
-        }
-        val signedUrl = json.decodeFromString<PresignResponse>(presignBodyStr).signedUrl
+        return try {
+            // Step 1: Get presigned URL
+            val presignUrl = "${getApiBaseUrl(context)}/api/v1/daily/img-upload-presign"
+            val presignBody =
+                """{"filename":"${escapeJson(fileName)}","contentType":"${escapeJson(contentType)}",""" +
+                    """"contentLength":$contentLength,"otc":"${escapeJson(otc)}"}"""
+            val presignRequest =
+                Request.Builder()
+                    .url(presignUrl)
+                    .header("User-Agent", USER_AGENT)
+                    .header("Authorization", "Bearer $token")
+                    .post(presignBody.toRequestBody("application/json".toMediaType()))
+                    .build()
+            val signedUrl =
+                httpClient.newCall(presignRequest).execute().use { response ->
+                    val responseBody = response.body?.string() ?: ""
+                    if (!response.isSuccessful) {
+                        Log.w(TAG, "presign returned ${response.code}: $responseBody")
+                        return Result.failure(Exception("上传请求被拒绝"))
+                    }
+                    json.decodeFromString<PresignResponse>(responseBody).signedUrl
+                }
 
-        // Step 2: PUT image to signed URL
-        val putBody = imageBytes.toRequestBody(contentType.toMediaType())
-        val putRequest = Request.Builder().url(signedUrl).put(putBody).build()
-        val putResponse = httpClient.newCall(putRequest).execute()
-        if (!putResponse.isSuccessful) {
-            Log.w(TAG, "image PUT returned ${putResponse.code}")
-            return Result.failure(Exception("上传失败"))
+            // Step 2: PUT image to signed URL
+            val putBody = imageBytes.toRequestBody(contentType.toMediaType())
+            val putRequest = Request.Builder().url(signedUrl).put(putBody).build()
+            httpClient.newCall(putRequest).execute().use { response ->
+                if (!response.isSuccessful) {
+                    Log.w(TAG, "image PUT returned ${response.code}")
+                    return Result.failure(Exception("上传失败"))
+                }
+            }
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to upload daily image", e)
+            Result.failure(e)
         }
-        return Result.success(Unit)
     }
 
     /**
