@@ -290,6 +290,7 @@
     <string name="submit_error_source_required">"ソースURL"は必須項目です</string>
     <string name="submit_error_artist_required">"絵師名"は必須項目です</string>
     <string name="submit_error_artist_url_required">"絵師リンク"は必須項目です</string>
+    <string name="submit_error_tag_required">分類を選択してください</string>
     <string name="submit_error_invalid_url">"%1$s"には有効なURLを入力してください</string>
     <string name="submit_error_login">先にログインしてください</string>
     <string name="submit_error_generic">何かがうまくいきませんでした…</string>

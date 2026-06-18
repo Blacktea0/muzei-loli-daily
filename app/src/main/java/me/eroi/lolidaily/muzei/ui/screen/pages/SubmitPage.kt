@@ -168,7 +168,7 @@ private data class SubmitFormState(
     val artistUrl: String = "",
     val selectedCharacters: List<SlimCharacter> = emptyList(),
     val comment: String = "",
-    val selectedTag: String = "LC0",
+    val selectedTag: String = "",
     val anonymous: Boolean = false,
     val confirmGuidelines: Boolean = false,
     val fetchedSourceUrl: String = "",
@@ -437,6 +437,10 @@ fun SubmitPage(
             state = state.copy(statusMessage = res.getString(R.string.submit_error_artist_url_required), isError = true)
             return
         }
+        if (s.selectedTag.isBlank()) {
+            state = state.copy(statusMessage = res.getString(R.string.submit_error_tag_required), isError = true)
+            return
+        }
         // Validate URLs
         try { java.net.URI(s.sourceUrl) } catch (_: Exception) {
             state = state.copy(statusMessage = res.getString(R.string.submit_error_invalid_url, res.getString(R.string.submit_label_source)), isError = true)
@@ -628,7 +632,7 @@ fun SubmitPage(
         fun TagSelector() {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = stringResource(R.string.submit_tag_label),
+                    text = "${stringResource(R.string.submit_tag_label)} *",
                     style = MaterialTheme.typography.labelLarge,
                 )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1165,7 +1169,7 @@ fun SubmitPage(
                 Button(
                     onClick = { doSubmit() },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
-                    enabled = !state.isSubmitting && state.confirmGuidelines,
+                    enabled = !state.isSubmitting && state.confirmGuidelines && state.selectedTag.isNotBlank(),
                 ) {
                     if (state.isSubmitting) {
                         CircularProgressIndicator(
