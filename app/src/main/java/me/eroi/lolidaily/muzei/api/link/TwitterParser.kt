@@ -21,11 +21,40 @@ object TwitterParser : SourceLinkParser {
         return SourceMatch(type, m.groupValues[1])
     }
 
+    private val I_STATUS_RE = Regex("^(https?://(?:www\\.)?(?:x|twitter)\\.com/)i(/status/\\d+)")
+
     override fun canonicalUrl(url: String): String {
-        val canonical = url
+        var canonical = url
             .replace("://twitter.com/", "://x.com/")
             .replace("://mobile.twitter.com/", "://x.com/")
-        return stripTrackingParams(canonical)
+        canonical = stripTrackingParams(canonical)
+        // Resolve /i/status/ID → /<screenName>/status/ID via vxtwitter API
+        val im = I_STATUS_RE.find(canonical)
+        if (im != null) {
+            resolveScreenName(canonical)?.let { screenName ->
+                return im.groupValues[1] + screenName + im.groupValues[2]
+            }
+        }
+        return canonical
+    }
+
+    /**
+     * Calls the vxtwitter API to get the tweet author's screen name.
+     * Returns the screen name (e.g. "AKEndfieldJP"), or null on failure.
+     */
+    private fun resolveScreenName(url: String): String? {
+        return try {
+            val apiUrl = "https://api.vxtwitter.com/" + url.substringAfter("x.com/")
+            val request = Request.Builder().url(apiUrl).header("User-Agent", LoliApiClient.USER_AGENT).build()
+            val response = LoliApiClient.httpClient.newCall(request).execute()
+            if (!response.isSuccessful) return null
+            val body = response.body?.string() ?: return null
+            val root = LoliApiClient.json.parseToJsonElement(body).jsonObject
+            root["user_screen_name"]?.jsonPrimitive?.content
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to resolve screen name", e)
+            null
+        }
     }
 
     override suspend fun fetchSourceImage(context: Context, url: String): Pair<ByteArray, String>? {
