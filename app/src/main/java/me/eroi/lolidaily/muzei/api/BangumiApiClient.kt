@@ -188,15 +188,67 @@ object BangumiApiClient {
     private data class CharacterDetail(val name: String, val nameCN: String, val images: SlimCharacterImages?)
 
     private fun List<ChiiCelebrity>.toSlimCharacters(): List<SlimCharacter> {
-        return map { celeb ->
-            val charId = celeb.id.substringAfter("character_").toIntOrNull() ?: return@map null
+        val candidates = mapNotNull { celeb ->
+            val charId = celeb.id.substringAfter("character_").toIntOrNull() ?: return@mapNotNull null
             SlimCharacter(
                 id = charId,
                 name = celeb.name,
                 nameCN = celeb.alias.firstOrNull().orEmpty(),
                 images = null,
             )
-        }.filterNotNull()
+        }
+        if (candidates.isEmpty()) return emptyList()
+
+        val imagesMap = fetchCharactersImages(candidates.map { it.id })
+        return candidates.map { char ->
+            char.copy(images = imagesMap[char.id])
+        }
+    }
+
+    private fun fetchCharactersImages(ids: List<Int>): Map<Int, SlimCharacterImages> {
+        if (ids.isEmpty()) return emptyMap()
+
+        val queryBuilder = StringBuilder()
+        queryBuilder.append("query GetBangumiCharacters {")
+        for (id in ids) {
+            queryBuilder.append(" c_$id: queryBangumiCharacter(id: $id) { id images { large medium small } }")
+        }
+        queryBuilder.append(" }")
+
+        val escapedQuery = LoliApiClient.escapeJson(queryBuilder.toString())
+        val bodyStr = """{"query":"$escapedQuery"}"""
+        val body = bodyStr.toRequestBody("application/json".toMediaType())
+        val request = Request.Builder()
+            .url(CHII_AI_GRAPHQL_URL)
+            .header("User-Agent", "LoliDaily/1.0 (Android)")
+            .post(body)
+            .build()
+
+        return try {
+            val response = LoliApiClient.httpClient.newCall(request).execute()
+            val responseBody = response.body?.string() ?: return emptyMap()
+            if (!response.isSuccessful) return emptyMap()
+            val json = LoliApiClient.json.parseToJsonElement(responseBody).jsonObject
+            val data = json["data"]?.jsonObject ?: return emptyMap()
+            val result = mutableMapOf<Int, SlimCharacterImages>()
+            for (id in ids) {
+                val key = "c_$id"
+                val charObj = data[key] as? JsonObject ?: continue
+                val imagesObj = charObj["images"] as? JsonObject
+                if (imagesObj != null) {
+                    result[id] = SlimCharacterImages(
+                        large = imagesObj["large"]?.jsonPrimitive?.contentOrNull ?: "",
+                        medium = imagesObj["medium"]?.jsonPrimitive?.contentOrNull ?: "",
+                        small = imagesObj["small"]?.jsonPrimitive?.contentOrNull ?: "",
+                        grid = "",
+                    )
+                }
+            }
+            result
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to fetch character images in batch", e)
+            emptyMap()
+        }
     }
 
     private const val GET_BANGUMI_CHARACTER_QUERY =
