@@ -1,5 +1,7 @@
 package me.eroi.lolidaily.muzei.ui.screen.pages
 
+import android.content.Intent
+import androidx.core.net.toUri
 import android.graphics.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -90,9 +92,15 @@ fun AccountSheet(
 
             if (isLoggedIn && !lcBadge.isNullOrBlank()) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                val context = LocalContext.current
                 LcBadgeImage(
                     badge = lcBadge,
-                    onClick = { showBadgePicker = true },
+                    onClick = {
+                        if (bgmUsername != null) {
+                            val url = "https://$bgmDomain/user/$bgmUsername"
+                            context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+                        }
+                    },
                 )
             }
         }
