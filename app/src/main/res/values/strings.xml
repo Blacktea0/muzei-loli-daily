@@ -291,6 +291,8 @@
     <string name="submit_error_artist_required">\"Artist Name\" is required</string>
     <string name="submit_error_artist_url_required">\"Artist Link\" is required</string>
     <string name="submit_error_tag_required">Please select a classification</string>
+    <string name="submit_error_image_required">Please select or download an image</string>
+    <string name="submit_error_guidelines_required">Please confirm that the uploaded work complies with the guidelines</string>
     <string name="submit_error_invalid_url">\"%1$s\" should be a valid URL</string>
     <string name="submit_error_login">Please log in first</string>
     <string name="submit_error_generic">Something went wrong…</string>

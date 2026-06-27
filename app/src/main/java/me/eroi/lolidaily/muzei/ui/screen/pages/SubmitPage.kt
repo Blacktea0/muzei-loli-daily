@@ -14,6 +14,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,6 +58,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExpandedFullScreenContainedSearchBar
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -84,6 +86,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -204,6 +208,11 @@ fun SubmitPage(
     val scope = rememberCoroutineScope()
     var state by remember { mutableStateOf(SubmitFormState()) }
     var showFullscreenViewer by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+    val tagFocusRequester = remember { FocusRequester() }
+    val sourceUrlFocusRequester = remember { FocusRequester() }
+    val artistNameFocusRequester = remember { FocusRequester() }
+    val artistUrlFocusRequester = remember { FocusRequester() }
     var showDomainPicker by remember { mutableStateOf(false) }
     val photoPicker =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -425,31 +434,43 @@ fun SubmitPage(
         val s = state
         state = state.copy(validationAttempted = true)
         if (s.imageBytes == null) {
-            return
-        }
-        if (s.sourceUrl.isBlank()) {
-            state = state.copy(statusMessage = res.getString(R.string.submit_error_source_required), isError = true)
-            return
-        }
-        if (s.artistName.isBlank()) {
-            state = state.copy(statusMessage = res.getString(R.string.submit_error_artist_required), isError = true)
-            return
-        }
-        if (s.artistUrl.isBlank()) {
-            state = state.copy(statusMessage = res.getString(R.string.submit_error_artist_url_required), isError = true)
+            state = state.copy(statusMessage = res.getString(R.string.submit_error_image_required), isError = true)
+            scope.launch { scrollState.animateScrollTo(0) }
             return
         }
         if (s.selectedTag.isBlank()) {
             state = state.copy(statusMessage = res.getString(R.string.submit_error_tag_required), isError = true)
+            try { tagFocusRequester.requestFocus() } catch (_: Exception) {}
+            return
+        }
+        if (s.sourceUrl.isBlank()) {
+            state = state.copy(statusMessage = res.getString(R.string.submit_error_source_required), isError = true)
+            try { sourceUrlFocusRequester.requestFocus() } catch (_: Exception) {}
+            return
+        }
+        if (s.artistName.isBlank()) {
+            state = state.copy(statusMessage = res.getString(R.string.submit_error_artist_required), isError = true)
+            try { artistNameFocusRequester.requestFocus() } catch (_: Exception) {}
+            return
+        }
+        if (s.artistUrl.isBlank()) {
+            state = state.copy(statusMessage = res.getString(R.string.submit_error_artist_url_required), isError = true)
+            try { artistUrlFocusRequester.requestFocus() } catch (_: Exception) {}
             return
         }
         // Validate URLs
-        try { java.net.URI(s.sourceUrl) } catch (_: Exception) {
+        try {
+            java.net.URI(s.sourceUrl)
+        } catch (_: Exception) {
             state = state.copy(statusMessage = res.getString(R.string.submit_error_invalid_url, res.getString(R.string.submit_label_source)), isError = true)
+            try { sourceUrlFocusRequester.requestFocus() } catch (_: Exception) {}
             return
         }
-        try { java.net.URI(s.artistUrl) } catch (_: Exception) {
+        try {
+            java.net.URI(s.artistUrl)
+        } catch (_: Exception) {
             state = state.copy(statusMessage = res.getString(R.string.submit_error_invalid_url, res.getString(R.string.submit_label_artist_url)), isError = true)
+            try { artistUrlFocusRequester.requestFocus() } catch (_: Exception) {}
             return
         }
         // Character IDs from selected characters
@@ -632,17 +653,38 @@ fun SubmitPage(
         // Shared composables for image picker area
         @Composable
         fun TagSelector() {
+            val isError = state.validationAttempted && state.selectedTag.isBlank()
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     text = "${stringResource(R.string.submit_tag_label)} *",
                     style = MaterialTheme.typography.labelLarge,
+                    color = if (isError) MaterialTheme.colorScheme.error else Color.Unspecified,
                 )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("LC0", "LC YJ", "LC ES").forEach { tag ->
+                    listOf("LC0", "LC YJ", "LC ES").forEachIndexed { index, tag ->
                         FilterChip(
                             selected = state.selectedTag == tag,
-                            onClick = { state = state.copy(selectedTag = tag) },
+                            onClick = { state = state.copy(selectedTag = tag, statusMessage = null) },
                             label = { Text(tag) },
+                            modifier = if (index == 0) Modifier.focusRequester(tagFocusRequester).focusable() else Modifier,
+                            colors = if (isError) {
+                                FilterChipDefaults.filterChipColors(
+                                    labelColor = MaterialTheme.colorScheme.error,
+                                    iconColor = MaterialTheme.colorScheme.error,
+                                )
+                            } else {
+                                FilterChipDefaults.filterChipColors()
+                            },
+                            border = if (isError) {
+                                FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = false,
+                                    borderColor = MaterialTheme.colorScheme.error,
+                                    borderWidth = 1.5.dp,
+                                )
+                            } else {
+                                FilterChipDefaults.filterChipBorder(enabled = true, selected = state.selectedTag == tag)
+                            },
                             leadingIcon =
                                 if (state.selectedTag == tag) {
                                     { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
@@ -691,6 +733,7 @@ fun SubmitPage(
                                         imageBytes = null,
                                         imageName = "",
                                         imageMimeType = "",
+                                        statusMessage = null,
                                     )
                             },
                             modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
@@ -842,6 +885,7 @@ fun SubmitPage(
                                             imageBytes = null,
                                             imageName = "",
                                             imageMimeType = "",
+                                            statusMessage = null,
                                         )
                                 },
                                 modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
@@ -960,7 +1004,7 @@ fun SubmitPage(
                 )
                 OutlinedTextField(
                     value = state.sourceUrl,
-                    onValueChange = { state = state.copy(sourceUrl = it) },
+                    onValueChange = { state = state.copy(sourceUrl = it, statusMessage = null) },
                     leadingIcon = { Icon(Icons.Filled.Link, contentDescription = null) },
                     label = {
                         Text(
@@ -972,12 +1016,12 @@ fun SubmitPage(
                     singleLine = true,
                     isError = state.validationAttempted && state.sourceUrl.isBlank(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next, keyboardType = KeyboardType.Uri),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().focusRequester(sourceUrlFocusRequester),
                     enabled = !state.isSubmitting,
                 )
                 OutlinedTextField(
                     value = state.artistName,
-                    onValueChange = { state = state.copy(artistName = it) },
+                    onValueChange = { state = state.copy(artistName = it, statusMessage = null) },
                     leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
                     label = {
                         Text(
@@ -989,12 +1033,12 @@ fun SubmitPage(
                     singleLine = true,
                     isError = state.validationAttempted && state.artistName.isBlank(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().focusRequester(artistNameFocusRequester),
                     enabled = !state.isSubmitting,
                 )
                 OutlinedTextField(
                     value = state.artistUrl,
-                    onValueChange = { state = state.copy(artistUrl = it) },
+                    onValueChange = { state = state.copy(artistUrl = it, statusMessage = null) },
                     leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
                     label = {
                         Text(
@@ -1006,7 +1050,7 @@ fun SubmitPage(
                     singleLine = true,
                     isError = state.validationAttempted && state.artistUrl.isBlank(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next, keyboardType = KeyboardType.Uri),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().focusRequester(artistUrlFocusRequester),
                     enabled = !state.isSubmitting,
                 )
 
@@ -1076,7 +1120,7 @@ fun SubmitPage(
                 )
                 OutlinedTextField(
                     value = state.comment,
-                    onValueChange = { state = state.copy(comment = it) },
+                    onValueChange = { state = state.copy(comment = it, statusMessage = null) },
                     leadingIcon = { Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = null) },
                     placeholder = { Text(stringResource(R.string.submit_hint_comment)) },
                     singleLine = true,
@@ -1171,7 +1215,7 @@ fun SubmitPage(
                 Button(
                     onClick = { doSubmit() },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
-                    enabled = !state.isSubmitting && state.confirmGuidelines && state.selectedTag.isNotBlank(),
+                    enabled = !state.isSubmitting && state.confirmGuidelines,
                 ) {
                     if (state.isSubmitting) {
                         CircularProgressIndicator(
@@ -1250,7 +1294,7 @@ fun SubmitPage(
                             modifier =
                                 Modifier
                                     .weight(1f)
-                                    .verticalScroll(rememberScrollState())
+                                    .verticalScroll(scrollState)
                                     .padding(horizontal = 16.dp),
                         )
                     }
@@ -1262,7 +1306,7 @@ fun SubmitPage(
                 modifier =
                     Modifier.fillMaxSize()
                         .padding(padding)
-                        .verticalScroll(rememberScrollState())
+                        .verticalScroll(scrollState)
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {

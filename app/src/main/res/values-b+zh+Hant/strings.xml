@@ -291,6 +291,8 @@
     <string name="submit_error_artist_required">"繪師名"一欄為必填項目</string>
     <string name="submit_error_artist_url_required">"繪師連結"一欄為必填項目</string>
     <string name="submit_error_tag_required">請選擇一個分級</string>
+    <string name="submit_error_image_required">請選擇或下載一張圖片</string>
+    <string name="submit_error_guidelines_required">請確認上傳的作品符合投稿須知</string>
     <string name="submit_error_invalid_url">"%1$s"一欄應填寫連結</string>
     <string name="submit_error_login">請先登入</string>
     <string name="submit_error_generic">嘶……好像網路卡了或伺服器炸了……</string>
