@@ -80,7 +80,19 @@ fun stripTrackingParams(url: String): String {
  */
 fun extractUrl(text: String): String? {
     val m = URL_PATTERN.find(text) ?: return null
-    return m.value
+    val url = m.value
+
+    // Handle Twitter/X share links: replace "/i/status/" with the actual username if found in text
+    val twitterIStatusRegex = Regex("^https?://(?:www\\.|mobile\\.)?(?:x|twitter)\\.com/i/status/\\d+")
+    if (twitterIStatusRegex.containsMatchIn(url)) {
+        val usernameRegex = Regex("\\(@([a-zA-Z0-9_]{1,15})\\)")
+        val usernameMatch = usernameRegex.find(text)
+        if (usernameMatch != null) {
+            val username = usernameMatch.groupValues[1]
+            return url.replace("/i/status/", "/$username/status/")
+        }
+    }
+    return url
 }
 
 /**

@@ -310,7 +310,9 @@ fun SubmitPage(
         if (match == null) return@LaunchedEffect
 
         // Canonicalize: mobile → desktop, strip tracking params
-        val canonical = SourceLinkParserRegistry.canonicalUrl(url)
+        val canonical = withContext(Dispatchers.IO) {
+            SourceLinkParserRegistry.canonicalUrl(url)
+        }
         if (canonical != null && canonical != url) {
             state = state.copy(sourceUrl = canonical)
             return@LaunchedEffect  // re-trigger with canonical URL
