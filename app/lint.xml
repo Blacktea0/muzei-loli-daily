@@ -2,6 +2,7 @@
 <lint>
     <!-- Reaction GIFs are intentional animated emojis used with coil-gif -->
     <issue id="GifUsage" severity="ignore" />
+    <issue id="AndroidGradlePluginVersion" severity="ignore" />
     <issue id="IconLocation">
         <ignore path="**/reaction_*.gif" />
     </issue>

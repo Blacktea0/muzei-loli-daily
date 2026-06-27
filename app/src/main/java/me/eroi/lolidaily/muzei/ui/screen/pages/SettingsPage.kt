@@ -192,7 +192,7 @@ fun SettingsPage(
                     subtitle =
                         "${themeModeLabel(
                             themeMode,
-                        )} · ${colorStyleLabel(if (colorSource == ColorSource.DEFAULT) ColorStyle.NEUTRAL else colorStyle)}",
+                        )} · ${colorSourceLabel(colorSource)} · ${colorStyleLabel(if (colorSource == ColorSource.DEFAULT) ColorStyle.NEUTRAL else colorStyle)}",
                     iconContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
                     iconContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                     trailing = {

@@ -282,7 +282,7 @@ private fun colorStyleOptions(): List<ColorStyle> =
     )
 
 @Composable
-private fun colorSourceLabel(source: ColorSource): String {
+internal fun colorSourceLabel(source: ColorSource): String {
     return when (source) {
         ColorSource.DEFAULT -> stringResource(R.string.label_color_source_default)
         ColorSource.IMAGE -> stringResource(R.string.label_color_source_image)
