@@ -67,8 +67,6 @@ class CharacterSearchBarState internal constructor(
     val searchBarState: SearchBarState,
 ) {
     suspend fun animateToExpanded() = searchBarState.animateToExpanded()
-    @Suppress("unused")
-    suspend fun animateToCollapsed() = searchBarState.animateToCollapsed()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

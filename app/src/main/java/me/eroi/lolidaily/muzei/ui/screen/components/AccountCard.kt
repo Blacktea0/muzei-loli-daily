@@ -2,10 +2,7 @@ package me.eroi.lolidaily.muzei.ui.screen.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,99 +12,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import me.eroi.lolidaily.muzei.R
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-@Suppress("unused")
-fun AccountCard(
-    isLoggedIn: Boolean,
-    bgmDomain: String,
-    onLogin: () -> Unit,
-    onLogout: () -> Unit,
-    onDomainChanged: (String) -> Unit,
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = RoundedCornerShape(16.dp),
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Default.Person,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(24.dp),
-                        )
-                    }
-                }
-
-                Spacer(Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = if (isLoggedIn) stringResource(R.string.status_logged_in) else stringResource(R.string.status_not_logged_in),
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                    Text(
-                        text =
-                            if (isLoggedIn) {
-                                stringResource(
-                                    R.string.label_via_domain,
-                                    bgmDomain,
-                                )
-                            } else {
-                                stringResource(R.string.label_login_to_react)
-                            },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            if (isLoggedIn) {
-                OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.action_logout))
-                }
-            } else {
-                var showDomainPicker by remember { mutableStateOf(false) }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    FilledTonalButton(
-                        onClick = { showDomainPicker = true },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(R.string.action_login))
-                    }
-                }
-
-                if (showDomainPicker) {
-                    DomainPickerDialog(
-                        currentDomain = bgmDomain,
-                        onDomainSelected = { domain ->
-                            showDomainPicker = false
-                            onDomainChanged(domain)
-                            onLogin()
-                        },
-                        onDismiss = { showDomainPicker = false },
-                    )
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun DomainPickerDialog(

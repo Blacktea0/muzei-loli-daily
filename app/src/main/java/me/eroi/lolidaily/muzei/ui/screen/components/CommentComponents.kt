@@ -130,35 +130,6 @@ fun EmptyComments() {
     }
 }
 
-// ── Comments Loading ─────────────────────────────────────────────
-
-@Composable
-@Suppress("unused")
-fun CommentsLoading() {
-    Box(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-    }
-}
-
-// ── Comments Error ───────────────────────────────────────────────
-
-@Composable
-@Suppress("unused")
-fun CommentsError(message: String) {
-    Box(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error,
-        )
-    }
-}
 
 // ── Reaction Chips (read-only) ──────────────────────────────────
 
@@ -195,70 +166,6 @@ fun ReactionChips(reactions: List<BangumiReaction>) {
     }
 }
 
-// ── Comment Entry ────────────────────────────────────────────────
-
-@Composable
-@Suppress("unused")
-fun CommentEntry(reply: BangumiReply) {
-    if (reply.state != 0) return
-
-    val context = LocalContext.current
-
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        UserAvatar(
-            avatarUrl = reply.creator?.avatar?.medium,
-            nickname = reply.creator?.nickname,
-            userId = reply.creator?.id,
-            size = 36,
-        )
-
-        Column(modifier = Modifier.weight(1f)) {
-            // Top row: nickname + time
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = reply.creator?.nickname ?: reply.creator?.username ?: stringResource(R.string.label_anonymous),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = formatTimestamp(reply.createdAt, context),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            Spacer(Modifier.height(4.dp))
-
-            // Comment text with @mention highlighting and inline smileys
-            CommentText(
-                rawContent = reply.content,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            // Reactions
-            ReactionChips(reactions = reply.reactions)
-
-            // Sub-reply thread
-            if (reply.replies.isNotEmpty()) {
-                ReplyThread(replies = reply.replies)
-            }
-        }
-    }
-}
 
 // ── Floor Comment Entry (sub-reply rendered as top-level) ────────
 
@@ -446,22 +353,6 @@ private fun stripBbCode(input: String): String {
         .trim()
 }
 
-@Composable
-@Suppress("unused")
-private fun highlightContent(text: String): AnnotatedString {
-    val tertiaryColor = MaterialTheme.colorScheme.tertiary
-    return buildAnnotatedString {
-        var lastIndex = 0
-        for (match in MentionRegex.findAll(text)) {
-            append(text.substring(lastIndex, match.range.first))
-            withStyle(SpanStyle(color = tertiaryColor, fontWeight = FontWeight.Medium)) {
-                append(match.value)
-            }
-            lastIndex = match.range.last + 1
-        }
-        append(text.substring(lastIndex))
-    }
-}
 
 // ── Inline Smileys & Images ─────────────────────────────────────
 
