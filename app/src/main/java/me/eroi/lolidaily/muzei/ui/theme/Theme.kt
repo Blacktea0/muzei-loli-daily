@@ -18,7 +18,6 @@ enum class ThemeMode {
 @Composable
 fun LoliDailyTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
-    dynamicColor: Boolean = true,
     colorSource: ColorSource = ColorSource.DEFAULT,
     sourceArgb: Int? = null,
     colorStyle: ColorStyle = ColorStyle.NEUTRAL,
@@ -36,9 +35,8 @@ fun LoliDailyTheme(
     val colorScheme =
         when (colorSource) {
             ColorSource.IMAGE, ColorSource.MANUAL -> {
-                val argb = sourceArgb
-                if (argb != null) {
-                    M3SchemeGenerator.fromSourceColor(argb, darkTheme, colorStyle)
+                if (sourceArgb != null) {
+                    M3SchemeGenerator.fromSourceColor(sourceArgb, darkTheme, colorStyle)
                 } else {
                     M3SchemeGenerator.fromSourceColor(defaultSourceArgb, darkTheme, ColorStyle.NEUTRAL)
                 }

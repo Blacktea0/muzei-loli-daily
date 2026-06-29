@@ -133,6 +133,7 @@ fun EmptyComments() {
 // ── Comments Loading ─────────────────────────────────────────────
 
 @Composable
+@Suppress("unused")
 fun CommentsLoading() {
     Box(
         modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
@@ -145,6 +146,7 @@ fun CommentsLoading() {
 // ── Comments Error ───────────────────────────────────────────────
 
 @Composable
+@Suppress("unused")
 fun CommentsError(message: String) {
     Box(
         modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
@@ -196,6 +198,7 @@ fun ReactionChips(reactions: List<BangumiReaction>) {
 // ── Comment Entry ────────────────────────────────────────────────
 
 @Composable
+@Suppress("unused")
 fun CommentEntry(reply: BangumiReply) {
     if (reply.state != 0) return
 
@@ -427,12 +430,12 @@ fun UserAvatar(
 
 private val BBCodeRegex =
     Regex(
-        """\[/?(?:url|img|quote|b|i|u|code|color|size|right|center|left)(?:=[^\]]*)?\]""",
+        """\[/?(?:url|img|quote|b|i|u|code|color|size|right|center|left)(?:=[^]]*)?]""",
         RegexOption.IGNORE_CASE,
     )
 
-private val ImgTagRegex = Regex("""\[img\](.*?)\[/img\]""", RegexOption.IGNORE_CASE)
-private val QuoteRegex = Regex("""\[quote\](.*?)\[/quote\]""", RegexOption.DOT_MATCHES_ALL)
+private val ImgTagRegex = Regex("""\[img](.*?)\[/img]""", RegexOption.IGNORE_CASE)
+private val QuoteRegex = Regex("""\[quote](.*?)\[/quote]""", RegexOption.DOT_MATCHES_ALL)
 private val MentionRegex = Regex("""@[\w一-鿿]+""")
 
 private fun stripBbCode(input: String): String {
@@ -444,6 +447,7 @@ private fun stripBbCode(input: String): String {
 }
 
 @Composable
+@Suppress("unused")
 private fun highlightContent(text: String): AnnotatedString {
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
     return buildAnnotatedString {

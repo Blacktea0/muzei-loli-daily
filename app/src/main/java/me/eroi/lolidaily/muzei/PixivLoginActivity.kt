@@ -99,7 +99,6 @@ private fun PixivLoginScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
     val msgTitleLogin = stringResource(R.string.title_login_pixiv)
     val msgConnecting = stringResource(R.string.msg_connecting_pixiv)
-    val msgLoading = stringResource(R.string.msg_loading)
     var isLoading by remember { mutableStateOf(true) }
     var pageTitle by remember { mutableStateOf(msgTitleLogin) }
     var statusMessage by remember { mutableStateOf(msgConnecting) }
@@ -144,8 +143,7 @@ private fun PixivLoginScreen(
                             view: WebView?,
                             request: WebResourceRequest?,
                         ): Boolean {
-                            if (authDone) return true
-                            return false
+                            return authDone
                         }
 
                         override fun onPageFinished(
@@ -172,6 +170,7 @@ private fun PixivLoginScreen(
                         }
                     }
 
+                @Suppress("unused")
                 addJavascriptInterface(object {
                     @JavascriptInterface
                     fun onUserSelf(json: String, status: Int) {

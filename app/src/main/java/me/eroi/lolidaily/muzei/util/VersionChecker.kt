@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.core.content.edit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import me.eroi.lolidaily.muzei.BuildConfig
@@ -26,8 +27,8 @@ object VersionChecker {
 
     @Serializable
     private data class GitHubRelease(
-        val tag_name: String? = null,
-        val html_url: String? = null,
+        @SerialName("tag_name") val tagName: String? = null,
+        @SerialName("html_url") val htmlUrl: String? = null,
         val body: String? = null,
     )
 
@@ -107,9 +108,9 @@ object VersionChecker {
 
                 val body = response.body?.string() ?: return null
                 val release = json.decodeFromString<GitHubRelease>(body)
-                val tagName = release.tag_name ?: return null
+                val tagName = release.tagName ?: return null
                 val versionName = tagName.removePrefix("v")
-                val downloadUrl = release.html_url ?: GITHUB_RELEASES_URL
+                val downloadUrl = release.htmlUrl ?: GITHUB_RELEASES_URL
 
                 UpdateCheckResult(
                     hasUpdate = isNewerVersion(versionName, BuildConfig.VERSION_NAME),
@@ -154,12 +155,11 @@ object VersionChecker {
 
                 val tagName = effectiveUrl.substring(tagIndex + tagPrefix.length)
                 val versionName = tagName.removePrefix("v")
-                val downloadUrl = effectiveUrl
 
                 UpdateCheckResult(
                     hasUpdate = isNewerVersion(versionName, BuildConfig.VERSION_NAME),
                     latestVersion = versionName,
-                    downloadUrl = downloadUrl,
+                    downloadUrl = effectiveUrl,
                     releaseNotes = null,
                 )
             }

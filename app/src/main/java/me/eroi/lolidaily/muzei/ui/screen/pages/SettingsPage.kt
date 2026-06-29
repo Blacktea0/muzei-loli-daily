@@ -17,7 +17,6 @@ import androidx.core.content.edit
 import me.eroi.lolidaily.muzei.BuildConfig
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.R
-import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.ui.screen.components.*
 import me.eroi.lolidaily.muzei.ui.theme.ColorSource

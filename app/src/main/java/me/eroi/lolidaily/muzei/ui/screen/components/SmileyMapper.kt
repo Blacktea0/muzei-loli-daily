@@ -3,7 +3,7 @@ package me.eroi.lolidaily.muzei.ui.screen.components
 /**
  * Detects Bangumi smiley text codes (e.g. `(bgm38)`, `(musume_07)`, `(blake_19)`) and
  * BBCode `[img]` markers in comment text, resolves them to image URLs, and produces a
- * cleaned string with `\uFFFC` placeholders suitable for Compose [InlineTextContent].
+ * cleaned string with `\uFFFC` placeholders suitable for Compose `InlineTextContent`.
  */
 object SmileyMapper {
     // ── Regex patterns ──────────────────────────────────────────────
@@ -47,7 +47,7 @@ object SmileyMapper {
      */
     fun resolve(
         code: String,
-        bgmDomain: String,
+        @Suppress("UNUSED_PARAMETER") bgmDomain: String,
     ): Pair<String, Boolean>? {
         if (code.startsWith("musume_")) {
             val id = code.removePrefix("musume_").toIntOrNull() ?: return null

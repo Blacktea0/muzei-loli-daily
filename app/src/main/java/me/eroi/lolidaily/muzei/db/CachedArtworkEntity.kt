@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 /**
  * Persisted artwork metadata keyed by the MD5 token of [me.eroi.lolidaily.muzei.model.Card.imgUrl].
  *
- * Complex fields are stored as JSON strings via [Converters] to keep the schema migration-free —
+ * Complex fields are stored as JSON strings via `Converters` to keep the schema migration-free —
  * adding a field to the upstream Card/SuggestedBy model does not require a Room migration.
  */
 @Entity(tableName = "cached_artworks")

@@ -17,6 +17,7 @@ import me.eroi.lolidaily.muzei.R
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
+@Suppress("unused")
 fun AccountCard(
     isLoggedIn: Boolean,
     bgmDomain: String,

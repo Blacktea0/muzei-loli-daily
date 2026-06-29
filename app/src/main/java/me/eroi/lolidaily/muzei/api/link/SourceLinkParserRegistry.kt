@@ -1,11 +1,9 @@
 package me.eroi.lolidaily.muzei.api.link
 
 import android.content.Context
-import android.util.Log
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.model.ArtistResolveResponse
 
-private const val TAG = "SourceLinkParserRegistry"
 
 /**
  * Registry of all known [SourceLinkParser] implementations.
@@ -65,14 +63,6 @@ object SourceLinkParserRegistry {
             }
         }
         return null
-    }
-
-    /**
-     * Downloads a single image from [imageUrl] with platform-appropriate headers.
-     * Delegates to [LoliApiClient.downloadImage] with pixiv referer/cookie when needed.
-     */
-    fun downloadImage(imageUrl: String): Pair<ByteArray, String>? {
-        return LoliApiClient.downloadImage(imageUrl)
     }
 
     /**

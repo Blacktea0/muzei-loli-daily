@@ -71,7 +71,6 @@ import me.eroi.lolidaily.muzei.worker.WorkScheduler
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.api.SessionManager
-import me.eroi.lolidaily.muzei.ui.screen.components.ThemeOption
 
 const val KEY_HIDE_RECENTS_CONTENT = "hide_recents_content"
 

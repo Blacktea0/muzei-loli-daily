@@ -54,7 +54,7 @@ import java.io.File
  */
 class MainActivity : AppCompatActivity() {
     private val prefs by lazy {
-        getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+        getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, MODE_PRIVATE)
     }
 
     private var selectedTags by mutableStateOf(emptySet<String>())
@@ -191,8 +191,8 @@ class MainActivity : AppCompatActivity() {
                             Intent(this@MainActivity, AboutActivity::class.java),
                         )
                     },
-                    onBookmarkToggle = { token, fileName, bookmarked ->
-                        toggleBookmark(token, fileName, bookmarked)
+                    onBookmarkToggle = { token, _, bookmarked ->
+                        toggleBookmark(token, bookmarked)
                     },
                     onRemoveBookmark = { preview ->
                         removeBookmark(preview)
@@ -362,18 +362,14 @@ class MainActivity : AppCompatActivity() {
         if (nextEmoji != null) {
             val next = counts[nextEmoji]
             counts[nextEmoji] =
-                if (next != null) {
-                    next.copy(
-                        count = next.count + 1,
-                        users = next.users.withCurrentUser(currentUser),
-                    )
-                } else {
-                    ReactionCount(
-                        emojiValue = nextEmoji,
-                        count = 1,
-                        users = currentUser?.let { listOf(it) } ?: emptyList(),
-                    )
-                }
+                next?.copy(
+                    count = next.count + 1,
+                    users = next.users.withCurrentUser(currentUser),
+                ) ?: ReactionCount(
+                    emojiValue = nextEmoji,
+                    count = 1,
+                    users = currentUser?.let { listOf(it) } ?: emptyList(),
+                )
         }
 
         return counts.values.sortedByDescending { it.count }
@@ -736,7 +732,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun toggleBookmark(
         token: String,
-        fileName: String,
         bookmarked: Boolean,
     ) {
         Thread {

@@ -20,6 +20,7 @@ import me.eroi.lolidaily.muzei.model.ArtworkPreview
 // ── Bottom Action Bar (fixed at bottom) ────────────────────────
 
 @Composable
+@Suppress("unused")
 fun BottomActionBar(
     preview: ArtworkPreview,
     isLoggedIn: Boolean,

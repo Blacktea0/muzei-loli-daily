@@ -26,18 +26,12 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.rememberTextFieldState
-import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -47,7 +41,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.Button
@@ -56,7 +49,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.ExpandedFullScreenContainedSearchBar
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -68,14 +60,10 @@ import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SearchBar
-import androidx.compose.material3.SearchBarDefaults
-import androidx.compose.material3.SearchBarState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberContainedSearchBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
@@ -83,7 +71,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -92,14 +79,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
@@ -116,7 +101,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.eroi.lolidaily.muzei.R
-import me.eroi.lolidaily.muzei.api.BangumiApiClient
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.api.SessionManager
 import me.eroi.lolidaily.muzei.api.link.SourceImageVariant
@@ -126,14 +110,13 @@ import me.eroi.lolidaily.muzei.api.link.resolveShortLink
 import me.eroi.lolidaily.muzei.api.link.stripTrackingParams
 import me.eroi.lolidaily.muzei.model.SlimCharacter
 import me.eroi.lolidaily.muzei.ui.screen.components.CharacterSearchBar
-import me.eroi.lolidaily.muzei.ui.screen.components.CharacterSearchBarState
 import me.eroi.lolidaily.muzei.ui.screen.components.FullscreenImageViewer
 import me.eroi.lolidaily.muzei.ui.screen.components.ImagePickerDialog
 import me.eroi.lolidaily.muzei.ui.screen.components.SubmitTipBanner
 import me.eroi.lolidaily.muzei.ui.screen.components.rememberCharacterSearchBarState
 import me.eroi.lolidaily.muzei.ui.screen.components.DomainPickerDialog
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 import me.eroi.lolidaily.muzei.db.CharacterHistoryEntity
 import me.eroi.lolidaily.muzei.ui.screen.components.SubmitReviewBanner
 import me.eroi.lolidaily.muzei.db.DatabaseProvider
@@ -182,7 +165,62 @@ private data class SubmitFormState(
     val isError: Boolean = false,
     val validationAttempted: Boolean = false,
     val pendingImageVariants: List<SourceImageVariant>? = null,
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as SubmitFormState
+
+        if (imageUri != other.imageUri) return false
+        if (imageBytes != null) {
+            if (other.imageBytes == null) return false
+            if (!imageBytes.contentEquals(other.imageBytes)) return false
+        } else if (other.imageBytes != null) return false
+        if (imageName != other.imageName) return false
+        if (imageMimeType != other.imageMimeType) return false
+        if (sourceUrl != other.sourceUrl) return false
+        if (artistName != other.artistName) return false
+        if (artistUrl != other.artistUrl) return false
+        if (selectedCharacters != other.selectedCharacters) return false
+        if (comment != other.comment) return false
+        if (selectedTag != other.selectedTag) return false
+        if (anonymous != other.anonymous) return false
+        if (confirmGuidelines != other.confirmGuidelines) return false
+        if (fetchedSourceUrl != other.fetchedSourceUrl) return false
+        if (isFetchingImage != other.isFetchingImage) return false
+        if (isSubmitting != other.isSubmitting) return false
+        if (statusMessage != other.statusMessage) return false
+        if (isError != other.isError) return false
+        if (validationAttempted != other.validationAttempted) return false
+        if (pendingImageVariants != other.pendingImageVariants) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = imageUri?.hashCode() ?: 0
+        result = 31 * result + (imageBytes?.contentHashCode() ?: 0)
+        result = 31 * result + imageName.hashCode()
+        result = 31 * result + imageMimeType.hashCode()
+        result = 31 * result + sourceUrl.hashCode()
+        result = 31 * result + artistName.hashCode()
+        result = 31 * result + artistUrl.hashCode()
+        result = 31 * result + selectedCharacters.hashCode()
+        result = 31 * result + comment.hashCode()
+        result = 31 * result + selectedTag.hashCode()
+        result = 31 * result + anonymous.hashCode()
+        result = 31 * result + confirmGuidelines.hashCode()
+        result = 31 * result + fetchedSourceUrl.hashCode()
+        result = 31 * result + isFetchingImage.hashCode()
+        result = 31 * result + isSubmitting.hashCode()
+        result = 31 * result + (statusMessage?.hashCode() ?: 0)
+        result = 31 * result + isError.hashCode()
+        result = 31 * result + validationAttempted.hashCode()
+        result = 31 * result + (pendingImageVariants?.hashCode() ?: 0)
+        return result
+    }
+}
 
 /**
  * Image submission page — allows users to upload daily artwork to Loli Commons.
@@ -315,9 +353,7 @@ fun SubmitPage(
             }
         }
 
-        val match = SourceLinkParserRegistry.match(url)
-        if (match == null) return@LaunchedEffect
-
+        if (SourceLinkParserRegistry.match(url) == null) return@LaunchedEffect
         // Canonicalize: mobile → desktop, strip tracking params
         val canonical = withContext(Dispatchers.IO) {
             SourceLinkParserRegistry.canonicalUrl(url)
@@ -331,13 +367,12 @@ fun SubmitPage(
         if (url == state.fetchedSourceUrl) return@LaunchedEffect
 
         // Debounce: wait for user to stop typing before fetching
-        delay(600)
+        delay(600.milliseconds)
 
         // Re-check after debounce — URL may have changed
         val currentUrl = state.sourceUrl.trim()
         if (currentUrl != url) return@LaunchedEffect
-        val currentMatch = SourceLinkParserRegistry.match(currentUrl)
-        if (currentMatch == null) return@LaunchedEffect
+        val currentMatch = SourceLinkParserRegistry.match(currentUrl) ?: return@LaunchedEffect
 
         state = state.copy(
             isFetchingImage = true,
@@ -762,7 +797,7 @@ fun SubmitPage(
                                     bytes.size >= 1_048_576 -> "%.1f MB".format(bytes.size / 1_048_576.0)
                                     else -> "%.0f KB".format(bytes.size / 1024.0)
                                 }
-                                Triple(format, "${w} × ${h}", sizeStr)
+                                Triple(format, "$w × $h", sizeStr)
                             }
                             FlowRow(
                                 modifier = Modifier
@@ -913,7 +948,7 @@ fun SubmitPage(
                                         bytes.size >= 1_048_576 -> "%.1f MB".format(bytes.size / 1_048_576.0)
                                         else -> "%.0f KB".format(bytes.size / 1024.0)
                                     }
-                                    Triple(format, "${w} × ${h}", sizeStr)
+                                    Triple(format, "$w × $h", sizeStr)
                                 }
                                 FlowRow(
                                     modifier = Modifier

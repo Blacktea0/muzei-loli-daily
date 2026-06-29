@@ -183,37 +183,6 @@ object ReactionService {
         }
     }
 
-    /**
-     * Fetches a single topic floor and caches it. Returns the fetched reply on success.
-     */
-    fun fetchAndCacheTopicFloor(
-        context: Context,
-        discussionId: String,
-        date: String,
-        tags: String
-    ): BangumiReply? {
-        val (topicId, _) = BangumiApiClient.parseDiscussionId(discussionId)
-        if (topicId == 0) return null
-        return try {
-            val topic = BangumiApiClient.fetchTopic(context, topicId) ?: return null
-            val reply = BangumiApiClient.findTodayFloor(topic, date, tags)
-
-            // Cache the single result
-            val prefs = context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
-            val currentFloors = loadTopicFloors(context).toMutableMap()
-            currentFloors[discussionId] = reply
-            prefs.edit {
-                putString(
-                    KEY_TOPIC_FLOORS,
-                    json.encodeToString(serializer<Map<String, BangumiReply?>>(), currentFloors)
-                )
-            }
-            reply
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to fetch and cache topic floor for $discussionId", e)
-            null
-        }
-    }
 
     /** Loads cached per-image reaction counts. */
     fun loadReactions(context: Context): Map<String, List<ReactionCount>> {

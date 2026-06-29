@@ -106,7 +106,7 @@ fun FullscreenImageViewer(
                             zoomState,
                             enableOneFingerZoom = false,
                             onTap = {
-                                if (currentShowAppBar) showAppBar = false else showAppBar = true
+                                showAppBar = !currentShowAppBar
                             },
                         ),
             )

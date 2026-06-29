@@ -13,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -26,7 +25,7 @@ import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
 import me.eroi.lolidaily.muzei.ui.screen.components.ManualColorPickerRow
 import me.eroi.lolidaily.muzei.util.M3SchemeGenerator
 
-internal val DEFAULT_SOURCE_COLOR = 0xFFF09199.toInt()
+internal const val DEFAULT_SOURCE_COLOR = 0xFFF09199.toInt()
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable

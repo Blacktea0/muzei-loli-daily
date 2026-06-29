@@ -5,10 +5,10 @@ import android.content.Context
 import android.util.Log
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
-import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import kotlinx.coroutines.CompletableDeferred
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -88,7 +88,7 @@ object PixivParser : SourceLinkParser {
                     "PHPSESSID=$sessionId; domain=.pixiv.net; path=/",
                 )
             }
-            val webView = WebView(context.applicationContext).apply {
+            WebView(context.applicationContext).apply {
                 webViewRef = this
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
@@ -145,11 +145,12 @@ object PixivParser : SourceLinkParser {
                         view?.evaluateJavascript(js, null)
                     }
                 }
+                @Suppress("unused")
                 addJavascriptInterface(object {
                     @JavascriptInterface
                     fun onJson(json: String) {
                         Log.d(TAG, "WebView API fetch OK, len=${json.length}")
-                        val parsed = parseImageUrls(json.replace("<br>", "").replace("<br/>", "").replace("<br />", ""), sessionId)
+                        val parsed = parseImageUrls(json.replace("<br>", "").replace("<br/>", "").replace("<br />", ""))
                         result.complete(parsed)
                     }
                     @JavascriptInterface
@@ -183,7 +184,7 @@ object PixivParser : SourceLinkParser {
      * Parses all image variants from the Pixiv pages API response.
      * Returns a list of [SourceImageVariant] (thumb + full URL pairs) for each page.
      */
-    private fun parseImageUrls(json: String, sessionId: String?): List<SourceImageVariant>? {
+    private fun parseImageUrls(json: String): List<SourceImageVariant>? {
         // Prefer original; the submit flow compresses it only if it exceeds the upload limit.
         fun extractVariant(urls: Map<String, kotlinx.serialization.json.JsonElement>): SourceImageVariant? {
             fun urlValue(key: String): String? =
@@ -208,7 +209,7 @@ object PixivParser : SourceLinkParser {
             pages.mapNotNull { page ->
                 page.jsonObject["urls"]?.jsonObject?.let { extractVariant(it) }
             }.ifEmpty { null }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // body might be an object (from /ajax/illust/{id})
             try {
                 val root = LoliApiClient.json.parseToJsonElement(json).jsonObject
@@ -228,7 +229,7 @@ object PixivParser : SourceLinkParser {
 
     private suspend fun <T> withTimeout(deferred: CompletableDeferred<T>, ms: Long = 15_000): T? {
         return try {
-            kotlinx.coroutines.withTimeout(ms) { deferred.await() }
+            kotlinx.coroutines.withTimeout(ms.milliseconds) { deferred.await() }
         } catch (e: Exception) {
             Log.w(TAG, "WebView API timeout", e)
             null

@@ -9,6 +9,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.seconds
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.model.ArtistResolveResponse
 
@@ -63,7 +64,7 @@ object BilibiliParser : SourceLinkParser {
      */
     private suspend fun resolveImagesViaWebView(context: Context, opusId: String): List<String>? {
         val url = "https://www.bilibili.com/opus/$opusId"
-        return withTimeoutOrNull(15_000) {
+        return withTimeoutOrNull(15.seconds) {
             suspendCancellableCoroutine { cont ->
                 val handler = Handler(Looper.getMainLooper())
                 handler.post {
@@ -122,7 +123,7 @@ object BilibiliParser : SourceLinkParser {
      */
     private suspend fun resolveArtistViaWebView(context: Context, opusId: String): Pair<String, Long?>? {
         val url = "https://www.bilibili.com/opus/$opusId"
-        return withTimeoutOrNull(15_000) {
+        return withTimeoutOrNull(15.seconds) {
             suspendCancellableCoroutine { cont ->
                 val handler = Handler(Looper.getMainLooper())
                 handler.post {

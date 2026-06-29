@@ -16,7 +16,7 @@ private val STRIPPED_PARAMS = setOf(
     "plat_id", "spmid", "timestamp",
 )
 
-private val URL_PATTERN = Regex("https?://[^\\s]+")
+private val URL_PATTERN = Regex("https?://\\S+")
 
 /**
  * Resolves a short URL (e.g. b23.tv) to its redirect destination.
@@ -96,11 +96,3 @@ fun extractUrl(text: String): String? {
     return url
 }
 
-/**
- * Full pipeline: resolve short link → strip tracking params.
- * Returns the cleaned URL, or the original if no changes needed.
- */
-fun cleanUrl(url: String): String {
-    val resolved = resolveShortLink(url) ?: url
-    return stripTrackingParams(resolved)
-}

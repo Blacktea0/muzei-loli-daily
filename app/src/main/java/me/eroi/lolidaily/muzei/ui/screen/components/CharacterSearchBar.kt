@@ -13,14 +13,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExpandedFullScreenContainedSearchBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.HorizontalDivider
@@ -51,6 +49,7 @@ import coil3.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.eroi.lolidaily.muzei.R
@@ -68,6 +67,7 @@ class CharacterSearchBarState internal constructor(
     val searchBarState: SearchBarState,
 ) {
     suspend fun animateToExpanded() = searchBarState.animateToExpanded()
+    @Suppress("unused")
     suspend fun animateToCollapsed() = searchBarState.animateToCollapsed()
 }
 
@@ -125,7 +125,7 @@ fun CharacterSearchBar(
                     return@collect
                 }
                 autocompleteJob = launch(Dispatchers.IO) {
-                    delay(300)
+                    delay(300.milliseconds)
                     val s = BangumiApiClient.autocompleteCharacters(trimmed)
                     withContext(Dispatchers.Main) { suggestions = s }
                 }

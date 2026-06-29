@@ -11,7 +11,7 @@ interface CharacterHistoryDao {
     @Query("SELECT * FROM character_history ORDER BY selected_at DESC")
     suspend fun getAll(): List<CharacterHistoryEntity>
 
-    /** Insert or replace a history entry (upserts [selectedAt]). */
+    /** Insert or replace a history entry (upserts `selectedAt`). */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: CharacterHistoryEntity)
 

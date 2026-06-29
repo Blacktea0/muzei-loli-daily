@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit
 
 object LoliApiClient {
     private const val TAG = "LoliApiClient"
-    val USER_AGENT = "LoliDaily/${BuildConfig.VERSION_NAME} (Android)"
+    const val USER_AGENT = "LoliDaily/${BuildConfig.VERSION_NAME} (Android)"
     const val MOBILE_UA =
         "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
 
@@ -288,7 +288,7 @@ object LoliApiClient {
      * Resolves artist info from a known source URL (twitter/pixiv/bilibili).
      * Mirrors JS: lcClient.fetchDailyResolve → GET /v1/daily/resolve
      */
-    suspend fun resolveArtist(
+    fun resolveArtist(
         context: Context,
         type: String,
         rid: String,
