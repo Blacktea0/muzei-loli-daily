@@ -157,7 +157,6 @@
     <!-- Tablet detail pane section labels -->
     <string name="section_reactions">貼貼</string>
     <string name="section_details">詳情</string>
-    <string name="btn_set_wallpaper">設定桌布</string>
 
     <string name="label_anonymous">匿名</string>
     <string name="time_just_now">剛剛</string>

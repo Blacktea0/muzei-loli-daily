@@ -158,7 +158,6 @@
     <!-- Tablet detail pane section labels -->
     <string name="section_reactions">Reactions</string>
     <string name="section_details">Details</string>
-    <string name="btn_set_wallpaper">Set Wallpaper</string>
 
     <string name="label_anonymous">Anonymous</string>
     <string name="time_just_now">just now</string>

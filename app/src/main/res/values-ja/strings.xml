@@ -157,7 +157,6 @@
     <!-- Tablet detail pane section labels -->
     <string name="section_reactions">リアクション</string>
     <string name="section_details">詳細</string>
-    <string name="btn_set_wallpaper">壁紙に設定</string>
 
     <string name="label_anonymous">匿名</string>
     <string name="time_just_now">たった今</string>
