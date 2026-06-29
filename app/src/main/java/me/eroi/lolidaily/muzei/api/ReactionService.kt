@@ -29,12 +29,27 @@ object ReactionService {
      * Fetches reactions for the current daily batch from the API, maps them to image tokens, and
      * caches in SharedPreferences.
      */
-    fun fetchAndCacheReactions(context: Context) {
+    fun fetchAndCacheReactions(context: Context, force: Boolean = false) {
         try {
             val cacheFile = File(context.filesDir, "api_cache.json")
             if (!cacheFile.exists()) return
             val daily = json.decodeFromString<DailyResponse>(cacheFile.readText())
             if (daily.cards.isEmpty()) return
+
+            val prefs =
+                context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+
+            // Cooldown check
+            if (!force) {
+                val lastFetch = prefs.getLong(LoliDailyArtWorker.KEY_LAST_REACTION_FETCH, 0)
+                val lastFetchDate =
+                    prefs.getString(LoliDailyArtWorker.KEY_LAST_REACTION_FETCH_DATE, null)
+                val cooldownMs = 60 * 1000L
+                val isSameDailyBatch = daily.date.isNotBlank() && lastFetchDate == daily.date
+                if (isSameDailyBatch && System.currentTimeMillis() - lastFetch < cooldownMs) {
+                    return
+                }
+            }
 
             val request =
                 Request.Builder()
@@ -68,8 +83,6 @@ object ReactionService {
                 }
             }
 
-            val prefs =
-                context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
             val serialized =
                 json.encodeToString(serializer<Map<String, List<ReactionCount>>>(), tokenReactions)
             prefs.edit { putString(KEY_REACTIONS, serialized) }
@@ -156,9 +169,49 @@ object ReactionService {
                     )
                 }
 
+            // Save last fetch metadata
+            prefs.edit {
+                putLong(LoliDailyArtWorker.KEY_LAST_REACTION_FETCH, System.currentTimeMillis())
+                if (daily.date.isNotBlank()) {
+                    putString(LoliDailyArtWorker.KEY_LAST_REACTION_FETCH_DATE, daily.date)
+                }
+            }
+
             Log.d(TAG, "Cached reactions for ${tokenReactions.size} cards")
         } catch (e: Exception) {
             Log.w(TAG, "Failed to fetch reactions", e)
+        }
+    }
+
+    /**
+     * Fetches a single topic floor and caches it. Returns the fetched reply on success.
+     */
+    fun fetchAndCacheTopicFloor(
+        context: Context,
+        discussionId: String,
+        date: String,
+        tags: String
+    ): BangumiReply? {
+        val (topicId, _) = BangumiApiClient.parseDiscussionId(discussionId)
+        if (topicId == 0) return null
+        return try {
+            val topic = BangumiApiClient.fetchTopic(context, topicId) ?: return null
+            val reply = BangumiApiClient.findTodayFloor(topic, date, tags)
+
+            // Cache the single result
+            val prefs = context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+            val currentFloors = loadTopicFloors(context).toMutableMap()
+            currentFloors[discussionId] = reply
+            prefs.edit {
+                putString(
+                    KEY_TOPIC_FLOORS,
+                    json.encodeToString(serializer<Map<String, BangumiReply?>>(), currentFloors)
+                )
+            }
+            reply
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to fetch and cache topic floor for $discussionId", e)
+            null
         }
     }
 

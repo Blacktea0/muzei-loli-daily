@@ -60,6 +60,9 @@ import coil3.request.ImageRequest
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.ReactionService
@@ -275,8 +278,11 @@ fun TodayPage(
 
                         var todayFloor by remember { mutableStateOf<BangumiReply?>(null) }
 
-                        LaunchedEffect(discussionId) {
-                            if (discussionId == null) return@LaunchedEffect
+                        LaunchedEffect(discussionId, todayArtwork) {
+                            if (discussionId == null) {
+                                todayFloor = null
+                                return@LaunchedEffect
+                            }
                             todayFloor = ReactionService.loadTopicFloors(context)[discussionId]
                         }
 

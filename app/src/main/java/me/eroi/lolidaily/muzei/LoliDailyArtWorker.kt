@@ -60,7 +60,6 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
 
         return try {
             if (!isScheduledRefreshInWindow(scheduledTargetTs, scheduledDeadlineTs)) {
-                refreshProgress.value = null
                 return Result.success()
             }
 
@@ -114,13 +113,13 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
                 Log.d(TAG, "Skipping Muzei push — non-initial load with cached data only")
             }
             markWorkCompleted()
-            refreshProgress.value = null
 
             Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load artwork", e)
-            refreshProgress.value = null
             Result.retry()
+        } finally {
+            refreshProgress.value = null
         }
     }
 
@@ -488,7 +487,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
             }
         }
 
-        fun fetchAndCacheReactions(context: Context) = ReactionService.fetchAndCacheReactions(context)
+        fun fetchAndCacheReactions(context: Context, force: Boolean = false) = ReactionService.fetchAndCacheReactions(context, force)
 
         fun loadReactions(context: Context) = ReactionService.loadReactions(context)
 

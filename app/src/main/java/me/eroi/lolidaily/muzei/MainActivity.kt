@@ -30,6 +30,8 @@ import me.eroi.lolidaily.muzei.api.link.extractUrl
 import me.eroi.lolidaily.muzei.db.DatabaseProvider
 import me.eroi.lolidaily.muzei.db.EntityMapper
 import me.eroi.lolidaily.muzei.worker.WorkScheduler
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyResponse
@@ -213,15 +215,22 @@ class MainActivity : AppCompatActivity() {
         refreshProgress = 0f // Immediately show refresh indicator in PullToRefreshBox
         val workId = WorkScheduler.enqueueLoad(this, forceRefresh = true)
         if (workId != null) {
+            val workManager = WorkManager.getInstance(this)
+            workManager.getWorkInfoByIdLiveData(workId).observe(this) { workInfo ->
+                if (workInfo != null) {
+                    val state = workInfo.state
+                    if (state == WorkInfo.State.SUCCEEDED || state == WorkInfo.State.FAILED || state == WorkInfo.State.CANCELLED) {
+                        refreshProgress = null
+                        if (state == WorkInfo.State.SUCCEEDED) {
+                            loadPreview(forceRefresh = true)
+                        }
+                    }
+                }
+            }
             lifecycleScope.launch {
-                var wasInProgress = false
                 LoliDailyArtWorker.refreshProgress.collect { fraction ->
-                    refreshProgress = fraction
                     if (fraction != null) {
-                        wasInProgress = true
-                    } else if (wasInProgress) {
-                        loadPreview(forceRefresh = true)
-                        return@collect
+                        refreshProgress = fraction
                     }
                 }
             }
@@ -616,23 +625,10 @@ class MainActivity : AppCompatActivity() {
         // Gated by a 1-minute cooldown per daily batch to avoid spamming the API.
         Thread {
             val (_, apiDate) = loadCachedDaily()
-            if (!forceRefresh) {
-                val lastFetch = prefs.getLong(LoliDailyArtWorker.KEY_LAST_REACTION_FETCH, 0)
-                val lastFetchDate =
-                    prefs.getString(LoliDailyArtWorker.KEY_LAST_REACTION_FETCH_DATE, null)
-                val cooldownMs = 60 * 1000L
-                val isSameDailyBatch = apiDate.isNotBlank() && lastFetchDate == apiDate
-                if (isSameDailyBatch && System.currentTimeMillis() - lastFetch < cooldownMs) {
-                    return@Thread
-                }
+            if (apiDate.isBlank()) {
+                return@Thread
             }
-            LoliDailyArtWorker.fetchAndCacheReactions(this@MainActivity)
-            prefs.edit {
-                putLong(LoliDailyArtWorker.KEY_LAST_REACTION_FETCH, System.currentTimeMillis())
-                if (apiDate.isNotBlank()) {
-                    putString(LoliDailyArtWorker.KEY_LAST_REACTION_FETCH_DATE, apiDate)
-                }
-            }
+            LoliDailyArtWorker.fetchAndCacheReactions(this@MainActivity, forceRefresh)
             runOnUiThread { buildPreviews() }
         }
             .start()
