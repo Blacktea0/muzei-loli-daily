@@ -1,5 +1,6 @@
 package me.eroi.lolidaily.muzei.api.link
 
+import me.eroi.lolidaily.muzei.api.LoliApiClient
 import android.util.Log
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -30,7 +31,7 @@ fun resolveShortLink(url: String): String? {
     return try {
         val request = Request.Builder()
             .url(url)
-            .header("User-Agent", "LoliDaily/1.0 (Android)")
+            .header("User-Agent", LoliApiClient.USER_AGENT)
             .head()
             .build()
         val response = noRedirectClient.newCall(request).execute()

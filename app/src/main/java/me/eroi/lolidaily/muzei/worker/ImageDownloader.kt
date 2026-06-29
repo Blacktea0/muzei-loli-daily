@@ -19,7 +19,6 @@ import java.net.URI
 object ImageDownloader {
     private const val TAG = "ImageDownloader"
     private const val FILE_PROVIDER_AUTHORITY = "me.eroi.lolidaily.muzei.fileprovider"
-    private const val USER_AGENT = "LoliDaily/1.0 (Android)"
     private const val MAX_DOWNLOAD_RETRIES = 3
     private const val TEMP_SUFFIX = ".tmp"
 
@@ -107,7 +106,7 @@ object ImageDownloader {
         dir: File,
         onProgress: ((bytesWritten: Long, totalBytes: Long) -> Unit)? = null,
     ): File? {
-        val request = Request.Builder().url(url).header("User-Agent", USER_AGENT).get().build()
+        val request = Request.Builder().url(url).header("User-Agent", LoliApiClient.USER_AGENT).get().build()
 
         val response = LoliApiClient.httpClient.newCall(request).execute()
         response.use { resp ->

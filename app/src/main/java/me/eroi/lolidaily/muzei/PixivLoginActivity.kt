@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.api.SessionManager
 import me.eroi.lolidaily.muzei.ui.theme.LoliDailyTheme
 import org.json.JSONObject
@@ -124,6 +125,7 @@ private fun PixivLoginScreen(
                     displayZoomControls = false
                     useWideViewPort = true
                     loadWithOverviewMode = true
+                    userAgentString = LoliApiClient.MOBILE_UA
                 }
 
                 webViewClient =

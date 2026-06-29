@@ -1,5 +1,6 @@
 package me.eroi.lolidaily.muzei.api
 
+import me.eroi.lolidaily.muzei.BuildConfig
 import android.content.Context
 import android.net.Uri
 import android.util.Log
@@ -21,7 +22,9 @@ import java.util.concurrent.TimeUnit
 
 object LoliApiClient {
     private const val TAG = "LoliApiClient"
-    internal const val USER_AGENT = "LoliDaily/1.0 (Android)"
+    val USER_AGENT = "LoliDaily/${BuildConfig.VERSION_NAME} (Android)"
+    const val MOBILE_UA =
+        "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
 
     const val DEFAULT_BADGE = "LC0"
     const val DEFAULT_API_BASE_URL = "https://loliconey.tsuki.ga"

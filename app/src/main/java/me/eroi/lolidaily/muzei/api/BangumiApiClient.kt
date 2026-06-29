@@ -31,7 +31,7 @@ object BangumiApiClient {
         val request =
             Request.Builder()
                 .url(url)
-                .header("User-Agent", "LoliDaily/1.0 (Android)")
+                .header("User-Agent", LoliApiClient.USER_AGENT)
                 .get()
                 .build()
 
@@ -57,7 +57,7 @@ object BangumiApiClient {
         val request =
             Request.Builder()
                 .url(url)
-                .header("User-Agent", "LoliDaily/1.0 (Android)")
+                .header("User-Agent", LoliApiClient.USER_AGENT)
                 .get()
                 .build()
 
@@ -168,7 +168,7 @@ object BangumiApiClient {
         val body = bodyStr.toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
             .url(CHII_AI_GRAPHQL_URL)
-            .header("User-Agent", "LoliDaily/1.0 (Android)")
+            .header("User-Agent", LoliApiClient.USER_AGENT)
             .post(body)
             .build()
         return try {
@@ -220,7 +220,7 @@ object BangumiApiClient {
         val body = bodyStr.toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
             .url(CHII_AI_GRAPHQL_URL)
-            .header("User-Agent", "LoliDaily/1.0 (Android)")
+            .header("User-Agent", LoliApiClient.USER_AGENT)
             .post(body)
             .build()
 
@@ -259,7 +259,7 @@ object BangumiApiClient {
         val body = bodyStr.toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
             .url(CHII_AI_GRAPHQL_URL)
-            .header("User-Agent", "LoliDaily/1.0 (Android)")
+            .header("User-Agent", LoliApiClient.USER_AGENT)
             .post(body)
             .build()
 
@@ -307,7 +307,7 @@ object BangumiApiClient {
         val body = bodyStr.toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
             .url(CHII_AI_GRAPHQL_URL)
-            .header("User-Agent", "LoliDaily/1.0 (Android)")
+            .header("User-Agent", LoliApiClient.USER_AGENT)
             .post(body)
             .build()
 

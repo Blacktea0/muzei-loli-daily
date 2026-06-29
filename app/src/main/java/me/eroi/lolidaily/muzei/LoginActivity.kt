@@ -130,6 +130,7 @@ private fun LoginScreen(
                     displayZoomControls = false
                     useWideViewPort = true
                     loadWithOverviewMode = true
+                    userAgentString = LoliApiClient.MOBILE_UA
                 }
 
                 webViewClient =

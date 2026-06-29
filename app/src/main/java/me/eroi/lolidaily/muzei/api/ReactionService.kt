@@ -54,7 +54,7 @@ object ReactionService {
             val request =
                 Request.Builder()
                     .url(LoliApiClient.reactApiUrl(context))
-                    .header("User-Agent", "LoliDaily/1.0 (Android)")
+                    .header("User-Agent", LoliApiClient.USER_AGENT)
                     .get()
                     .build()
             val response = LoliApiClient.httpClient.newCall(request).execute()
@@ -293,7 +293,7 @@ object ReactionService {
             Request.Builder()
                 .url("${LoliApiClient.getApiBaseUrl(context)}/api/v1/daily/react?cardTypeIdx=$cardIndex")
                 .header("Authorization", "Bearer ${session.token}")
-                .header("User-Agent", "LoliDaily/1.0 (Android)")
+                .header("User-Agent", LoliApiClient.USER_AGENT)
                 .method("PATCH", body)
                 .build()
 
