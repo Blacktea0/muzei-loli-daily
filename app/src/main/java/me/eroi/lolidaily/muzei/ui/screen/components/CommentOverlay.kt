@@ -1,5 +1,9 @@
 package me.eroi.lolidaily.muzei.ui.screen.components
 
+import android.view.WindowManager
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -13,13 +17,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import coil3.compose.AsyncImagePainter
 import androidx.compose.ui.res.stringResource
@@ -45,6 +51,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.window.DialogWindowProvider
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("DEPRECATION")
@@ -53,15 +61,12 @@ fun CommentBottomSheet(
     onDismiss: () -> Unit,
     onPostReply: (String, (Boolean) -> Unit) -> Unit,
     initialText: String = "",
-    sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
-    val context = LocalContext.current
     var isPosting by remember { mutableStateOf(false) }
     var showEmojiPanel by remember { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
 
-    val scope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
 
     val parsedInitial = remember(initialText) {
@@ -70,8 +75,11 @@ fun CommentBottomSheet(
         if (hasQuote && closeIndex != -1) {
             val qTag = "[/quote]"
             val prefix = initialText.substring(0, closeIndex + qTag.length) + "\n"
-            val nickname = Regex("\\[b\\](.*?)\\[/b\\]").find(prefix)?.groupValues?.getOrNull(1) ?: "Loli"
-            val quoteContent = Regex("说:\\s*([\\s\\S]*?)\\[/quote\\]").find(prefix)?.groupValues?.getOrNull(1) ?: ""
+            val nickname =
+                Regex("\\[b](.*?)\\[/b]").find(prefix)?.groupValues?.getOrNull(1) ?: "Loli"
+            val quoteContent =
+                Regex("说:\\s*([\\s\\S]*?)\\[/quote]").find(prefix)?.groupValues?.getOrNull(1)
+                    ?: ""
             val remaining = initialText.substring(closeIndex + qTag.length).trimStart('\n')
             Triple(prefix, nickname to quoteContent, remaining)
         } else {
@@ -94,228 +102,283 @@ fun CommentBottomSheet(
         )
     }
 
+    val density = LocalDensity.current
+    val imeBottom = WindowInsets.ime.getBottom(density)
+    var hasImeStarted by remember { mutableStateOf(imeBottom > 0) }
+    var showPanelFallback by remember { mutableStateOf(false) }
+    val showPanel = hasImeStarted || showPanelFallback
+
+    LaunchedEffect(imeBottom) {
+        if (imeBottom > 0) {
+            hasImeStarted = true
+        }
+    }
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
         keyboardController?.show()
+        delay(500.milliseconds)
+        showPanelFallback = true
     }
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+
+    Dialog(
+        onDismissRequest = {
+            if (!isPosting) onDismiss()
+        },
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false,
+        ),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.comment_title_post),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(onClick = onDismiss, enabled = !isPosting) {
-                        Text(stringResource(R.string.action_cancel))
-                    }
-                    if (isPosting) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        IconButton(
-                            onClick = {
-                                val content = textFieldValue.text
-                                if (content.isNotBlank()) {
-                                    isPosting = true
-                                    val finalContent = if (quotePrefix.isNotEmpty()) "$quotePrefix$content" else content
-                                    onPostReply(finalContent) { success ->
-                                        isPosting = false
-                                        if (success) {
-                                            scope.launch { sheetState.hide() }.invokeOnCompletion {
-                                                onDismiss()
-                                            }
-                                        }
-                                    }
-                                }
-                            },
-                            enabled = textFieldValue.text.isNotBlank()
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Send,
-                                contentDescription = stringResource(R.string.comment_action_send)
-                            )
-                        }
-                    }
+        val dialogWindow = (LocalView.current.parent as? DialogWindowProvider)?.window
+        DisposableEffect(dialogWindow) {
+            val previousSoftInputMode = dialogWindow?.attributes?.softInputMode
+            dialogWindow?.setSoftInputMode(
+                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE or
+                    WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
+            )
+            onDispose {
+                if (previousSoftInputMode != null) {
+                    dialogWindow.setSoftInputMode(previousSoftInputMode)
                 }
             }
+        }
 
-            // Display Quote reference block above the input box if replying
-            if (displayQuote != null) {
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = displayQuote!!,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(
-                            onClick = {
-                                quotePrefix = ""
-                                displayQuote = null
-                            },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = stringResource(R.string.comment_action_cancel_reply),
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Input Field (Auto-grows, max 4 lines)
-            OutlinedTextField(
-                value = textFieldValue,
-                onValueChange = { textFieldValue = it },
-                placeholder = { Text(stringResource(R.string.comment_hint_say_something)) },
+        Box(modifier = Modifier.fillMaxSize()) {
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester),
-                enabled = !isPosting,
-                maxLines = 4,
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f))
+                    .clickable(enabled = !isPosting) { onDismiss() }
             )
 
-            // BBCode & Emoji Tools Row (Horizontally scrollable)
-            Row(
+            Surface(
                 modifier = Modifier
+                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val insertBBCode = { open: String, close: String ->
-                    val text = textFieldValue.text
-                    val selection = textFieldValue.selection
-                    val start = selection.min
-                    val end = selection.max
-                    val selectedText = text.substring(start, end)
-                    val newMiddle = "$open$selectedText$close"
-                    val newText = text.replaceRange(start, end, newMiddle)
-                    val newCursorPos = if (start == end) start + open.length else start + newMiddle.length
-
-                    textFieldValue = TextFieldValue(
-                        text = newText,
-                        selection = TextRange(newCursorPos)
-                    )
-                }
-
-                BBCodeButton(
-                    icon = Icons.Default.FormatBold,
-                    label = stringResource(R.string.comment_editor_bold),
-                    onClick = { insertBBCode("[b]", "[/b]") }
-                )
-                BBCodeButton(
-                    icon = Icons.Default.FormatItalic,
-                    label = stringResource(R.string.comment_editor_italic),
-                    onClick = { insertBBCode("[i]", "[/i]") }
-                )
-                BBCodeButton(
-                    icon = Icons.Default.FormatUnderlined,
-                    label = stringResource(R.string.comment_editor_underline),
-                    onClick = { insertBBCode("[u]", "[/u]") }
-                )
-                BBCodeButton(
-                    icon = Icons.Default.StrikethroughS,
-                    label = stringResource(R.string.comment_editor_strikethrough),
-                    onClick = { insertBBCode("[s]", "[/s]") }
-                )
-                BBCodeButton(
-                    icon = Icons.Default.VisibilityOff,
-                    label = stringResource(R.string.comment_editor_spoiler),
-                    onClick = { insertBBCode("[mask]", "[/mask]") }
-                )
-                BBCodeButton(
-                    icon = Icons.Default.Link,
-                    label = stringResource(R.string.comment_editor_link),
-                    onClick = { insertBBCode("[url=]", "[/url]") }
-                )
-                BBCodeButton(
-                    icon = Icons.Default.Image,
-                    label = stringResource(R.string.comment_editor_image),
-                    onClick = { insertBBCode("[img]", "[/img]") }
-                )
-                BBCodeButton(
-                    icon = Icons.Default.Code,
-                    label = stringResource(R.string.comment_editor_code),
-                    onClick = { insertBBCode("[code]", "[/code]") }
-                )
-
-                // Emoji Toggle Button
-                IconButton(
-                    onClick = {
-                        showEmojiPanel = !showEmojiPanel
-                        if (showEmojiPanel) {
-                            focusManager.clearFocus()
-                            keyboardController?.hide()
-                        }
-                    },
-                    colors = IconButtonDefaults.iconButtonColors(
-                        containerColor = if (showEmojiPanel) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
+                    .alpha(if (showPanel) 1f else 0f)
+                    .windowInsetsPadding(
+                        WindowInsets.ime
+                            .union(WindowInsets.navigationBars)
+                            .only(WindowInsetsSides.Bottom)
                     ),
-                    modifier = Modifier.size(36.dp)
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                tonalElevation = 3.dp,
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Mood,
-                        contentDescription = stringResource(R.string.comment_editor_emoji),
-                        modifier = Modifier.size(20.dp),
-                        tint = if (showEmojiPanel) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                    // Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.comment_title_post),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextButton(onClick = onDismiss, enabled = !isPosting) {
+                                Text(stringResource(R.string.action_cancel))
+                            }
+                            if (isPosting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                IconButton(
+                                    onClick = {
+                                        val content = textFieldValue.text
+                                        if (content.isNotBlank()) {
+                                            isPosting = true
+                                            val finalContent =
+                                                if (quotePrefix.isNotEmpty()) "$quotePrefix$content" else content
+                                            onPostReply(finalContent) { success ->
+                                                isPosting = false
+                                                if (success) {
+                                                    onDismiss()
+                                                }
+                                            }
+                                        }
+                                    },
+                                    enabled = textFieldValue.text.isNotBlank()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Send,
+                                        contentDescription = stringResource(R.string.comment_action_send)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Display Quote reference block above the input box if replying
+                    if (displayQuote != null) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = displayQuote!!,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(
+                                    onClick = {
+                                        quotePrefix = ""
+                                        displayQuote = null
+                                    },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = stringResource(R.string.comment_action_cancel_reply),
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Input Field (Auto-grows, max 4 lines)
+                    OutlinedTextField(
+                        value = textFieldValue,
+                        onValueChange = { textFieldValue = it },
+                        placeholder = { Text(stringResource(R.string.comment_hint_say_something)) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
+                        enabled = !isPosting,
+                        maxLines = 4,
                     )
-                }
-            }
 
-            // Vertically scrollable Emoji Panel
-            if (showEmojiPanel) {
-                EmojiPanel(
-                    onEmojiSelect = { emojiCode ->
-                        val text = textFieldValue.text
-                        val selection = textFieldValue.selection
-                        val start = selection.min
-                        val end = selection.max
-                        val newText = text.replaceRange(start, end, emojiCode)
-                        val newCursorPos = start + emojiCode.length
+                    // BBCode & Emoji Tools Row (Horizontally scrollable)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val insertBBCode = { open: String, close: String ->
+                            val text = textFieldValue.text
+                            val selection = textFieldValue.selection
+                            val start = selection.min
+                            val end = selection.max
+                            val selectedText = text.substring(start, end)
+                            val newMiddle = "$open$selectedText$close"
+                            val newText = text.replaceRange(start, end, newMiddle)
+                            val newCursorPos =
+                                if (start == end) start + open.length else start + newMiddle.length
 
-                        textFieldValue = TextFieldValue(
-                            text = newText,
-                            selection = TextRange(newCursorPos)
+                            textFieldValue = TextFieldValue(
+                                text = newText,
+                                selection = TextRange(newCursorPos)
+                            )
+                        }
+
+                        BBCodeButton(
+                            icon = Icons.Default.FormatBold,
+                            label = stringResource(R.string.comment_editor_bold),
+                            onClick = { insertBBCode("[b]", "[/b]") }
+                        )
+                        BBCodeButton(
+                            icon = Icons.Default.FormatItalic,
+                            label = stringResource(R.string.comment_editor_italic),
+                            onClick = { insertBBCode("[i]", "[/i]") }
+                        )
+                        BBCodeButton(
+                            icon = Icons.Default.FormatUnderlined,
+                            label = stringResource(R.string.comment_editor_underline),
+                            onClick = { insertBBCode("[u]", "[/u]") }
+                        )
+                        BBCodeButton(
+                            icon = Icons.Default.StrikethroughS,
+                            label = stringResource(R.string.comment_editor_strikethrough),
+                            onClick = { insertBBCode("[s]", "[/s]") }
+                        )
+                        BBCodeButton(
+                            icon = Icons.Default.VisibilityOff,
+                            label = stringResource(R.string.comment_editor_spoiler),
+                            onClick = { insertBBCode("[mask]", "[/mask]") }
+                        )
+                        BBCodeButton(
+                            icon = Icons.Default.Link,
+                            label = stringResource(R.string.comment_editor_link),
+                            onClick = { insertBBCode("[url=]", "[/url]") }
+                        )
+                        BBCodeButton(
+                            icon = Icons.Default.Image,
+                            label = stringResource(R.string.comment_editor_image),
+                            onClick = { insertBBCode("[img]", "[/img]") }
+                        )
+                        BBCodeButton(
+                            icon = Icons.Default.Code,
+                            label = stringResource(R.string.comment_editor_code),
+                            onClick = { insertBBCode("[code]", "[/code]") }
+                        )
+
+                        // Emoji Toggle Button
+                        IconButton(
+                            onClick = {
+                                showEmojiPanel = !showEmojiPanel
+                                if (showEmojiPanel) {
+                                    focusManager.clearFocus()
+                                    keyboardController?.hide()
+                                }
+                            },
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = if (showEmojiPanel) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
+                            ),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Mood,
+                                contentDescription = stringResource(R.string.comment_editor_emoji),
+                                modifier = Modifier.size(20.dp),
+                                tint = if (showEmojiPanel) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    // Vertically scrollable Emoji Panel
+                    if (showEmojiPanel) {
+                        EmojiPanel(
+                            onEmojiSelect = { emojiCode ->
+                                val text = textFieldValue.text
+                                val selection = textFieldValue.selection
+                                val start = selection.min
+                                val end = selection.max
+                                val newText = text.replaceRange(start, end, emojiCode)
+                                val newCursorPos = start + emojiCode.length
+
+                                textFieldValue = TextFieldValue(
+                                    text = newText,
+                                    selection = TextRange(newCursorPos)
+                                )
+                            }
                         )
                     }
-                )
+                }
             }
         }
     }
@@ -435,7 +498,7 @@ fun RetryableEmojiImage(
 
     LaunchedEffect(triggerRetry) {
         if (triggerRetry && retryCount < 3) {
-            delay(1500)
+            delay(1500.milliseconds)
             retryCount++
             triggerRetry = false
         }
@@ -461,7 +524,7 @@ fun RetryableEmojiImage(
                         triggerRetry = true
                     }
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 if (retryCount < 3 && !triggerRetry) {
                     triggerRetry = true
                 }
@@ -528,17 +591,21 @@ fun CommentInputPlaceholder(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = if (isLoggedIn) stringResource(R.string.comment_hint_say_something) else stringResource(R.string.comment_msg_login_to_comment),
+                text = if (isLoggedIn) stringResource(R.string.comment_hint_say_something) else stringResource(
+                    R.string.comment_msg_login_to_comment
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
+
 fun cleanCommentForQuote(content: String): String {
-    var clean = content.replace(Regex("""\[quote\][\s\S]*?\[/quote\]""", RegexOption.IGNORE_CASE), "")
-    clean = clean.replace(Regex("""\[img\][\s\S]*?\[/img\]""", RegexOption.IGNORE_CASE), "")
-    clean = clean.replace(Regex("""\[mask\][\s\S]*?\[/mask\]""", RegexOption.IGNORE_CASE), "")
-    clean = clean.replace(Regex("""\[/?[a-zA-Z]+(?:=[^\]]*)?\]"""), "")
+    var clean =
+        content.replace(Regex("""\[quote][\s\S]*?\[/quote]""", RegexOption.IGNORE_CASE), "")
+    clean = clean.replace(Regex("""\[img][\s\S]*?\[/img]""", RegexOption.IGNORE_CASE), "")
+    clean = clean.replace(Regex("""\[mask][\s\S]*?\[/mask]""", RegexOption.IGNORE_CASE), "")
+    clean = clean.replace(Regex("""\[/?[a-zA-Z]+(?:=[^]]*)?]"""), "")
     return clean.trim()
 }
