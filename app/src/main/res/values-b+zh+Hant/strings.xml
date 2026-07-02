@@ -316,4 +316,24 @@
     <string name="msg_connecting_pixiv">正在連線到 Pixiv…</string>
     <string name="msg_pixiv_logged_in">Pixiv 登入成功</string>
     <string name="msg_pixiv_logged_out">已登出 Pixiv</string>
+
+    <!-- Comments Editor -->
+    <string name="comment_title_post">發表評論</string>
+    <string name="comment_action_send">發送</string>
+    <string name="comment_action_cancel_reply">取消回覆</string>
+    <string name="comment_action_reply">回覆</string>
+    <string name="comment_label_reply_to">回覆 @%1$s: %2$s</string>
+    <string name="comment_hint_say_something">說點什麼吧…</string>
+    <string name="comment_msg_login_to_comment">登入後即可發表評論</string>
+    <string name="comment_post_success">回覆成功</string>
+    <string name="comment_post_failure">回覆失敗，請稍後重試</string>
+    <string name="comment_editor_bold">加粗</string>
+    <string name="comment_editor_italic">斜體</string>
+    <string name="comment_editor_underline">底線</string>
+    <string name="comment_editor_strikethrough">刪除線</string>
+    <string name="comment_editor_spoiler">劇透/遮罩</string>
+    <string name="comment_editor_link">連結</string>
+    <string name="comment_editor_image">圖片</string>
+    <string name="comment_editor_code">程式碼</string>
+    <string name="comment_editor_emoji">表情</string>
 </resources>

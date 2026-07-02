@@ -171,6 +171,7 @@ internal fun TabletDetailContent(
     onAddReaction: () -> Unit,
     discussionId: String?,
     commentsToShow: List<BangumiSubReply>,
+    onCommentPlaceholderClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -342,46 +343,16 @@ internal fun TabletDetailContent(
             }
         }
 
-        HorizontalDivider(color = colorScheme.outlineVariant)
 
         // ── Comments Section ──
         if (discussionId != null) {
             val commentCount = commentsToShow.count { it.state == 0 }
-            if (commentCount > 0) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column {
-                        Text(
-                            text = stringResource(R.string.label_comments),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = commentCount.toString(),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    SuggestionChip(
-                        onClick = {},
-                        label = {
-                            Text(
-                                text = commentCount.toString(),
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                        },
-                        shape = RoundedCornerShape(50),
-                        colors =
-                            SuggestionChipDefaults.suggestionChipColors(
-                                containerColor = colorScheme.surfaceContainerHighest,
-                            ),
-                        border = null,
-                    )
-                }
-            }
+            CommentHeader(count = commentCount)
+
+            CommentInputPlaceholder(
+                isLoggedIn = isLoggedIn,
+                onClick = { onCommentPlaceholderClick("") }
+            )
 
             if (commentsToShow.isEmpty()) {
                 // Empty state with icon
@@ -407,7 +378,16 @@ internal fun TabletDetailContent(
                 }
             } else {
                 commentsToShow.forEach { reply ->
-                    FloorCommentEntry(reply = reply)
+                    FloorCommentEntry(
+                        reply = reply,
+                        isLoggedIn = isLoggedIn,
+                        onReplyClick = {
+                            val nickname = reply.creator?.nickname ?: reply.creator?.username ?: "Loli"
+                            val quoteContent = cleanCommentForQuote(reply.content)
+                            val initialText = "[quote][b]$nickname[/b] 说: $quoteContent[/quote]\n"
+                            onCommentPlaceholderClick(initialText)
+                        }
+                    )
                 }
             }
         }

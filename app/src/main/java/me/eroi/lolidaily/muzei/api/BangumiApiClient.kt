@@ -2,6 +2,7 @@ package me.eroi.lolidaily.muzei.api
 
 import android.content.Context
 import android.net.Uri
+import androidx.core.net.toUri
 import android.util.Log
 import me.eroi.lolidaily.muzei.model.BangumiReply
 import me.eroi.lolidaily.muzei.model.BangumiTopic
@@ -15,6 +16,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import okhttp3.FormBody
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Request
@@ -98,6 +100,498 @@ object BangumiApiClient {
                 reply.content.contains(tag)
         }
     }
+
+    /**
+     * Posts a reply to a Bangumi group topic using the WebView's login cookies.
+     * Steps: GET the topic page HTML → extract formhash → POST the reply form.
+     * Returns true on success, false on failure.
+     */
+    fun postTopicReply(context: Context, topicId: Int, content: String): Boolean {
+        if (content.isBlank()) {
+            Log.w(TAG, "postTopicReply: blank content")
+            return false
+        }
+
+        val topicPage = openTopicPostSession(context, topicId) ?: return false
+
+        val postUrl = resolveReplyPostUrl(topicPage.topicUrl, topicPage.pageHtml)
+        val postResult = submitTopicReply(
+            postUrl = postUrl,
+            topicUrl = topicPage.topicUrl,
+            topicId = topicId,
+            cookies = topicPage.cookies,
+            formhash = topicPage.formhash,
+            content = content,
+        )
+        if (!postResult.accepted) return false
+        if (!postResult.needsVerification) return true
+
+        val verified = fetchTopicHtml(topicPage.topicUrl, topicPage.cookies, noCache = true)
+            ?.let { containsPostedContent(it, content) } == true
+        if (!verified) {
+            Log.w(TAG, "postTopicReply: reply accepted but content was not visible after POST")
+        }
+        return verified
+    }
+
+    fun postTopicSubReply(
+        context: Context,
+        topicId: Int,
+        parentPostId: Int,
+        content: String,
+    ): Boolean {
+        if (content.isBlank()) {
+            Log.w(TAG, "postTopicSubReply: blank content")
+            return false
+        }
+
+        val topicPage = openTopicPostSession(context, topicId) ?: return false
+        val subReplyTarget = extractSubReplyTarget(topicPage.pageHtml, topicId, parentPostId)
+            ?: run {
+                Log.w(TAG, "postTopicSubReply: missing subReply target for post $parentPostId")
+                return false
+            }
+        val lastview = extractInputValue(topicPage.pageHtml, "lastview") ?: "0"
+        val postUrl = resolveReplyPostUrl(topicPage.topicUrl, topicPage.pageHtml)
+        val postResult = submitTopicSubReply(
+            postUrl = postUrl,
+            topicUrl = topicPage.topicUrl,
+            topicId = topicId,
+            cookies = topicPage.cookies,
+            formhash = topicPage.formhash,
+            lastview = lastview,
+            target = subReplyTarget,
+            content = content,
+        )
+        if (!postResult.accepted) return false
+        if (!postResult.needsVerification) return true
+
+        val verified = fetchTopicHtml(topicPage.topicUrl, topicPage.cookies, noCache = true)
+            ?.let { containsPostedContent(it, content) && it.contains("topic_reply_$parentPostId") } == true
+        if (!verified) {
+            Log.w(TAG, "postTopicSubReply: reply accepted but subreply content was not visible after POST")
+        }
+        return verified
+    }
+
+    /**
+     * Posts a comment for a daily card on a topic.
+     * If the floor reply for that card does not exist yet, creates it, fetches the topic again to get its floor ID, and then posts the sub-reply.
+     * Returns true if successfully posted.
+     */
+    fun postDailyComment(
+        context: Context,
+        topicId: Int,
+        dailyDate: String,
+        tags: String,
+        content: String
+    ): Boolean {
+        // Step 1: Fetch the topic to see if the floor already exists
+        var topic = fetchTopic(context, topicId) ?: return false
+        var floor = findTodayFloor(topic, dailyDate, tags)
+
+        if (floor == null) {
+            // Step 2: Create a top-level topic reply first
+            val tagSuffix = when {
+                tags.contains("LC0") || tags.contains("LC YJ") -> "LC0 / LC YJ"
+                tags.contains("LC ES") || tags.contains("ES") -> "LC ES"
+                else -> tags
+            }
+            val floorHeader = "${dailyDate}清晨至次日凌晨 $tagSuffix"
+            val ok = postTopicReply(context, topicId, floorHeader)
+            if (!ok) {
+                Log.w(TAG, "postDailyComment: failed to post top-level floor reply")
+                return false
+            }
+
+            // Step 3: Refetch and locate the floor
+            var retries = 3
+            while (retries > 0) {
+                topic = fetchTopic(context, topicId) ?: return false
+                floor = findTodayFloor(topic, dailyDate, tags)
+                if (floor != null) break
+                retries--
+                Thread.sleep(1000)
+            }
+
+            if (floor == null) {
+                Log.w(TAG, "postDailyComment: failed to find newly created floor reply after retries")
+                return false
+            }
+        }
+
+        // Step 4: Post the subreply under the matched/created floor
+        return postTopicSubReply(context, topicId, floor.id, content)
+    }
+
+    private fun openTopicPostSession(
+        context: Context,
+        topicId: Int,
+    ): TopicPostSession? {
+        val preferredDomain = SessionManager.loadDomain(context)
+        val domains = bangumiWebDomains(preferredDomain)
+        return domains.firstNotNullOfOrNull { domain ->
+            val topicUrl = "https://$domain/group/topic/$topicId"
+            val cookies = buildBangumiCookieHeader(listOf(domain) + domains.filterNot { it == domain })
+            if (cookies.isNullOrBlank()) {
+                Log.w(TAG, "openTopicPostSession: no cookies for $domain")
+                return@firstNotNullOfOrNull null
+            }
+
+            val pageHtml = fetchTopicHtml(topicUrl, cookies) ?: return@firstNotNullOfOrNull null
+            val formhash = extractFormhash(pageHtml)
+            if (formhash.isNullOrBlank()) {
+                Log.w(TAG, "openTopicPostSession: no formhash on $domain; ${summarizeTopicPage(pageHtml)}")
+                null
+            } else {
+                TopicPostSession(
+                    topicUrl = topicUrl,
+                    cookies = cookies,
+                    pageHtml = pageHtml,
+                    formhash = formhash,
+                )
+            }
+        }
+    }
+
+    private data class SubReplyTarget(
+        val parentPostId: Int,
+        val subReplyUid: Int,
+        val postUid: Int,
+    )
+
+    private data class TopicPostSession(
+        val topicUrl: String,
+        val cookies: String,
+        val pageHtml: String,
+        val formhash: String,
+    )
+
+    private data class ReplyPostResult(
+        val accepted: Boolean,
+        val needsVerification: Boolean,
+    )
+
+    private fun bangumiWebDomains(preferredDomain: String): List<String> {
+        val domains = mutableListOf(preferredDomain)
+        domains += listOf("chii.in", "bgm.tv", "bangumi.tv")
+        return domains.distinct()
+    }
+
+    private fun buildBangumiCookieHeader(domains: List<String>): String? {
+        val cookieByName = LinkedHashMap<String, String>()
+        val cookieManager = android.webkit.CookieManager.getInstance()
+        domains.forEach { domain ->
+            cookieManager.getCookie("https://$domain")
+                ?.split(";")
+                ?.asSequence()
+                ?.map { it.trim() }
+                ?.filter { it.contains("=") }
+                ?.forEach { cookie ->
+                    val name = cookie.substringBefore("=").trim()
+                    if (name.isNotBlank() && !cookieByName.containsKey(name)) {
+                        cookieByName[name] = cookie
+                    }
+                }
+        }
+        return cookieByName.values.joinToString("; ").takeIf { it.isNotBlank() }
+    }
+
+    private fun fetchTopicHtml(
+        topicUrl: String,
+        cookies: String,
+        noCache: Boolean = false,
+    ): String? {
+        val requestBuilder = Request.Builder()
+            .url(topicUrl)
+            .header("User-Agent", LoliApiClient.MOBILE_UA)
+            .header("Cookie", cookies)
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+            .get()
+        if (noCache) {
+            requestBuilder
+                .header("Cache-Control", "no-cache")
+                .header("Pragma", "no-cache")
+        }
+
+        return try {
+            LoliApiClient.httpClient.newCall(requestBuilder.build()).execute().use { response ->
+                val body = response.body?.string()
+                if (!response.isSuccessful || body.isNullOrBlank()) {
+                    Log.w(TAG, "postTopicReply: GET topic returned ${response.code}")
+                    return null
+                }
+                body
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "postTopicReply: GET topic failed", e)
+            null
+        }
+    }
+
+    private fun submitTopicReply(
+        postUrl: String,
+        topicUrl: String,
+        topicId: Int,
+        cookies: String,
+        formhash: String,
+        content: String,
+    ): ReplyPostResult {
+        val formBody = FormBody.Builder()
+            .add("formhash", formhash)
+            .add("content", content)
+            .add("submit", "submit")
+            .build()
+
+        val origin = topicUrl.toUri().let { "${it.scheme}://${it.encodedAuthority}" }
+        val postRequest = Request.Builder()
+            .url(postUrl)
+            .header("User-Agent", LoliApiClient.MOBILE_UA)
+            .header("Cookie", cookies)
+            .header("Origin", origin)
+            .header("Referer", topicUrl)
+            .post(formBody)
+            .build()
+
+        return try {
+            LoliApiClient.httpClient
+                .newBuilder()
+                .followRedirects(false)
+                .followSslRedirects(false)
+                .build()
+                .newCall(postRequest)
+                .execute()
+                .use { response ->
+                    val location = response.header("Location").orEmpty()
+                    when {
+                        response.code in 300..399 &&
+                            location.contains("/group/topic/$topicId") ->
+                            ReplyPostResult(accepted = true, needsVerification = false)
+                        response.code in 200..299 ->
+                            ReplyPostResult(accepted = true, needsVerification = true)
+                        else -> {
+                            Log.w(
+                                TAG,
+                                "postTopicReply: POST returned ${response.code}, location=$location",
+                            )
+                            ReplyPostResult(accepted = false, needsVerification = false)
+                        }
+                    }
+                }
+        } catch (e: Exception) {
+            Log.w(TAG, "postTopicReply: POST failed", e)
+            ReplyPostResult(accepted = false, needsVerification = false)
+        }
+    }
+
+    private fun submitTopicSubReply(
+        postUrl: String,
+        topicUrl: String,
+        topicId: Int,
+        cookies: String,
+        formhash: String,
+        lastview: String,
+        target: SubReplyTarget,
+        content: String,
+    ): ReplyPostResult {
+        val formBody = FormBody.Builder()
+            .add("topic_id", topicId.toString())
+            .add("related", target.parentPostId.toString())
+            .add("sub_reply_uid", target.subReplyUid.toString())
+            .add("post_uid", target.postUid.toString())
+            .add("content", content)
+            .add("related_photo", "0")
+            .add("lastview", lastview)
+            .add("formhash", formhash)
+            .add("submit", "submit")
+            .build()
+
+        val origin = topicUrl.toUri().let { "${it.scheme}://${it.encodedAuthority}" }
+        val postRequest = Request.Builder()
+            .url("$postUrl?ajax=1")
+            .header("User-Agent", LoliApiClient.MOBILE_UA)
+            .header("Cookie", cookies)
+            .header("Origin", origin)
+            .header("Referer", topicUrl)
+            .post(formBody)
+            .build()
+
+        return try {
+            LoliApiClient.httpClient
+                .newCall(postRequest)
+                .execute()
+                .use { response ->
+                    val responseBody = response.body?.string().orEmpty()
+                    if (
+                        response.isSuccessful &&
+                        responseBody.contains("\"posts\"") &&
+                        responseBody.contains("\"sub\"") &&
+                        responseBody.contains("\"${target.parentPostId}\"")
+                    ) {
+                        ReplyPostResult(accepted = true, needsVerification = false)
+                    } else {
+                        Log.w(
+                            TAG,
+                            "postTopicSubReply: POST returned ${response.code}, body=${responseBody.take(500)}",
+                        )
+                        ReplyPostResult(accepted = false, needsVerification = false)
+                    }
+                }
+        } catch (e: Exception) {
+            Log.w(TAG, "postTopicSubReply: POST failed", e)
+            ReplyPostResult(accepted = false, needsVerification = false)
+        }
+    }
+
+    private fun extractFormhash(pageHtml: String): String? {
+        Regex("""<input\b[^>]*>""", RegexOption.IGNORE_CASE)
+            .findAll(pageHtml)
+            .forEach { match ->
+                val inputTag = match.value
+                if (extractHtmlAttribute(inputTag, "name").equals("formhash", ignoreCase = true)) {
+                    return extractHtmlAttribute(inputTag, "value")?.takeIf { it.isNotBlank() }
+                }
+            }
+
+        return Regex("""formhash['"]?\s*[:=]\s*['"]([^'"]+)""", RegexOption.IGNORE_CASE)
+            .find(pageHtml)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.takeIf { it.isNotBlank() }
+    }
+
+    private fun extractInputValue(pageHtml: String, name: String): String? {
+        Regex("""<input\b[^>]*>""", RegexOption.IGNORE_CASE)
+            .findAll(pageHtml)
+            .forEach { match ->
+                val inputTag = match.value
+                if (extractHtmlAttribute(inputTag, "name").equals(name, ignoreCase = true)) {
+                    return extractHtmlAttribute(inputTag, "value")?.takeIf { it.isNotBlank() }
+                }
+            }
+        return null
+    }
+
+    private fun resolveReplyPostUrl(topicUrl: String, pageHtml: String): String {
+        val action = extractReplyFormAction(pageHtml) ?: return "$topicUrl/new_reply"
+        if (action.startsWith("http://") || action.startsWith("https://")) return action
+        if (action.startsWith("//")) return "https:$action"
+
+        val topicUri = topicUrl.toUri()
+        return if (action.startsWith("/")) {
+            topicUri.buildUpon()
+                .encodedPath(action)
+                .encodedQuery(null)
+                .fragment(null)
+                .build()
+                .toString()
+        } else {
+            "$topicUrl/${action.trimStart('/')}"
+        }
+    }
+
+    private fun extractReplyFormAction(pageHtml: String): String? {
+        Regex("""<form\b[^>]*>""", RegexOption.IGNORE_CASE)
+            .findAll(pageHtml)
+            .forEach { match ->
+                val formTag = match.value
+                val action = extractHtmlAttribute(formTag, "action")?.takeIf { it.isNotBlank() }
+                    ?: return@forEach
+                if (
+                    formTag.contains("ReplyForm", ignoreCase = true) ||
+                    action.contains("new_reply", ignoreCase = true) ||
+                    action.contains("add_reply", ignoreCase = true)
+                ) {
+                    return action
+                }
+            }
+        return null
+    }
+
+    private fun extractHtmlAttribute(tag: String, name: String): String? {
+        val attrRegex = Regex(
+            """\b${Regex.escape(name)}\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))""",
+            RegexOption.IGNORE_CASE,
+        )
+        val match = attrRegex.find(tag) ?: return null
+        return (1..3)
+            .firstNotNullOfOrNull { index -> match.groupValues.getOrNull(index)?.takeIf { it.isNotEmpty() } }
+    }
+
+    private fun extractSubReplyTarget(
+        pageHtml: String,
+        topicId: Int,
+        parentPostId: Int,
+    ): SubReplyTarget? {
+        Log.d(TAG, "extractSubReplyTarget: searching for topicId=$topicId, parentPostId=$parentPostId")
+        var matchCount = 0
+        Regex("""subReply\(([^)]*)\)""")
+            .findAll(pageHtml)
+            .forEach { match ->
+                matchCount++
+                val args = parseJsArgs(match.groupValues[1])
+                Log.d(TAG, "extractSubReplyTarget: match $matchCount: args=$args")
+                if (
+                    args.getOrNull(1)?.toIntOrNull() == topicId &&
+                    args.getOrNull(2)?.toIntOrNull() == parentPostId &&
+                    args.getOrNull(6)?.toIntOrNull() == 0
+                ) {
+                    val subReplyUid = args.getOrNull(4)?.toIntOrNull() ?: return@forEach
+                    val postUid = args.getOrNull(5)?.toIntOrNull() ?: return@forEach
+                    Log.d(TAG, "extractSubReplyTarget: matched target: subReplyUid=$subReplyUid, postUid=$postUid")
+                    return SubReplyTarget(
+                        parentPostId = parentPostId,
+                        subReplyUid = subReplyUid,
+                        postUid = postUid,
+                    )
+                }
+            }
+        Log.w(TAG, "extractSubReplyTarget: no match found out of $matchCount subReply matches in HTML")
+        return null
+    }
+
+    private fun parseJsArgs(rawArgs: String): List<String> {
+        return Regex("""'([^']*)'|"([^"]*)"|([^,\s]+)""")
+            .findAll(rawArgs)
+            .map { match ->
+                match.groupValues.getOrNull(1)?.takeIf { it.isNotEmpty() }
+                    ?: match.groupValues.getOrNull(2)?.takeIf { it.isNotEmpty() }
+                    ?: match.groupValues.getOrNull(3).orEmpty()
+            }
+            .toList()
+    }
+
+    private fun summarizeTopicPage(pageHtml: String): String {
+        val uid = Regex("""CHOBITS_UID\s*=\s*(\d+)""")
+            .find(pageHtml)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?: "unknown"
+        val hasLoginLink = pageHtml.contains("/login", ignoreCase = true)
+        val hasReplyEndpoint = pageHtml.contains("new_reply", ignoreCase = true) ||
+            pageHtml.contains("add_reply", ignoreCase = true)
+        val hasFormhashText = pageHtml.contains("formhash", ignoreCase = true)
+        return "uid=$uid, hasLoginLink=$hasLoginLink, hasReplyEndpoint=$hasReplyEndpoint, " +
+            "hasFormhashText=$hasFormhashText, length=${pageHtml.length}"
+    }
+
+    private fun containsPostedContent(pageHtml: String, content: String): Boolean {
+        return pageHtml.contains(content) || pageHtml.contains(escapeHtml(content))
+    }
+
+    private fun escapeHtml(text: String): String = buildString(text.length) {
+        text.forEach { char ->
+            when (char) {
+                '&' -> append("&amp;")
+                '<' -> append("&lt;")
+                '>' -> append("&gt;")
+                '"' -> append("&quot;")
+                '\'' -> append("&#39;")
+                else -> append(char)
+            }
+        }
+    }
+
     private const val CHII_AI_GRAPHQL_URL = "https://chii.ai/graphql"
 
     private const val AUTOCOMPLETE_QUERY =

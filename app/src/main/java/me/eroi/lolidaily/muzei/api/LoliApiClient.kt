@@ -38,6 +38,9 @@ object LoliApiClient {
     const val KEY_DEBUG_OVERRIDE_API_TAG_ENABLED = "debug_override_api_tag_enabled"
     const val KEY_DEBUG_OVERRIDE_API_TAG = "debug_override_api_tag"
 
+    const val KEY_DEBUG_OVERRIDE_TOPIC_ID_ENABLED = "debug_override_topic_id_enabled"
+    const val KEY_DEBUG_OVERRIDE_TOPIC_ID = "debug_override_topic_id"
+
     val ALL_LC_TAGS =
         listOf(
             "LC0",
@@ -89,6 +92,15 @@ object LoliApiClient {
                 ?: DEFAULT_BADGE
         }
         return SessionManager.loadBadge(context)
+    }
+
+    fun getDebugOverrideTopicId(context: Context): Int? {
+        val prefs = context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_DEBUG_OVERRIDE_TOPIC_ID_ENABLED, false)) {
+            val value = prefs.getString(KEY_DEBUG_OVERRIDE_TOPIC_ID, null)
+            return value?.toIntOrNull()
+        }
+        return null
     }
 
     fun apiUrl(context: Context): String {

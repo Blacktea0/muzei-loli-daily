@@ -19,6 +19,13 @@ object SmileyMapper {
 
     // ── Data types ──────────────────────────────────────────────────
 
+    data class SmileyCategory(
+        val name: String,
+        val iconCode: String,
+        val isPixelArt: Boolean,
+        val codes: List<String>,
+    )
+
     data class InlineImage(
         val url: String,
         /** Index of the `\uFFFC` placeholder in the cleaned text. */
@@ -36,6 +43,68 @@ object SmileyMapper {
         val mentionRanges: List<IntRange>,
     )
 
+    // ── Picker data ─────────────────────────────────────────────────
+
+    private val musumeWebOrder =
+        listOf(
+            6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+            22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
+            37, 38, 39, 40, 41, 42, 100, 106, 108, 118, 43, 44, 45, 46,
+            47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,
+            62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76,
+            101, 102, 103, 99, 107, 112, 109, 110, 111, 113, 114, 115,
+            116, 117, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88,
+            89, 90, 91, 92, 93, 104, 105, 94, 95, 96, 1, 2, 3, 4, 5,
+        )
+
+    private val blakeWebOrder =
+        listOf(
+            6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+            22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
+            37, 38, 39, 40, 41, 42, 100, 106, 108, 118, 43, 44, 45, 46,
+            47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,
+            62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76,
+            101, 102, 103, 99, 107, 112, 109, 110, 111, 113, 114, 115,
+            116, 117, 97, 98, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86,
+            87, 88, 89, 90, 91, 92, 93, 104, 105, 94, 95, 96, 1, 2, 3,
+            4, 5,
+        )
+
+    val categories =
+        listOf(
+            SmileyCategory(
+                name = "Bgm",
+                iconCode = "bgm01",
+                isPixelArt = true,
+                codes = (1..23).map { "bgm${it.pad2()}" },
+            ),
+            SmileyCategory(
+                name = "Tv",
+                iconCode = "bgm24",
+                isPixelArt = true,
+                codes = (24..125).map { "bgm$it" },
+            ),
+            SmileyCategory(
+                name = "Musume",
+                iconCode = "musume_01",
+                isPixelArt = false,
+                codes = musumeWebOrder.map { "musume_${it.pad2()}" },
+            ),
+            SmileyCategory(
+                name = "Blake",
+                iconCode = "blake_01",
+                isPixelArt = false,
+                codes = blakeWebOrder.map { "blake_${it.pad2()}" },
+            ),
+        )
+
+    fun textCode(code: String): String = "($code)"
+
+    fun resolveUrl(
+        code: String,
+        bgmDomain: String,
+    ): String? = resolve(code, bgmDomain)?.first
+
     // ── URL resolution ──────────────────────────────────────────────
 
     /**
@@ -47,25 +116,27 @@ object SmileyMapper {
      */
     fun resolve(
         code: String,
-        @Suppress("UNUSED_PARAMETER") bgmDomain: String,
+        bgmDomain: String,
     ): Pair<String, Boolean>? {
+        val domain = bgmDomain.ifBlank { "chii.in" }
         if (code.startsWith("musume_")) {
             val id = code.removePrefix("musume_").toIntOrNull() ?: return null
             if (id !in 1..118) return null
-            return "https://lain.bgm.tv/img/smiles/musume/musume_${id.pad2()}.gif" to false
+            return "https://$domain/img/smiles/musume/musume_${id.pad2()}.gif" to false
         }
         if (code.startsWith("blake_")) {
             val id = code.removePrefix("blake_").toIntOrNull() ?: return null
             if (id !in 1..118) return null
-            return "https://lain.bgm.tv/img/smiles/blake/blake_${id.pad2()}.gif" to false
+            return "https://$domain/img/smiles/blake/blake_${id.pad2()}.gif" to false
         }
         if (code.startsWith("bgm")) {
             val n = code.removePrefix("bgm").toIntOrNull() ?: return null
             return when (n) {
-                in 1..22 -> "https://lain.bgm.tv/img/smiles/bgm/${n.pad2()}.png" to true
-                in 24..125 -> "https://lain.bgm.tv/img/smiles/tv/${n - 23}.gif" to true
-                in 200..238 -> "https://lain.bgm.tv/img/smiles/tv_vs/bgm_$n.png" to true
-                in 500..529 -> "https://lain.bgm.tv/img/smiles/tv_500/bgm_$n.png" to true
+                11, 23 -> "https://$domain/img/smiles/bgm/${n.pad2()}.gif" to true
+                in 1..22 -> "https://$domain/img/smiles/bgm/${n.pad2()}.png" to true
+                in 24..125 -> "https://$domain/img/smiles/tv/${(n - 23).pad2()}.gif" to true
+                in 200..238 -> "https://$domain/img/smiles/tv_vs/bgm_$n.png" to true
+                in 500..529 -> "https://$domain/img/smiles/tv_500/bgm_$n.png" to true
                 else -> null
             }
         }

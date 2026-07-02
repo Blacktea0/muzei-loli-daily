@@ -350,3 +350,44 @@ fun ApiTagPickerDialog(
         },
     )
 }
+@Composable
+fun ApiTopicIdPickerDialog(
+    currentTopicId: String,
+    onDismiss: () -> Unit,
+    onTopicIdSelected: (String) -> Unit,
+) {
+    var textValue by remember { mutableStateOf(currentTopicId) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Override API Topic ID") },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                OutlinedTextField(
+                    value = textValue,
+                    onValueChange = { input ->
+                        if (input.all { it.isDigit() }) {
+                            textValue = input
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("e.g. 465120") },
+                    singleLine = true,
+                    label = { Text("Topic ID") },
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onTopicIdSelected(textValue) }) {
+                Text(stringResource(R.string.action_ok))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_cancel))
+            }
+        },
+    )
+}
+
+

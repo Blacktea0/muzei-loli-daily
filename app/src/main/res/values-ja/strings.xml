@@ -315,4 +315,24 @@
     <string name="msg_connecting_pixiv">Pixiv に接続中…</string>
     <string name="msg_pixiv_logged_in">Pixiv ログイン成功</string>
     <string name="msg_pixiv_logged_out">Pixiv ログアウトしました</string>
+
+    <!-- Comments Editor -->
+    <string name="comment_title_post">コメントを投稿</string>
+    <string name="comment_action_send">送信</string>
+    <string name="comment_action_cancel_reply">返信をキャンセル</string>
+    <string name="comment_action_reply">返信</string>
+    <string name="comment_label_reply_to">@%1$s への返信: %2$s</string>
+    <string name="comment_hint_say_something">コメントを入力…</string>
+    <string name="comment_msg_login_to_comment">ログイン後にコメントを投稿できます</string>
+    <string name="comment_post_success">返信に成功しました</string>
+    <string name="comment_post_failure">返信に失敗しました。後でもう一度お試しください</string>
+    <string name="comment_editor_bold">太字</string>
+    <string name="comment_editor_italic">斜体</string>
+    <string name="comment_editor_underline">下線</string>
+    <string name="comment_editor_strikethrough">打ち消し線</string>
+    <string name="comment_editor_spoiler">ネタバレ</string>
+    <string name="comment_editor_link">リンク</string>
+    <string name="comment_editor_image">画像</string>
+    <string name="comment_editor_code">コード</string>
+    <string name="comment_editor_emoji">絵文字</string>
 </resources>

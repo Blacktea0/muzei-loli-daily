@@ -316,4 +316,24 @@
     <string name="msg_connecting_pixiv">Connecting to Pixiv…</string>
     <string name="msg_pixiv_logged_in">Pixiv login successful</string>
     <string name="msg_pixiv_logged_out">Pixiv logged out</string>
+
+    <!-- Comments Editor -->
+    <string name="comment_title_post">Publish Comment</string>
+    <string name="comment_action_send">Send</string>
+    <string name="comment_action_cancel_reply">Cancel reply</string>
+    <string name="comment_action_reply">Reply</string>
+    <string name="comment_label_reply_to">Reply to @%1$s: %2$s</string>
+    <string name="comment_hint_say_something">Say something…</string>
+    <string name="comment_msg_login_to_comment">Login to post a comment</string>
+    <string name="comment_post_success">Comment posted successfully</string>
+    <string name="comment_post_failure">Failed to post comment, please try again later</string>
+    <string name="comment_editor_bold">Bold</string>
+    <string name="comment_editor_italic">Italic</string>
+    <string name="comment_editor_underline">Underline</string>
+    <string name="comment_editor_strikethrough">Strikethrough</string>
+    <string name="comment_editor_spoiler">Spoiler</string>
+    <string name="comment_editor_link">Link</string>
+    <string name="comment_editor_image">Image</string>
+    <string name="comment_editor_code">Code</string>
+    <string name="comment_editor_emoji">Emoji</string>
 </resources>

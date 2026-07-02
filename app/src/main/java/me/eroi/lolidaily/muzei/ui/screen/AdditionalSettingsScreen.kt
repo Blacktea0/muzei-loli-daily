@@ -1,9 +1,9 @@
 package me.eroi.lolidaily.muzei.ui.screen
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -67,9 +67,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.PixivLoginActivity
-import me.eroi.lolidaily.muzei.worker.WorkScheduler
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.LoliApiClient
+import me.eroi.lolidaily.muzei.worker.WorkScheduler
 import me.eroi.lolidaily.muzei.api.SessionManager
 
 const val KEY_HIDE_RECENTS_CONTENT = "hide_recents_content"
@@ -360,9 +360,19 @@ private fun ApiCombinedCard() {
         )
     }
 
+    var overrideTopicIdEnabled by remember {
+        mutableStateOf(prefs.getBoolean(LoliApiClient.KEY_DEBUG_OVERRIDE_TOPIC_ID_ENABLED, false))
+    }
+    var overrideTopicId by remember {
+        mutableStateOf(
+            prefs.getString(LoliApiClient.KEY_DEBUG_OVERRIDE_TOPIC_ID, "465120") ?: "465120"
+        )
+    }
+
     var showApiDialog by remember { mutableStateOf(false) }
     var showBangumiDialog by remember { mutableStateOf(false) }
     var showApiTagDialog by remember { mutableStateOf(false) }
+    var showApiTopicIdDialog by remember { mutableStateOf(false) }
 
     SettingsGroup {
         SettingsRow(
@@ -402,6 +412,17 @@ private fun ApiCombinedCard() {
             },
             onClick = { showApiTagDialog = true },
         )
+        SettingsRowWithSwitchAndArrow(
+            icon = Icons.Default.Forum,
+            title = "Override API Topic ID",
+            subtitle = overrideTopicId,
+            checked = overrideTopicIdEnabled,
+            onCheckedChange = { checked ->
+                overrideTopicIdEnabled = checked
+                prefs.edit { putBoolean(LoliApiClient.KEY_DEBUG_OVERRIDE_TOPIC_ID_ENABLED, checked) }
+            },
+            onClick = { showApiTopicIdDialog = true },
+        )
     }
 
     if (showApiDialog) {
@@ -424,6 +445,18 @@ private fun ApiCombinedCard() {
                 overrideApiTag = tag
                 prefs.edit { putString(LoliApiClient.KEY_DEBUG_OVERRIDE_API_TAG, tag) }
                 showApiTagDialog = false
+                refreshKey++
+            },
+        )
+    }
+    if (showApiTopicIdDialog) {
+        ApiTopicIdPickerDialog(
+            currentTopicId = overrideTopicId,
+            onDismiss = { showApiTopicIdDialog = false },
+            onTopicIdSelected = { topicId ->
+                overrideTopicId = topicId
+                prefs.edit { putString(LoliApiClient.KEY_DEBUG_OVERRIDE_TOPIC_ID, topicId) }
+                showApiTopicIdDialog = false
                 refreshKey++
             },
         )
@@ -624,3 +657,4 @@ private fun PixivAccountCard() {
         },
     )
 }
+

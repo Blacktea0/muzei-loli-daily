@@ -28,9 +28,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -51,8 +51,13 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import me.eroi.lolidaily.muzei.api.BangumiApiClient
+import android.util.Log
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.ReactionService
+import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.BangumiReply
 import me.eroi.lolidaily.muzei.ui.screen.components.*
@@ -60,6 +65,7 @@ import me.eroi.lolidaily.muzei.util.exportArtwork
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalMaterial3WindowSizeClassApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -259,19 +265,85 @@ fun TodayPage(
                         val discussionId = preview.discussionId
 
                         var todayFloor by remember { mutableStateOf<BangumiReply?>(null) }
+                        var showCommentSheet by remember { mutableStateOf(false) }
+                        var commentSheetInitialText by remember { mutableStateOf("") }
+                        val coroutineScope = rememberCoroutineScope()
+                        var isRefreshingComments by remember { mutableStateOf(false) }
+
+                        fun refreshComments() {
+                            if (discussionId == null) return
+                            val overrideTopicId = LoliApiClient.getDebugOverrideTopicId(context)
+                            val targetTopicId = overrideTopicId ?: BangumiApiClient.parseDiscussionId(discussionId).first
+                            if (targetTopicId == 0) return
+
+                            isRefreshingComments = true
+                            coroutineScope.launch(Dispatchers.IO) {
+                                try {
+                                    val topic = BangumiApiClient.fetchTopic(context, targetTopicId)
+                                    val floor = topic?.let {
+                                        BangumiApiClient.findTodayFloor(it, preview.date, preview.tags)
+                                    }
+                                    withContext(Dispatchers.Main) {
+                                        todayFloor = floor
+                                        isRefreshingComments = false
+                                    }
+                                } catch (e: Exception) {
+                                    Log.w("TodayPage", "Failed to refresh comments", e)
+                                    withContext(Dispatchers.Main) {
+                                        isRefreshingComments = false
+                                    }
+                                }
+                            }
+                        }
 
                         LaunchedEffect(discussionId, todayArtwork) {
                             if (discussionId == null) {
                                 todayFloor = null
                                 return@LaunchedEffect
                             }
-                            todayFloor = ReactionService.loadTopicFloors(context)[discussionId]
+                            val overrideTopicId = LoliApiClient.getDebugOverrideTopicId(context)
+                            if (overrideTopicId == null) {
+                                todayFloor = ReactionService.loadTopicFloors(context)[discussionId]
+                            }
+                            refreshComments()
+                        }
+
+                        val onPostReply: (String, (Boolean) -> Unit) -> Unit = { commentText, callback ->
+                            val overrideTopicId = LoliApiClient.getDebugOverrideTopicId(context)
+                            val targetTopicId = overrideTopicId ?: (discussionId?.let {
+                                BangumiApiClient.parseDiscussionId(it).first
+                            } ?: 0)
+                            if (targetTopicId == 0) {
+                                Toast.makeText(context, "无法确定讨论帖子", Toast.LENGTH_SHORT).show()
+                                callback(false)
+                            } else {
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    val ok = BangumiApiClient.postDailyComment(
+                                        context = context,
+                                        topicId = targetTopicId,
+                                        dailyDate = preview.date,
+                                        tags = preview.tags,
+                                        content = commentText
+                                    )
+                                    withContext(Dispatchers.Main) {
+                                        if (ok) {
+                                            Toast.makeText(context, R.string.comment_post_success, Toast.LENGTH_SHORT).show()
+                                            refreshComments()
+                                            callback(true)
+                                        } else {
+                                            Toast.makeText(context, R.string.comment_post_failure, Toast.LENGTH_SHORT).show()
+                                            callback(false)
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         val commentsToShow =
                             remember(todayFloor) {
                                 todayFloor?.replies.orEmpty()
                             }
+
 
                         when (windowSizeClass) {
                             WindowWidthSizeClass.Expanded -> {
@@ -334,7 +406,12 @@ fun TodayPage(
                                                     onAddReaction = { showReactionPicker = true },
                                                     discussionId = discussionId,
                                                     commentsToShow = commentsToShow,
+                                                    onCommentPlaceholderClick = { text ->
+                                                        commentSheetInitialText = text
+                                                        showCommentSheet = true
+                                                    },
                                                 )
+
                                             }
                                         }
                                     }
@@ -370,6 +447,16 @@ fun TodayPage(
                                             CommentHeader(count = commentsToShow.count { it.state == 0 })
                                         }
 
+                                        item(key = "comment_input") {
+                                            CommentInputPlaceholder(
+                                                isLoggedIn = isLoggedIn,
+                                                onClick = {
+                                                    commentSheetInitialText = ""
+                                                    showCommentSheet = true
+                                                }
+                                            )
+                                        }
+
                                         if (commentsToShow.isEmpty()) {
                                             item(key = "comments_empty") { EmptyComments() }
                                         } else {
@@ -377,13 +464,33 @@ fun TodayPage(
                                                 count = commentsToShow.size,
                                                 key = { commentsToShow[it].id },
                                             ) { index ->
-                                                FloorCommentEntry(reply = commentsToShow[index])
+                                                val reply = commentsToShow[index]
+                                                FloorCommentEntry(
+                                                    reply = reply,
+                                                    isLoggedIn = isLoggedIn,
+                                                    onReplyClick = {
+                                                        val nickname = reply.creator?.nickname ?: reply.creator?.username ?: "Loli"
+                                                        val quoteContent = cleanCommentForQuote(reply.content)
+                                                        val initialText = "[quote][b]$nickname[/b] 说: $quoteContent[/quote]\n"
+                                                        commentSheetInitialText = initialText
+                                                        showCommentSheet = true
+                                                    }
+                                                )
                                             }
                                         }
                                     }
                                 }
                             }
                         }
+
+                                if (showCommentSheet) {
+                                    CommentBottomSheet(
+                                        onDismiss = { showCommentSheet = false },
+                                        onPostReply = onPostReply,
+                                        initialText = commentSheetInitialText
+                                    )
+                                }
+
                     } else {
                         Column(
                             modifier =
@@ -570,6 +677,7 @@ fun TodayPage(
             },
         )
     }
+
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
