@@ -280,7 +280,6 @@
     <string name="submit_guidelines_link">投稿须知</string>
     <string name="submit_confirm_guidelines">我已阅读并确保上传的作品符合%1$s *</string>
     <string name="submit_button">发送</string>
-    <string name="submit_sending">发送中……</string>
     <string name="submit_success">心意……传达到了呢</string>
     <string name="submit_error_format">不支持的图片格式</string>
     <string name="submit_error_size">图片超过 3MB 了，请先调整尺寸</string>

@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -56,7 +57,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.InputChipDefaults
-import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.LoadingIndicator
+import android.widget.Toast
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -230,7 +239,12 @@ private data class SubmitFormState(
  * - Source URL auto-resolve for known platforms (twitter/pixiv/bilibili)
  * - Image validation: jpg/png/webp/avif, ≤ 3 MB
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class, ExperimentalMaterial3WindowSizeClassApi::class)
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3ExpressiveApi::class,
+    ExperimentalLayoutApi::class,
+    ExperimentalMaterial3WindowSizeClassApi::class
+)
 @Composable
 fun SubmitPage(
     isLoggedIn: Boolean,
@@ -263,7 +277,13 @@ fun SubmitPage(
                                 .getExtensionFromMimeType(context.contentResolver.getType(uri))
                                 ?.let { "image/$it" }
                             ?: "image/jpeg"
-                    if (mimeType !in listOf("image/jpeg", "image/png", "image/webp", "image/avif")) {
+                    if (mimeType !in listOf(
+                            "image/jpeg",
+                            "image/png",
+                            "image/webp",
+                            "image/avif"
+                        )
+                    ) {
                         withContext(Dispatchers.Main) {
                             state = state.copy(
                                 statusMessage = res.getString(R.string.submit_error_format),
@@ -381,16 +401,26 @@ fun SubmitPage(
         )
 
         val artistDeferred = async(Dispatchers.IO) {
-            SourceLinkParserRegistry.resolveArtist(context, currentMatch.type, currentMatch.resourceId)
+            SourceLinkParserRegistry.resolveArtist(
+                context,
+                currentMatch.type,
+                currentMatch.resourceId
+            )
         }
         // First, resolve all image URLs (thumbnail + full pairs) without downloading
         val imageUrls = try {
             withContext(Dispatchers.IO) {
                 LoliApiClient.fetchSourceImageUrls(context, currentUrl)
             }
-        } catch (_: Exception) { null }
+        } catch (_: Exception) {
+            null
+        }
 
-        val artist = try { artistDeferred.await() } catch (e: Exception) { Log.w(TAG, "resolveArtist failed", e); null }
+        val artist = try {
+            artistDeferred.await()
+        } catch (e: Exception) {
+            Log.w(TAG, "resolveArtist failed", e); null
+        }
 
         if (imageUrls != null && imageUrls.size > 1) {
             // Multiple images — show picker, defer download until user selects
@@ -410,13 +440,22 @@ fun SubmitPage(
         val singleUrl = imageUrls?.firstOrNull()?.fullUrl
         val imageResult = if (singleUrl != null) {
             try {
-                withContext(Dispatchers.IO) { LoliApiClient.downloadSourceImage(context, singleUrl) }
-            } catch (_: Exception) { null }
+                withContext(Dispatchers.IO) {
+                    LoliApiClient.downloadSourceImage(
+                        context,
+                        singleUrl
+                    )
+                }
+            } catch (_: Exception) {
+                null
+            }
         } else {
             // Fallback: parsers that don't implement fetchSourceImageUrls
             try {
                 withContext(Dispatchers.IO) { LoliApiClient.fetchSourceImage(context, currentUrl) }
-            } catch (_: Exception) { null }
+            } catch (_: Exception) {
+                null
+            }
         }
 
         // Attempt AVIF/WebP compression if image exceeds size limit
@@ -469,50 +508,111 @@ fun SubmitPage(
         val s = state
         state = state.copy(validationAttempted = true)
         if (s.imageBytes == null) {
-            state = state.copy(statusMessage = res.getString(R.string.submit_error_image_required), isError = true)
+            state = state.copy(statusMessage = null, isError = true)
+            Toast.makeText(
+                context,
+                res.getString(R.string.submit_error_image_required),
+                Toast.LENGTH_SHORT
+            ).show()
             scope.launch { scrollState.animateScrollTo(0) }
             return
         }
         if (s.selectedTag.isBlank()) {
-            state = state.copy(statusMessage = res.getString(R.string.submit_error_tag_required), isError = true)
-            try { tagFocusRequester.requestFocus() } catch (_: Exception) {}
+            state = state.copy(statusMessage = null, isError = true)
+            Toast.makeText(
+                context,
+                res.getString(R.string.submit_error_tag_required),
+                Toast.LENGTH_SHORT
+            ).show()
+            try {
+                tagFocusRequester.requestFocus()
+            } catch (_: Exception) {
+            }
             return
         }
         if (s.sourceUrl.isBlank()) {
-            state = state.copy(statusMessage = res.getString(R.string.submit_error_source_required), isError = true)
-            try { sourceUrlFocusRequester.requestFocus() } catch (_: Exception) {}
+            state = state.copy(statusMessage = null, isError = true)
+            Toast.makeText(
+                context,
+                res.getString(R.string.submit_error_source_required),
+                Toast.LENGTH_SHORT
+            ).show()
+            try {
+                sourceUrlFocusRequester.requestFocus()
+            } catch (_: Exception) {
+            }
             return
         }
         if (s.artistName.isBlank()) {
-            state = state.copy(statusMessage = res.getString(R.string.submit_error_artist_required), isError = true)
-            try { artistNameFocusRequester.requestFocus() } catch (_: Exception) {}
+            state = state.copy(statusMessage = null, isError = true)
+            Toast.makeText(
+                context,
+                res.getString(R.string.submit_error_artist_required),
+                Toast.LENGTH_SHORT
+            ).show()
+            try {
+                artistNameFocusRequester.requestFocus()
+            } catch (_: Exception) {
+            }
             return
         }
         if (s.artistUrl.isBlank()) {
-            state = state.copy(statusMessage = res.getString(R.string.submit_error_artist_url_required), isError = true)
-            try { artistUrlFocusRequester.requestFocus() } catch (_: Exception) {}
+            state = state.copy(statusMessage = null, isError = true)
+            Toast.makeText(
+                context,
+                res.getString(R.string.submit_error_artist_url_required),
+                Toast.LENGTH_SHORT
+            ).show()
+            try {
+                artistUrlFocusRequester.requestFocus()
+            } catch (_: Exception) {
+            }
             return
         }
         // Validate URLs
         try {
             java.net.URI(s.sourceUrl)
         } catch (_: Exception) {
-            state = state.copy(statusMessage = res.getString(R.string.submit_error_invalid_url, res.getString(R.string.submit_label_source)), isError = true)
-            try { sourceUrlFocusRequester.requestFocus() } catch (_: Exception) {}
+            state = state.copy(statusMessage = null, isError = true)
+            Toast.makeText(
+                context,
+                res.getString(
+                    R.string.submit_error_invalid_url,
+                    res.getString(R.string.submit_label_source)
+                ),
+                Toast.LENGTH_SHORT
+            ).show()
+            try {
+                sourceUrlFocusRequester.requestFocus()
+            } catch (_: Exception) {
+            }
             return
         }
         try {
             java.net.URI(s.artistUrl)
         } catch (_: Exception) {
-            state = state.copy(statusMessage = res.getString(R.string.submit_error_invalid_url, res.getString(R.string.submit_label_artist_url)), isError = true)
-            try { artistUrlFocusRequester.requestFocus() } catch (_: Exception) {}
+            state = state.copy(statusMessage = null, isError = true)
+            Toast.makeText(
+                context,
+                res.getString(
+                    R.string.submit_error_invalid_url,
+                    res.getString(R.string.submit_label_artist_url)
+                ),
+                Toast.LENGTH_SHORT
+            ).show()
+            try {
+                artistUrlFocusRequester.requestFocus()
+            } catch (_: Exception) {
+            }
             return
         }
         // Character IDs from selected characters
         val characterIds = s.selectedCharacters.map { it.id.toLong() }
         val session = SessionManager.loadSession(context)
         if (session == null || !session.isValid) {
-            state = state.copy(statusMessage = res.getString(R.string.submit_error_login), isError = true)
+            state = state.copy(statusMessage = null, isError = true)
+            Toast.makeText(context, res.getString(R.string.submit_error_login), Toast.LENGTH_SHORT)
+                .show()
             return
         }
         state = state.copy(isSubmitting = true, statusMessage = null)
@@ -536,9 +636,14 @@ fun SubmitPage(
                         state =
                             state.copy(
                                 isSubmitting = false,
-                                statusMessage = e.message ?: res.getString(R.string.submit_error_generic),
+                                statusMessage = null,
                                 isError = true,
                             )
+                        Toast.makeText(
+                            context,
+                            e.message ?: res.getString(R.string.submit_error_generic),
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                     return@launch
                 }
@@ -557,17 +662,24 @@ fun SubmitPage(
                 if (uploadResult.isSuccess) {
                     state =
                         SubmitFormState(
-                            statusMessage = res.getString(R.string.submit_success),
+                            statusMessage = null,
                             isError = false,
                         )
+                    Toast.makeText(
+                        context,
+                        res.getString(R.string.submit_success),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 } else {
-                    val msg = uploadResult.exceptionOrNull()?.message ?: res.getString(R.string.submit_error_generic)
+                    val msg = uploadResult.exceptionOrNull()?.message
+                        ?: res.getString(R.string.submit_error_generic)
                     state =
                         state.copy(
                             isSubmitting = false,
-                            statusMessage = msg,
+                            statusMessage = null,
                             isError = true,
                         )
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -657,7 +769,9 @@ fun SubmitPage(
     ) { padding ->
         if (!isLoggedIn) {
             Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
                 contentAlignment = Alignment.Center,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -667,7 +781,9 @@ fun SubmitPage(
                         textAlign = TextAlign.Center,
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { showDomainPicker = true }) { Text(stringResource(R.string.action_login)) }
+                    Button(onClick = {
+                        showDomainPicker = true
+                    }) { Text(stringResource(R.string.action_login)) }
                 }
             }
             if (showDomainPicker) {
@@ -699,9 +815,13 @@ fun SubmitPage(
                     listOf("LC0", "LC YJ", "LC ES").forEachIndexed { index, tag ->
                         FilterChip(
                             selected = state.selectedTag == tag,
-                            onClick = { state = state.copy(selectedTag = tag, statusMessage = null) },
+                            onClick = {
+                                state = state.copy(selectedTag = tag, statusMessage = null)
+                            },
                             label = { Text(tag) },
-                            modifier = if (index == 0) Modifier.focusRequester(tagFocusRequester).focusable() else Modifier,
+                            modifier = if (index == 0) Modifier
+                                .focusRequester(tagFocusRequester)
+                                .focusable() else Modifier,
                             colors = if (isError) {
                                 FilterChipDefaults.filterChipColors(
                                     labelColor = MaterialTheme.colorScheme.error,
@@ -718,11 +838,20 @@ fun SubmitPage(
                                     borderWidth = 1.5.dp,
                                 )
                             } else {
-                                FilterChipDefaults.filterChipBorder(enabled = true, selected = state.selectedTag == tag)
+                                FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = state.selectedTag == tag
+                                )
                             },
                             leadingIcon =
                                 if (state.selectedTag == tag) {
-                                    { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                                    {
+                                        Icon(
+                                            Icons.Filled.Check,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
                                 } else {
                                     null
                                 },
@@ -771,7 +900,9 @@ fun SubmitPage(
                                         statusMessage = null,
                                     )
                             },
-                            modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(8.dp),
                         ) {
                             Icon(
                                 Icons.Filled.Close,
@@ -783,7 +914,8 @@ fun SubmitPage(
                         if (state.imageBytes != null) {
                             val imageInfo = remember(state.imageBytes) {
                                 val bytes = state.imageBytes!!
-                                val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                                val opts =
+                                    BitmapFactory.Options().apply { inJustDecodeBounds = true }
                                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
                                 val w = opts.outWidth
                                 val h = opts.outHeight
@@ -813,7 +945,10 @@ fun SubmitPage(
                                         text = imageInfo.first,
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        modifier = Modifier.padding(
+                                            horizontal = 12.dp,
+                                            vertical = 6.dp
+                                        ),
                                     )
                                 }
                                 Surface(
@@ -824,7 +959,10 @@ fun SubmitPage(
                                         text = imageInfo.second,
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        modifier = Modifier.padding(
+                                            horizontal = 12.dp,
+                                            vertical = 6.dp
+                                        ),
                                     )
                                 }
                                 Surface(
@@ -835,7 +973,10 @@ fun SubmitPage(
                                         text = imageInfo.third,
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        modifier = Modifier.padding(
+                                            horizontal = 12.dp,
+                                            vertical = 6.dp
+                                        ),
                                     )
                                 }
                             }
@@ -881,7 +1022,8 @@ fun SubmitPage(
                     )
                     Box(
                         modifier =
-                            Modifier.fillMaxWidth()
+                            Modifier
+                                .fillMaxWidth()
                                 .aspectRatio(16f / 9f)
                                 .clip(RoundedCornerShape(4.dp))
                                 .border(
@@ -923,7 +1065,9 @@ fun SubmitPage(
                                             statusMessage = null,
                                         )
                                 },
-                                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(4.dp),
                             ) {
                                 Icon(
                                     Icons.Filled.Close,
@@ -934,7 +1078,8 @@ fun SubmitPage(
                             if (state.imageBytes != null) {
                                 val imageInfo = remember(state.imageBytes) {
                                     val bytes = state.imageBytes!!
-                                    val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                                    val opts =
+                                        BitmapFactory.Options().apply { inJustDecodeBounds = true }
                                     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
                                     val w = opts.outWidth
                                     val h = opts.outHeight
@@ -964,7 +1109,10 @@ fun SubmitPage(
                                             text = imageInfo.first,
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                            modifier = Modifier.padding(
+                                                horizontal = 12.dp,
+                                                vertical = 6.dp
+                                            ),
                                         )
                                     }
                                     Surface(
@@ -975,7 +1123,10 @@ fun SubmitPage(
                                             text = imageInfo.second,
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                            modifier = Modifier.padding(
+                                                horizontal = 12.dp,
+                                                vertical = 6.dp
+                                            ),
                                         )
                                     }
                                     Surface(
@@ -986,7 +1137,10 @@ fun SubmitPage(
                                             text = imageInfo.third,
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                            modifier = Modifier.padding(
+                                                horizontal = 12.dp,
+                                                vertical = 6.dp
+                                            ),
                                         )
                                     }
                                 }
@@ -1050,8 +1204,13 @@ fun SubmitPage(
                     placeholder = { Text(stringResource(R.string.submit_hint_source)) },
                     singleLine = true,
                     isError = state.validationAttempted && state.sourceUrl.isBlank(),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next, keyboardType = KeyboardType.Uri),
-                    modifier = Modifier.fillMaxWidth().focusRequester(sourceUrlFocusRequester),
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Next,
+                        keyboardType = KeyboardType.Uri
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(sourceUrlFocusRequester),
                     enabled = !state.isSubmitting,
                 )
                 OutlinedTextField(
@@ -1068,7 +1227,9 @@ fun SubmitPage(
                     singleLine = true,
                     isError = state.validationAttempted && state.artistName.isBlank(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    modifier = Modifier.fillMaxWidth().focusRequester(artistNameFocusRequester),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(artistNameFocusRequester),
                     enabled = !state.isSubmitting,
                 )
                 OutlinedTextField(
@@ -1084,8 +1245,13 @@ fun SubmitPage(
                     placeholder = { Text(stringResource(R.string.submit_hint_artist_url)) },
                     singleLine = true,
                     isError = state.validationAttempted && state.artistUrl.isBlank(),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next, keyboardType = KeyboardType.Uri),
-                    modifier = Modifier.fillMaxWidth().focusRequester(artistUrlFocusRequester),
+                    keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Next,
+                        keyboardType = KeyboardType.Uri
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(artistUrlFocusRequester),
                     enabled = !state.isSubmitting,
                 )
 
@@ -1103,7 +1269,8 @@ fun SubmitPage(
                             InputChip(
                                 selected = true,
                                 onClick = {
-                                    state = state.copy(selectedCharacters = state.selectedCharacters - character)
+                                    state =
+                                        state.copy(selectedCharacters = state.selectedCharacters - character)
                                 },
                                 label = { Text(chipLabel) },
                                 avatar = {
@@ -1111,7 +1278,9 @@ fun SubmitPage(
                                         AsyncImage(
                                             model = avatarUrl,
                                             contentDescription = null,
-                                            modifier = Modifier.size(InputChipDefaults.AvatarSize).clip(RoundedCornerShape(4.dp)),
+                                            modifier = Modifier
+                                                .size(InputChipDefaults.AvatarSize)
+                                                .clip(RoundedCornerShape(4.dp)),
                                             contentScale = ContentScale.Crop,
                                             alignment = Alignment.TopCenter,
                                         )
@@ -1138,7 +1307,10 @@ fun SubmitPage(
                 Button(
                     onClick = { scope.launch { characterSearchBarState.animateToExpanded() } },
                     enabled = !state.isSubmitting,
-                    contentPadding = ButtonDefaults.contentPaddingFor(ButtonDefaults.MinHeight, hasStartIcon = true),
+                    contentPadding = ButtonDefaults.contentPaddingFor(
+                        ButtonDefaults.MinHeight,
+                        hasStartIcon = true
+                    ),
                 ) {
                     Icon(
                         Icons.Filled.Add,
@@ -1156,7 +1328,12 @@ fun SubmitPage(
                 OutlinedTextField(
                     value = state.comment,
                     onValueChange = { state = state.copy(comment = it, statusMessage = null) },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.Comment, contentDescription = null) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Comment,
+                            contentDescription = null
+                        )
+                    },
                     placeholder = { Text(stringResource(R.string.submit_hint_comment)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -1168,7 +1345,8 @@ fun SubmitPage(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier =
-                        Modifier.fillMaxWidth()
+                        Modifier
+                            .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
                             .clickable(enabled = !state.isSubmitting) {
                                 state = state.copy(anonymous = !state.anonymous)
@@ -1208,7 +1386,8 @@ fun SubmitPage(
                                     ),
                                 ),
                             ) {
-                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
+                                val intent =
+                                    android.content.Intent(android.content.Intent.ACTION_VIEW)
                                 intent.data = guidelinesUrl.toUri()
                                 context.startActivity(intent)
                             },
@@ -1223,7 +1402,8 @@ fun SubmitPage(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier =
-                        Modifier.fillMaxWidth()
+                        Modifier
+                            .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
                             .clickable(enabled = !state.isSubmitting) {
                                 state = state.copy(confirmGuidelines = !state.confirmGuidelines)
@@ -1242,33 +1422,77 @@ fun SubmitPage(
                     )
                 }
 
-                // Submit button + progress
-                if (state.isSubmitting) {
-                    LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
-                Button(
-                    onClick = { doSubmit() },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    enabled = !state.isSubmitting && state.confirmGuidelines,
+                // Submit button
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    if (state.isSubmitting) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
+                    BoxWithConstraints {
+                        val isSubmitting = state.isSubmitting
+                        val buttonWidth by animateDpAsState(
+                            targetValue = if (isSubmitting) 48.dp else maxWidth,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            ),
+                            label = "submitButtonWidth"
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.submit_sending))
-                    } else {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.submit_button))
+                        Button(
+                            onClick = { if (!state.isSubmitting) doSubmit() },
+                            modifier = Modifier
+                                .width(buttonWidth)
+                                .height(48.dp),
+                            enabled = state.confirmGuidelines,
+                            shape = CircleShape,
+                            contentPadding = PaddingValues(0.dp),
+                        ) {
+                            Crossfade(
+                                targetState = isSubmitting,
+                                modifier = Modifier.fillMaxSize(),
+                                label = "submitButtonContent"
+                            ) { submitting ->
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (submitting) {
+                                        LoadingIndicator(
+                                            modifier = Modifier.size(28.dp),
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                        )
+                                    } else {
+                                        Row(
+                                            modifier = Modifier.wrapContentSize(unbounded = true),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.Send,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = stringResource(R.string.submit_button),
+                                                maxLines = 1,
+                                                softWrap = false
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
                 // Status message
-                AnimatedVisibility(visible = state.statusMessage != null, enter = fadeIn(), exit = fadeOut()) {
+                AnimatedVisibility(
+                    visible = state.statusMessage != null,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
                     Text(
                         text = state.statusMessage ?: "",
                         style = MaterialTheme.typography.bodyMedium,
@@ -1278,7 +1502,9 @@ fun SubmitPage(
                             } else {
                                 MaterialTheme.colorScheme.primary
                             },
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
                         textAlign = TextAlign.Center,
                     )
                 }
@@ -1302,7 +1528,9 @@ fun SubmitPage(
             // Tablet: two-pane layout — image left, form right
             val colorScheme = MaterialTheme.colorScheme
             Row(
-                modifier = Modifier.fillMaxSize().padding(padding),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
             ) {
                 // Left: image fills the full side panel
                 ImagePicker(isTablet = true, modifier = Modifier.weight(1f))
@@ -1339,7 +1567,8 @@ fun SubmitPage(
             // Portrait: single column — image first, then shared form content
             Column(
                 modifier =
-                    Modifier.fillMaxSize()
+                    Modifier
+                        .fillMaxSize()
                         .padding(padding)
                         .verticalScroll(scrollState)
                         .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -1374,7 +1603,9 @@ fun SubmitPage(
                 scope.launch(Dispatchers.IO) {
                     val imageResult = try {
                         LoliApiClient.downloadSourceImage(context, variant.fullUrl)
-                    } catch (_: Exception) { null }
+                    } catch (_: Exception) {
+                        null
+                    }
 
                     val finalResult = if (imageResult != null) {
                         val (bytes, mime) = imageResult
@@ -1389,11 +1620,17 @@ fun SubmitPage(
                     withContext(Dispatchers.Main) {
                         if (finalResult != null) {
                             val (bytes, mime) = finalResult
-                            val wasCompressed = imageResult != null && imageResult.first.size > MAX_IMAGE_SIZE
+                            val wasCompressed =
+                                imageResult != null && imageResult.first.size > MAX_IMAGE_SIZE
                             state = state.copy(
                                 imageUri = "source_image".toUri(),
                                 imageBytes = bytes,
-                                imageName = "source_${(currentMatch?.resourceId ?: "image").replace("/", "_")}.${
+                                imageName = "source_${
+                                    (currentMatch?.resourceId ?: "image").replace(
+                                        "/",
+                                        "_"
+                                    )
+                                }.${
                                     when (mime) {
                                         "image/png" -> "png"
                                         "image/webp" -> "webp"

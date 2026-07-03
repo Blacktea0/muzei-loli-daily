@@ -280,7 +280,6 @@
     <string name="submit_guidelines_link">投稿ガイドライン</string>
     <string name="submit_confirm_guidelines">アップロード作品が%1$sに準拠していることを確認しました *</string>
     <string name="submit_button">送信</string>
-    <string name="submit_sending">送信中……</string>
     <string name="submit_success">想いは……届きました</string>
     <string name="submit_error_format">サポートされていない画像形式です</string>
     <string name="submit_error_size">画像が3MBを超えています — サイズを調整してください</string>

@@ -280,7 +280,6 @@
     <string name="submit_guidelines_link">Submission Guidelines</string>
     <string name="submit_confirm_guidelines">I confirm that the uploaded work complies with the %1$s *</string>
     <string name="submit_button">Submit</string>
-    <string name="submit_sending">Sending…</string>
     <string name="submit_success">Your submission has been received ♥</string>
     <string name="submit_error_format">Unsupported image format</string>
     <string name="submit_error_size">Image exceeds 3 MB — please resize first</string>
