@@ -1550,15 +1550,17 @@ fun SubmitPage(
                             },
                     color = colorScheme.surfaceContainerLow,
                 ) {
-                    Column(modifier = Modifier.padding(top = 16.dp)) {
+                    Column(
+                        modifier =
+                            Modifier
+                                .fillMaxHeight()
+                                .verticalScroll(scrollState)
+                                .padding(top = 16.dp)
+                    ) {
                         SubmitTipBanner(Modifier.padding(horizontal = 16.dp))
                         SubmitReviewBanner(Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
                         FormContent(
-                            modifier =
-                                Modifier
-                                    .weight(1f)
-                                    .verticalScroll(scrollState)
-                                    .padding(horizontal = 16.dp),
+                            modifier = Modifier.padding(horizontal = 16.dp),
                         )
                     }
                 }
