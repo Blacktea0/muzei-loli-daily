@@ -10,9 +10,9 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,7 +21,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.automirrored.filled.Reply
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,17 +32,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
@@ -52,13 +45,11 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -72,10 +63,17 @@ import coil3.toBitmap
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.SessionManager
 import me.eroi.lolidaily.muzei.model.BangumiReaction
-import me.eroi.lolidaily.muzei.model.BangumiReply
 import me.eroi.lolidaily.muzei.model.BangumiSubReply
 import me.eroi.lolidaily.muzei.worker.EmojiMap
+import me.eroi.lolidaily.muzei.util.CommentBlock
+import me.eroi.lolidaily.muzei.util.BBCodeParser
 import kotlin.math.roundToInt
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.material.icons.filled.FormatQuote
 
 // ── Comment Header ───────────────────────────────────────────────
 
@@ -251,81 +249,7 @@ fun FloorCommentEntry(
     }
 }
 
-// ── Reply Thread ─────────────────────────────────────────────────
 
-@Composable
-private fun ReplyThread(replies: List<BangumiSubReply>) {
-    val borderColor = MaterialTheme.colorScheme.outlineVariant
-    val visibleReplies = remember(replies) { replies.filter { it.state == 0 } }
-
-    if (visibleReplies.isEmpty()) return
-
-    Column(modifier = Modifier.padding(start = 46.dp, top = 10.dp)) {
-        Row {
-            // Left border line
-            Canvas(modifier = Modifier.width(2.dp).fillMaxHeight()) {
-                drawLine(
-                    color = borderColor,
-                    start = Offset(0f, 0f),
-                    end = Offset(0f, this.size.height),
-                    strokeWidth = 2.dp.toPx(),
-                )
-            }
-            Spacer(Modifier.width(12.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                visibleReplies.forEach { subReply ->
-                    SubReplyItem(reply = subReply)
-                }
-            }
-        }
-    }
-}
-
-// ── Sub-Reply Item ───────────────────────────────────────────────
-
-@Composable
-private fun SubReplyItem(reply: BangumiSubReply) {
-    val context = LocalContext.current
-
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        UserAvatar(
-            avatarUrl = reply.creator?.avatar?.small,
-            nickname = reply.creator?.nickname,
-            userId = reply.creator?.id,
-            size = 28,
-        )
-
-        Column {
-            Text(
-                text = reply.creator?.nickname ?: reply.creator?.username ?: stringResource(R.string.label_anonymous),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-
-            Spacer(Modifier.height(2.dp))
-
-            CommentText(
-                rawContent = reply.content,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                lineHeight = 18.sp,
-            )
-
-            Spacer(Modifier.height(4.dp))
-
-            Text(
-                text = formatTimestamp(reply.createdAt, context),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            ReactionChips(reactions = reply.reactions)
-        }
-    }
-}
 
 // ── User Avatar ──────────────────────────────────────────────────
 
@@ -363,28 +287,8 @@ fun UserAvatar(
 
 // ── Helpers ──────────────────────────────────────────────────────
 
-private val BBCodeRegex =
-    Regex(
-        """\[/?(?:url|img|quote|b|i|u|code|color|size|right|center|left)(?:=[^]]*)?]""",
-        RegexOption.IGNORE_CASE,
-    )
-
-private val ImgTagRegex = Regex("""\[img](.*?)\[/img]""", RegexOption.IGNORE_CASE)
-private val QuoteRegex = Regex("""\[quote](.*?)\[/quote]""", RegexOption.DOT_MATCHES_ALL)
-private val MentionRegex = Regex("""@[\w一-鿿]+""")
-
-private fun stripBbCode(input: String): String {
-    return input
-        .replace(ImgTagRegex) { match -> "\u00abimg:${match.groupValues[1]}\u00bb" }
-        .replace(QuoteRegex, "「$1」")
-        .replace(BBCodeRegex, "")
-        .trim()
-}
 
 
-// ── Inline Smileys & Images ─────────────────────────────────────
-
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CommentText(
     rawContent: String,
@@ -394,118 +298,173 @@ fun CommentText(
 ) {
     val context = LocalContext.current
     val bgmDomain = remember { SessionManager.loadDomain(context) }
-
-    val parsed =
-        remember(rawContent, bgmDomain) {
-            val stripped = stripBbCode(rawContent)
-            SmileyMapper.parseInlineImages(stripped, bgmDomain)
-        }
-
-    if (parsed.images.isEmpty()) {
-        // No inline images — use simple Text with @mention highlighting
-        val tertiaryColor = MaterialTheme.colorScheme.tertiary
-        val annotatedText =
-            remember(parsed, tertiaryColor) {
-                buildAnnotatedString {
-                    append(parsed.text)
-                    for (range in parsed.mentionRanges) {
-                        addStyle(
-                            SpanStyle(color = tertiaryColor, fontWeight = FontWeight.Medium),
-                            range.first,
-                            range.last + 1,
-                        )
-                    }
-                }
-            }
-        Text(
-            text = annotatedText,
-            style = style.copy(lineHeight = lineHeight),
-            color = color,
-        )
-        return
-    }
-
-    // Has inline images — render using FlowRow with text/image segments
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
-    val segments =
-        remember(parsed) {
-            buildSegments(parsed)
+
+    val blocks =
+        remember(rawContent, bgmDomain, tertiaryColor) {
+            BBCodeParser.parse(rawContent, bgmDomain, tertiaryColor)
         }
 
-    FlowRow(
-        horizontalArrangement = Arrangement.Start,
-        verticalArrangement = Arrangement.Center,
-        itemVerticalAlignment = Alignment.Bottom,
-    ) {
-        for (segment in segments) {
-            when (segment) {
-                is TextSegment -> {
-                    val annotatedText =
-                        buildAnnotatedString {
-                            append(segment.text)
-                            for (range in segment.mentionRanges) {
-                                addStyle(
-                                    SpanStyle(color = tertiaryColor, fontWeight = FontWeight.Medium),
-                                    range.first,
-                                    range.last + 1,
-                                )
-                            }
-                        }
-                    Text(
-                        text = annotatedText,
-                        style = style.copy(lineHeight = lineHeight),
-                        color = color,
-                    )
-                }
-                is ImageSegment -> {
-                    if (segment.isPixelArt) {
-                        PixelInlineImage(url = segment.url)
-                    } else {
-                        NormalInlineImage(url = segment.url)
-                    }
-                }
-            }
-        }
-    }
-}
-
-private sealed interface CommentSegment
-
-private data class TextSegment(val text: String, val mentionRanges: List<IntRange>) : CommentSegment
-
-private data class ImageSegment(val url: String, val isPixelArt: Boolean) : CommentSegment
-
-private fun buildSegments(parsed: SmileyMapper.ParseResult): List<CommentSegment> {
-    val segments = mutableListOf<CommentSegment>()
-    val text = parsed.text
-    var lastEnd = 0
-
-    for (img in parsed.images) {
-        if (img.placeholderIndex > lastEnd) {
-            val segmentText = text.substring(lastEnd, img.placeholderIndex)
-            val adjustedMentions =
-                parsed.mentionRanges
-                    .filter { it.first >= lastEnd && it.last < img.placeholderIndex }
-                    .map { (it.first - lastEnd)..(it.last - lastEnd) }
-            segments += TextSegment(segmentText, adjustedMentions)
-        }
-        segments += ImageSegment(img.url, img.isPixelArt)
-        lastEnd = img.placeholderIndex + 1
-    }
-    if (lastEnd < text.length) {
-        val segmentText = text.substring(lastEnd)
-        val adjustedMentions =
-            parsed.mentionRanges
-                .filter { it.first >= lastEnd }
-                .map { (it.first - lastEnd)..(it.last - lastEnd) }
-        segments += TextSegment(segmentText, adjustedMentions)
-    }
-
-    return segments
+    RenderBlocks(blocks, style, color, lineHeight)
 }
 
 @Composable
-private fun PixelInlineImage(url: String) {
+private fun RenderBlocks(
+    blocks: List<CommentBlock>,
+    style: TextStyle,
+    color: Color,
+    lineHeight: TextUnit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        for (block in blocks) {
+            when (block) {
+                is CommentBlock.Text -> {
+                    if (block.spoilerRanges.isEmpty()) {
+                        Text(
+                            text = block.annotatedString,
+                            inlineContent = block.inlineContent,
+                            style = style.copy(lineHeight = lineHeight),
+                            color = color,
+                        )
+                    } else {
+                        var revealedRanges by remember { mutableStateOf(emptySet<IntRange>()) }
+                        var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+
+                        val displayedText = remember(block.annotatedString, revealedRanges) {
+                            buildAnnotatedString {
+                                append(block.annotatedString)
+
+                                for (range in block.spoilerRanges) {
+                                    if (range in revealedRanges) {
+                                        addStyle(
+                                            SpanStyle(
+                                                background = Color.Gray.copy(alpha = 0.2f),
+                                                color = Color.Unspecified
+                                            ),
+                                            range.first,
+                                            range.last + 1
+                                        )
+                                    } else {
+                                        addStyle(
+                                            SpanStyle(
+                                                background = Color.Gray,
+                                                color = Color.Gray
+                                            ),
+                                            range.first,
+                                            range.last + 1
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Text(
+                            text = displayedText,
+                            inlineContent = block.inlineContent,
+                            style = style.copy(lineHeight = lineHeight),
+                            color = color,
+                            onTextLayout = { textLayoutResult = it },
+                            modifier = Modifier.pointerInput(Unit) {
+                                detectTapGestures { offset ->
+                                    textLayoutResult?.let { layoutResult ->
+                                        val position = layoutResult.getOffsetForPosition(offset)
+                                        val clickedSpoiler = block.spoilerRanges.find { position in it }
+                                        if (clickedSpoiler != null) {
+                                            revealedRanges = revealedRanges + setOf(clickedSpoiler)
+                                        }
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+                is CommentBlock.Image -> {
+                    NormalBlockImage(url = block.url)
+                }
+                is CommentBlock.Quote -> {
+                    RenderQuoteBlock(block.blocks, style, lineHeight)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RenderQuoteBlock(
+    blocks: List<CommentBlock>,
+    style: TextStyle,
+    lineHeight: TextUnit
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = colorScheme.surfaceContainerLow,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.FormatQuote,
+                contentDescription = null,
+                modifier =
+                    Modifier
+                        .size(16.dp)
+                        .graphicsLayer { rotationZ = 180f },
+                tint = colorScheme.onSurfaceVariant,
+            )
+            Box(modifier = Modifier.weight(1f)) {
+                RenderBlocks(
+                    blocks = blocks,
+                    style = style.copy(
+                        fontSize = (style.fontSize.value * 0.95f).sp,
+                        fontStyle = FontStyle.Italic
+                    ),
+                    color = colorScheme.onSurfaceVariant,
+                    lineHeight = lineHeight * 0.95f
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NormalBlockImage(url: String) {
+    var showFullscreenViewer by remember { mutableStateOf(false) }
+
+    AsyncImage(
+        model =
+            ImageRequest.Builder(LocalContext.current)
+                .data(url)
+                .build(),
+        contentDescription = null,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(max = 240.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { showFullscreenViewer = true },
+        contentScale = ContentScale.Fit,
+        alignment = Alignment.Center
+    )
+
+    if (showFullscreenViewer) {
+        FullscreenImageViewer(
+            model = url,
+            filename = url.substringAfterLast('/'),
+            onDismiss = { showFullscreenViewer = false },
+        )
+    }
+}
+
+
+
+@Composable
+internal fun PixelInlineImage(url: String) {
     val context = LocalContext.current
     val imageBitmap = remember(url) { mutableStateOf<ImageBitmap?>(null) }
 
@@ -543,7 +502,7 @@ private fun PixelInlineImage(url: String) {
 }
 
 @Composable
-private fun NormalInlineImage(url: String) {
+internal fun NormalInlineImage(url: String) {
     var showFullscreenViewer by remember { mutableStateOf(false) }
 
     AsyncImage(
@@ -616,96 +575,4 @@ private fun avatarGradient(userId: Int?): List<Color> {
     return avatarGradients[index]
 }
 
-@Composable
-fun CommentInputCard(
-    isLoggedIn: Boolean,
-    onPostReply: (String, (Boolean) -> Unit) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    if (!isLoggedIn) {
-        Card(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            ),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = stringResource(R.string.comment_msg_login_to_comment),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        return
-    }
-
-    var commentText by remember { mutableStateOf("") }
-    var isPosting by remember { mutableStateOf(false) }
-
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
-        ),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(
-                    value = commentText,
-                    onValueChange = { commentText = it },
-                    placeholder = { Text(stringResource(R.string.comment_hint_say_something)) },
-                    modifier = Modifier.weight(1f),
-                    enabled = !isPosting,
-                    maxLines = 3,
-                )
-
-                if (isPosting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    IconButton(
-                        onClick = {
-                            if (commentText.isNotBlank()) {
-                                isPosting = true
-                                onPostReply(commentText) { success ->
-                                    isPosting = false
-                                    if (success) {
-                                        commentText = ""
-                                    }
-                                }
-                            }
-                        },
-                        enabled = commentText.isNotBlank()
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "发送"
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
