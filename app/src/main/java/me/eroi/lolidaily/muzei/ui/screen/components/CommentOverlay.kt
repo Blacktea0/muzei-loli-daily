@@ -3,6 +3,7 @@ package me.eroi.lolidaily.muzei.ui.screen.components
 import android.view.WindowManager
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -64,6 +65,7 @@ fun CommentBottomSheet(
 ) {
     var isPosting by remember { mutableStateOf(false) }
     var showEmojiPanel by remember { mutableStateOf(false) }
+    var isExpanded by remember { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
 
@@ -272,11 +274,19 @@ fun CommentBottomSheet(
                     )
 
                     // BBCode & Emoji Tools Row (Horizontally scrollable)
+                    val toolRowScrollState = rememberScrollState()
+                    LaunchedEffect(isExpanded) {
+                        if (isExpanded) {
+                            delay(100)
+                            toolRowScrollState.animateScrollTo(toolRowScrollState.maxValue)
+                        } else {
+                            toolRowScrollState.animateScrollTo(0)
+                        }
+                    }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            .horizontalScroll(toolRowScrollState),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         val insertBBCode = { open: String, close: String ->
@@ -295,47 +305,6 @@ fun CommentBottomSheet(
                                 selection = TextRange(newCursorPos)
                             )
                         }
-
-                        BBCodeButton(
-                            icon = Icons.Default.FormatBold,
-                            label = stringResource(R.string.comment_editor_bold),
-                            onClick = { insertBBCode("[b]", "[/b]") }
-                        )
-                        BBCodeButton(
-                            icon = Icons.Default.FormatItalic,
-                            label = stringResource(R.string.comment_editor_italic),
-                            onClick = { insertBBCode("[i]", "[/i]") }
-                        )
-                        BBCodeButton(
-                            icon = Icons.Default.FormatUnderlined,
-                            label = stringResource(R.string.comment_editor_underline),
-                            onClick = { insertBBCode("[u]", "[/u]") }
-                        )
-                        BBCodeButton(
-                            icon = Icons.Default.StrikethroughS,
-                            label = stringResource(R.string.comment_editor_strikethrough),
-                            onClick = { insertBBCode("[s]", "[/s]") }
-                        )
-                        BBCodeButton(
-                            icon = Icons.Default.VisibilityOff,
-                            label = stringResource(R.string.comment_editor_spoiler),
-                            onClick = { insertBBCode("[mask]", "[/mask]") }
-                        )
-                        BBCodeButton(
-                            icon = Icons.Default.Link,
-                            label = stringResource(R.string.comment_editor_link),
-                            onClick = { insertBBCode("[url=]", "[/url]") }
-                        )
-                        BBCodeButton(
-                            icon = Icons.Default.Image,
-                            label = stringResource(R.string.comment_editor_image),
-                            onClick = { insertBBCode("[img]", "[/img]") }
-                        )
-                        BBCodeButton(
-                            icon = Icons.Default.Code,
-                            label = stringResource(R.string.comment_editor_code),
-                            onClick = { insertBBCode("[code]", "[/code]") }
-                        )
 
                         // Emoji Toggle Button
                         IconButton(
@@ -358,6 +327,81 @@ fun CommentBottomSheet(
                                 tint = if (showEmojiPanel) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        BBCodeButton(
+                            icon = Icons.Default.FormatBold,
+                            label = stringResource(R.string.comment_editor_bold),
+                            onClick = { insertBBCode("[b]", "[/b]") }
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        BBCodeButton(
+                            icon = Icons.Default.FormatItalic,
+                            label = stringResource(R.string.comment_editor_italic),
+                            onClick = { insertBBCode("[i]", "[/i]") }
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        BBCodeButton(
+                            icon = Icons.Default.FormatUnderlined,
+                            label = stringResource(R.string.comment_editor_underline),
+                            onClick = { insertBBCode("[u]", "[/u]") }
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        BBCodeButton(
+                            icon = Icons.Default.StrikethroughS,
+                            label = stringResource(R.string.comment_editor_strikethrough),
+                            onClick = { insertBBCode("[s]", "[/s]") }
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        BBCodeButton(
+                            icon = Icons.Default.VisibilityOff,
+                            label = stringResource(R.string.comment_editor_spoiler),
+                            onClick = { insertBBCode("[mask]", "[/mask]") }
+                        )
+
+                        AnimatedVisibility(
+                            visible = isExpanded,
+                            enter = fadeIn() + expandHorizontally(),
+                            exit = fadeOut() + shrinkHorizontally()
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                BBCodeButton(
+                                    icon = Icons.Default.Link,
+                                    label = stringResource(R.string.comment_editor_link),
+                                    onClick = { insertBBCode("[url=]", "[/url]") }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                BBCodeButton(
+                                    icon = Icons.Default.Image,
+                                    label = stringResource(R.string.comment_editor_image),
+                                    onClick = { insertBBCode("[img]", "[/img]") }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                BBCodeButton(
+                                    icon = Icons.Default.Code,
+                                    label = stringResource(R.string.comment_editor_code),
+                                    onClick = { insertBBCode("[code]", "[/code]") }
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        BBCodeButton(
+                            icon = if (isExpanded) Icons.Default.ChevronLeft else Icons.Default.ChevronRight,
+                            label = if (isExpanded) stringResource(R.string.comment_editor_collapse) else stringResource(R.string.comment_editor_expand),
+                            onClick = { isExpanded = !isExpanded }
+                        )
                     }
 
                     // Vertically scrollable Emoji Panel

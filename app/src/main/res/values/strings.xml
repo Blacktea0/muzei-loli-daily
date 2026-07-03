@@ -336,4 +336,6 @@
     <string name="comment_editor_image">Image</string>
     <string name="comment_editor_code">Code</string>
     <string name="comment_editor_emoji">Emoji</string>
+    <string name="comment_editor_expand">Expand</string>
+    <string name="comment_editor_collapse">Collapse</string>
 </resources>

@@ -336,4 +336,6 @@
     <string name="comment_editor_image">圖片</string>
     <string name="comment_editor_code">程式碼</string>
     <string name="comment_editor_emoji">表情</string>
+    <string name="comment_editor_expand">展開</string>
+    <string name="comment_editor_collapse">收起</string>
 </resources>

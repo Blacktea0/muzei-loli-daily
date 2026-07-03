@@ -335,4 +335,6 @@
     <string name="comment_editor_image">画像</string>
     <string name="comment_editor_code">コード</string>
     <string name="comment_editor_emoji">絵文字</string>
+    <string name="comment_editor_expand">展開</string>
+    <string name="comment_editor_collapse">折りたたむ</string>
 </resources>
