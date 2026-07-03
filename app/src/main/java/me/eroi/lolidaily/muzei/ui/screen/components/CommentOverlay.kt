@@ -160,12 +160,7 @@ fun CommentBottomSheet(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .alpha(if (showPanel) 1f else 0f)
-                    .windowInsetsPadding(
-                        WindowInsets.ime
-                            .union(WindowInsets.navigationBars)
-                            .only(WindowInsetsSides.Bottom)
-                    ),
+                    .alpha(if (showPanel) 1f else 0f),
                 color = MaterialTheme.colorScheme.surfaceContainer,
                 shape = RoundedCornerShape(0.dp),
                 tonalElevation = 3.dp,
@@ -173,6 +168,11 @@ fun CommentBottomSheet(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .windowInsetsPadding(
+                            WindowInsets.ime
+                                .union(WindowInsets.navigationBars)
+                                .only(WindowInsetsSides.Bottom)
+                        )
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
