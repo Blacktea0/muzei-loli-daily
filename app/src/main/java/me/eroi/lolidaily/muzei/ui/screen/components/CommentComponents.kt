@@ -435,6 +435,7 @@ fun CommentText(
     FlowRow(
         horizontalArrangement = Arrangement.Start,
         verticalArrangement = Arrangement.Center,
+        itemVerticalAlignment = Alignment.Bottom,
     ) {
         for (segment in segments) {
             when (segment) {
