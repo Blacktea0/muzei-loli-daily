@@ -267,6 +267,7 @@ fun TodayPage(
                         var todayFloor by remember { mutableStateOf<BangumiReply?>(null) }
                         var showCommentSheet by remember { mutableStateOf(false) }
                         var commentSheetInitialText by remember { mutableStateOf("") }
+                        var commentDraftText by rememberSaveable { mutableStateOf("") }
                         val coroutineScope = rememberCoroutineScope()
                         var isRefreshingComments by remember { mutableStateOf(false) }
 
@@ -329,6 +330,7 @@ fun TodayPage(
                                         if (ok) {
                                             Toast.makeText(context, R.string.comment_post_success, Toast.LENGTH_SHORT).show()
                                             refreshComments()
+                                            commentDraftText = ""
                                             callback(true)
                                         } else {
                                             Toast.makeText(context, R.string.comment_post_failure, Toast.LENGTH_SHORT).show()
@@ -487,7 +489,9 @@ fun TodayPage(
                                     CommentBottomSheet(
                                         onDismiss = { showCommentSheet = false },
                                         onPostReply = onPostReply,
-                                        initialText = commentSheetInitialText
+                                        initialText = commentSheetInitialText,
+                                        draftText = commentDraftText,
+                                        onDraftTextChange = { commentDraftText = it }
                                     )
                                 }
 

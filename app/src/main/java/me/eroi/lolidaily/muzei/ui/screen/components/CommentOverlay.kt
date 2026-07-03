@@ -62,6 +62,8 @@ fun CommentBottomSheet(
     onDismiss: () -> Unit,
     onPostReply: (String, (Boolean) -> Unit) -> Unit,
     initialText: String = "",
+    draftText: String = "",
+    onDraftTextChange: (String) -> Unit = {},
 ) {
     var isPosting by remember { mutableStateOf(false) }
     var showEmojiPanel by remember { mutableStateOf(false) }
@@ -98,8 +100,8 @@ fun CommentBottomSheet(
     var textFieldValue by remember(parsedInitial) {
         mutableStateOf(
             TextFieldValue(
-                text = parsedInitial.third,
-                selection = TextRange(parsedInitial.third.length)
+                text = draftText.ifEmpty { parsedInitial.third },
+                selection = TextRange(draftText.ifEmpty { parsedInitial.third }.length)
             )
         )
     }
@@ -215,7 +217,10 @@ fun CommentBottomSheet(
                     // Input Field (Auto-grows, max 4 lines)
                     OutlinedTextField(
                         value = textFieldValue,
-                        onValueChange = { textFieldValue = it },
+                        onValueChange = {
+                            textFieldValue = it
+                            onDraftTextChange(it.text)
+                        },
                         placeholder = { Text(stringResource(R.string.comment_hint_say_something)) },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -286,6 +291,7 @@ fun CommentBottomSheet(
                                 text = newText,
                                 selection = TextRange(newCursorPos)
                             )
+                            onDraftTextChange(newText)
                         }
 
                         // Emoji Toggle Button
@@ -401,6 +407,7 @@ fun CommentBottomSheet(
                                     text = newText,
                                     selection = TextRange(newCursorPos)
                                 )
+                                onDraftTextChange(newText)
                             }
                         )
                     }
