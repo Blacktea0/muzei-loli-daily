@@ -318,7 +318,6 @@
     <string name="msg_pixiv_logged_out">已登出 Pixiv</string>
 
     <!-- Comments Editor -->
-    <string name="comment_title_post">發表評論</string>
     <string name="comment_action_send">發送</string>
     <string name="comment_action_cancel_reply">取消回覆</string>
     <string name="comment_action_reply">回覆</string>

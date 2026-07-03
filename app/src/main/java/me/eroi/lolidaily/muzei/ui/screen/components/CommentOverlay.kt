@@ -165,7 +165,7 @@ fun CommentBottomSheet(
                             .only(WindowInsetsSides.Bottom)
                     ),
                 color = MaterialTheme.colorScheme.surfaceContainer,
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+                shape = RoundedCornerShape(0.dp),
                 tonalElevation = 3.dp,
             ) {
                 Column(
@@ -174,55 +174,6 @@ fun CommentBottomSheet(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Header
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = stringResource(R.string.comment_title_post),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            TextButton(onClick = onDismiss, enabled = !isPosting) {
-                                Text(stringResource(R.string.action_cancel))
-                            }
-                            if (isPosting) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                IconButton(
-                                    onClick = {
-                                        val content = textFieldValue.text
-                                        if (content.isNotBlank()) {
-                                            isPosting = true
-                                            val finalContent =
-                                                if (quotePrefix.isNotEmpty()) "$quotePrefix$content" else content
-                                            onPostReply(finalContent) { success ->
-                                                isPosting = false
-                                                if (success) {
-                                                    onDismiss()
-                                                }
-                                            }
-                                        }
-                                    },
-                                    enabled = textFieldValue.text.isNotBlank()
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.Send,
-                                        contentDescription = stringResource(R.string.comment_action_send)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
                     // Display Quote reference block above the input box if replying
                     if (displayQuote != null) {
                         Surface(
@@ -271,6 +222,37 @@ fun CommentBottomSheet(
                             .focusRequester(focusRequester),
                         enabled = !isPosting,
                         maxLines = 4,
+                        trailingIcon = {
+                            if (isPosting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                IconButton(
+                                    onClick = {
+                                        val content = textFieldValue.text
+                                        if (content.isNotBlank()) {
+                                            isPosting = true
+                                            val finalContent =
+                                                if (quotePrefix.isNotEmpty()) "$quotePrefix$content" else content
+                                            onPostReply(finalContent) { success ->
+                                                isPosting = false
+                                                if (success) {
+                                                    onDismiss()
+                                                }
+                                            }
+                                        }
+                                    },
+                                    enabled = textFieldValue.text.isNotBlank()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Send,
+                                        contentDescription = stringResource(R.string.comment_action_send)
+                                    )
+                                }
+                            }
+                        }
                     )
 
                     // BBCode & Emoji Tools Row (Horizontally scrollable)

@@ -317,7 +317,6 @@
     <string name="msg_pixiv_logged_out">已退出 Pixiv 登录</string>
 
     <!-- Comments Editor -->
-    <string name="comment_title_post">发表评论</string>
     <string name="comment_action_send">发送</string>
     <string name="comment_action_cancel_reply">取消回复</string>
     <string name="comment_action_reply">回复</string>

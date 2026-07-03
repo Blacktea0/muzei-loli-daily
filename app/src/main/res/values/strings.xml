@@ -318,7 +318,6 @@
     <string name="msg_pixiv_logged_out">Pixiv logged out</string>
 
     <!-- Comments Editor -->
-    <string name="comment_title_post">Publish Comment</string>
     <string name="comment_action_send">Send</string>
     <string name="comment_action_cancel_reply">Cancel reply</string>
     <string name="comment_action_reply">Reply</string>

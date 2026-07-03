@@ -317,7 +317,6 @@
     <string name="msg_pixiv_logged_out">Pixiv ログアウトしました</string>
 
     <!-- Comments Editor -->
-    <string name="comment_title_post">コメントを投稿</string>
     <string name="comment_action_send">送信</string>
     <string name="comment_action_cancel_reply">返信をキャンセル</string>
     <string name="comment_action_reply">返信</string>
