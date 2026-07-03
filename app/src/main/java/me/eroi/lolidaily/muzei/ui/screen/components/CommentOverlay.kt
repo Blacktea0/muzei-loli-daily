@@ -229,9 +229,8 @@ fun CommentBottomSheet(
                         maxLines = 4,
                         trailingIcon = {
                             if (isPosting) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.dp
+                                LoadingIndicator(
+                                    modifier = Modifier.size(24.dp)
                                 )
                             } else {
                                 IconButton(
