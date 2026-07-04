@@ -138,6 +138,7 @@ object VersionChecker {
                     .build()
 
             client.newCall(request).execute().use { response ->
+                val htmlContent = response.body?.string() ?: ""
                 // Even if the page returns 200, the effective URL after redirect holds the tag
                 val effectiveUrl = response.request.url.toString()
                 val tagPrefix = "/releases/tag/"
@@ -155,12 +156,13 @@ object VersionChecker {
 
                 val tagName = effectiveUrl.substring(tagIndex + tagPrefix.length)
                 val versionName = tagName.removePrefix("v")
+                val releaseNotes = extractReleaseNotesFromHtml(htmlContent)
 
                 UpdateCheckResult(
                     hasUpdate = isNewerVersion(versionName, BuildConfig.VERSION_NAME),
                     latestVersion = versionName,
                     downloadUrl = effectiveUrl,
-                    releaseNotes = null,
+                    releaseNotes = releaseNotes,
                 )
             }
         } catch (e: Exception) {
@@ -171,6 +173,64 @@ object VersionChecker {
                 downloadUrl = GITHUB_RELEASES_URL,
                 releaseNotes = null,
             )
+        }
+    }
+
+    internal fun extractReleaseNotesFromHtml(html: String): String? {
+        return try {
+            val pattern = Regex("""<div [^>]*class="[^"]*markdown-body[^"]*"[^>]*>(.*?)</div>""", RegexOption.DOT_MATCHES_ALL)
+            val match = pattern.find(html) ?: return null
+            var body = match.groupValues[1]
+
+            // Convert headers: <h1-6>...</h1-6> -> #...
+            body = body.replace(Regex("""<(h[1-6])[^>]*>(.*?)</\1>""", RegexOption.DOT_MATCHES_ALL)) { matchResult ->
+                val tagName = matchResult.groupValues[1]
+                val headerText = matchResult.groupValues[2]
+                val level = tagName[1] - '0'
+                val hashes = "#".repeat(level)
+                "\n\n$hashes $headerText\n"
+            }
+            // Convert list items: <li>...</li> -> \n- ...
+            body = body.replace(Regex("""<li[^>]*>(.*?)</li>""", RegexOption.DOT_MATCHES_ALL)) { "\n- ${it.groupValues[1]}" }
+            // Convert paragraphs: <p>...</p> -> \n...
+            body = body.replace(Regex("""<p[^>]*>(.*?)</p>""", RegexOption.DOT_MATCHES_ALL)) { "\n\n${it.groupValues[1]}\n" }
+            // Convert code: <code>...</code> -> `...`
+            body = body.replace(Regex("""<code[^>]*>(.*?)</code>""", RegexOption.DOT_MATCHES_ALL)) { "`${it.groupValues[1]}`" }
+            // Convert bold: <strong>...</strong> -> **...**
+            body = body.replace(Regex("""<strong[^>]*>(.*?)</strong>""", RegexOption.DOT_MATCHES_ALL)) { "**${it.groupValues[1]}**" }
+            // Convert links: <a href="url">text</a> -> [text](url)
+            body = body.replace(Regex("""<a [^>]*href="([^"]*)"[^>]*>(.*?)</a>""", RegexOption.DOT_MATCHES_ALL)) { "[${it.groupValues[2]}](${it.groupValues[1]})" }
+
+            // Strip remaining HTML tags
+            body = body.replace(Regex("""<[^>]+>"""), "")
+
+            // Decode HTML entities
+            body = body.replace("&amp;", "&")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&quot;", "\"")
+                .replace("&#39;", "'")
+                .replace("&apos;", "'")
+                .replace("&#10;", "\n")
+
+            // Clean up empty lines
+            val lines = body.lines().map { it.trim() }
+            val cleanedLines = mutableListOf<String>()
+            var prevEmpty = true
+            for (line in lines) {
+                if (line.isNotEmpty()) {
+                    cleanedLines.add(line)
+                    prevEmpty = false
+                } else if (!prevEmpty) {
+                    cleanedLines.add("")
+                    prevEmpty = true
+                }
+            }
+            val result = cleanedLines.joinToString("\n").trim()
+            result.ifEmpty { null }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse release notes from HTML", e)
+            null
         }
     }
 
