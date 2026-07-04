@@ -390,6 +390,9 @@ internal fun TabletDetailContent(
                     )
                 }
             }
+            if (commentsToShow.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(80.dp))
+            }
         }
     }
 }
