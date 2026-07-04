@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
@@ -176,10 +175,6 @@ fun TodayPage(
                             strokeWidth = 1.dp.toPx(),
                         )
                     },
-            )
-            RefreshProgressBar(
-                progress = refreshProgress,
-                modifier = Modifier.align(Alignment.BottomCenter),
             )
         }
 
@@ -687,18 +682,6 @@ fun TodayPage(
 
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun RefreshProgressBar(
-    progress: Float?,
-    modifier: Modifier = Modifier,
-) {
-    if (progress == null) return
-    LinearWavyProgressIndicator(
-        progress = { if (progress <= 0f) 0.01f else progress },
-        modifier = modifier.fillMaxWidth(),
-    )
-}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
