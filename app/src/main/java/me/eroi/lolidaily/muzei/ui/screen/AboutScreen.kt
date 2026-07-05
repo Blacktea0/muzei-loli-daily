@@ -3,7 +3,6 @@ package me.eroi.lolidaily.muzei.ui.screen
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import android.content.Context
-import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.compose.foundation.Image
@@ -42,6 +41,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -64,6 +65,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import androidx.core.content.edit
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import me.eroi.lolidaily.muzei.AcknowledgmentsActivity
@@ -75,6 +77,7 @@ import me.eroi.lolidaily.muzei.util.VersionChecker
 import android.widget.Toast
 import androidx.compose.material.icons.filled.Info
 import me.eroi.lolidaily.muzei.util.DebugMode
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val GITHUB_URL = "https://github.com/Blacktea0/muzei-loli-daily"
 private const val OFFICIAL_SITE_URL = "https://lolicommons.tsuki.ga/"
@@ -252,27 +255,35 @@ fun AboutScreen(onBack: () -> Unit) {
                             }
                         },
                     )
-                    var clickCount by remember { mutableStateOf(0) }
-                    var activeClickCount by remember { mutableStateOf(0) }
-                    var lastClickTime by remember { mutableStateOf(0L) }
-                    var vibrationStartTime by remember { mutableStateOf(0L) }
-                    var vibrationDuration by remember { mutableStateOf(0L) }
+                    var clickCount by remember { mutableIntStateOf(0) }
+                    var activeClickCount by remember { mutableIntStateOf(0) }
+                    var lastClickTime by remember { mutableLongStateOf(0L) }
+                    var vibrationStartTime by remember { mutableLongStateOf(0L) }
+                    var vibrationDuration by remember { mutableLongStateOf(0L) }
                     val vibrate = remember(context) {
                         val vibrator = context.getSystemService("vibrator") as Vibrator?
                         { duration: Long ->
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                vibrator?.vibrate(
-                                    VibrationEffect.createOneShot(
-                                        duration,
-                                        VibrationEffect.DEFAULT_AMPLITUDE
-                                    )
-                                )
-                            } else {
-                                @Suppress("DEPRECATION")
-                                vibrator?.vibrate(duration)
-                            }
+                            vibrator?.vibrate(
+                                VibrationEffect.createOneShot(
+                                    duration,
+                                    VibrationEffect.DEFAULT_AMPLITUDE,
+                                ),
+                            )
                         }
                     }
+                    val activeDebugClickToast1 = stringResource(R.string.toast_debug_active_click_1)
+                    val activeDebugClickToast2 = stringResource(R.string.toast_debug_active_click_2)
+                    val activeDebugClickToast3 = stringResource(R.string.toast_debug_active_click_3)
+                    val activeDebugClickToast4 = stringResource(R.string.toast_debug_active_click_4)
+                    val activeDebugClickToast5 = stringResource(R.string.toast_debug_active_click_5)
+                    val activeDebugClickToast6 = stringResource(R.string.toast_debug_active_click_6)
+                    val debugClickToast1 = stringResource(R.string.toast_debug_click_1)
+                    val debugClickToast2 = stringResource(R.string.toast_debug_click_2)
+                    val debugClickToast3 = stringResource(R.string.toast_debug_click_3)
+                    val debugClickToast4 = stringResource(R.string.toast_debug_click_4)
+                    val debugClickToast5 = stringResource(R.string.toast_debug_click_5)
+                    val debugClickToast6 = stringResource(R.string.toast_debug_click_6)
+                    val debugClickToast7 = stringResource(R.string.toast_debug_click_7)
                     GroupedSettingsRow(
                         icon = Icons.Default.Info,
                         title = stringResource(R.string.title_version),
@@ -300,24 +311,25 @@ fun AboutScreen(onBack: () -> Unit) {
                                     vibrationDuration = duration
                                     vibrate(duration)
                                     when (activeClickCount) {
-                                        1 -> toastHelper.show(context.getString(R.string.toast_debug_active_click_1))
-                                        2 -> toastHelper.show(context.getString(R.string.toast_debug_active_click_2))
-                                        3 -> toastHelper.show(context.getString(R.string.toast_debug_active_click_3))
-                                        4 -> toastHelper.show(context.getString(R.string.toast_debug_active_click_4))
-                                        5 -> toastHelper.show(context.getString(R.string.toast_debug_active_click_5), Toast.LENGTH_LONG)
+                                        1 -> toastHelper.show(activeDebugClickToast1)
+                                        2 -> toastHelper.show(activeDebugClickToast2)
+                                        3 -> toastHelper.show(activeDebugClickToast3)
+                                        4 -> toastHelper.show(activeDebugClickToast4)
+                                        5 -> toastHelper.show(activeDebugClickToast5, Toast.LENGTH_LONG)
                                         6 -> {
-                                            toastHelper.show(context.getString(R.string.toast_debug_active_click_6), Toast.LENGTH_LONG)
+                                            toastHelper.show(activeDebugClickToast6, Toast.LENGTH_LONG)
                                             scope.launch {
                                                 isBlocked = true
-                                                delay(2000L)
-                                                toastHelper.show(context.getString(R.string.toast_debug_active_click_6), Toast.LENGTH_LONG)
-                                                delay(2000L)
+                                                delay(2000L.milliseconds)
+                                                toastHelper.show(activeDebugClickToast6, Toast.LENGTH_LONG)
+                                                delay(2000L.milliseconds)
                                                 val prefs = context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
-                                                prefs.edit().putBoolean("debug_mode_enabled_crashed", true).apply()
+                                                prefs.edit { putBoolean("debug_mode_enabled_crashed", true) }
                                                 (context as? android.app.Activity)?.finishAffinity()
                                                 android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                                                     // Trigger a genuine, unexpected NullPointerException in the foreground
                                                     val obj: Any? = null
+                                                    @Suppress("KotlinConstantConditions")
                                                     obj!!.hashCode()
                                                 }, 100L)
                                             }
@@ -326,12 +338,12 @@ fun AboutScreen(onBack: () -> Unit) {
                                 } else {
                                     clickCount++
                                     when (clickCount) {
-                                        4 -> toastHelper.show(context.getString(R.string.toast_debug_click_1))
-                                        5 -> toastHelper.show(context.getString(R.string.toast_debug_click_2))
-                                        6 -> toastHelper.show(context.getString(R.string.toast_debug_click_3))
-                                        7 -> toastHelper.show(context.getString(R.string.toast_debug_click_4))
-                                        8 -> toastHelper.show(context.getString(R.string.toast_debug_click_5))
-                                        9 -> toastHelper.show(context.getString(R.string.toast_debug_click_6))
+                                        4 -> toastHelper.show(debugClickToast1)
+                                        5 -> toastHelper.show(debugClickToast2)
+                                        6 -> toastHelper.show(debugClickToast3)
+                                        7 -> toastHelper.show(debugClickToast4)
+                                        8 -> toastHelper.show(debugClickToast5)
+                                        9 -> toastHelper.show(debugClickToast6)
                                         10 -> {
                                             DebugMode.isEnabled = true
                                             clickCount = 0
@@ -339,7 +351,7 @@ fun AboutScreen(onBack: () -> Unit) {
                                             vibrationStartTime = currentTime
                                             vibrationDuration = 3000L
                                             vibrate(3000L)
-                                            toastHelper.show(context.getString(R.string.toast_debug_click_7), Toast.LENGTH_LONG)
+                                            toastHelper.show(debugClickToast7, Toast.LENGTH_LONG)
                                         }
                                     }
                                 }

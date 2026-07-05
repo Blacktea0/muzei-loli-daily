@@ -1,7 +1,6 @@
 package me.eroi.lolidaily.muzei
 
 import android.content.ActivityNotFoundException
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -17,6 +16,8 @@ import androidx.core.content.FileProvider
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.svg.SvgDecoder
@@ -29,9 +30,6 @@ import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.api.link.extractUrl
 import me.eroi.lolidaily.muzei.db.DatabaseProvider
 import me.eroi.lolidaily.muzei.db.EntityMapper
-import me.eroi.lolidaily.muzei.worker.WorkScheduler
-import androidx.work.WorkInfo
-import androidx.work.WorkManager
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyResponse
@@ -43,9 +41,10 @@ import me.eroi.lolidaily.muzei.ui.theme.ColorStyle
 import me.eroi.lolidaily.muzei.ui.theme.LoliDailyTheme
 import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
 import me.eroi.lolidaily.muzei.util.ArtworkColorExtractor
+import me.eroi.lolidaily.muzei.util.DebugMode
 import me.eroi.lolidaily.muzei.util.Md5
 import me.eroi.lolidaily.muzei.util.applyRecentsPrivacy
-import me.eroi.lolidaily.muzei.util.DebugMode
+import me.eroi.lolidaily.muzei.worker.WorkScheduler
 import java.io.File
 
 /**
@@ -84,7 +83,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         if (prefs.getBoolean("debug_mode_enabled_crashed", false)) {
             DebugMode.isEnabled = true
-            prefs.edit().remove("debug_mode_enabled_crashed").apply()
+            prefs.edit { remove("debug_mode_enabled_crashed") }
         } else {
             DebugMode.isEnabled = false
         }

@@ -261,7 +261,6 @@
     <string name="toast_debug_active_click_4">“不行！不行！不行！再点下去真的要坏掉了……”</string>
     <string name="toast_debug_active_click_5">“求求你……不要再继续了……呜……”</string>
     <string name="toast_debug_active_click_6">“唔嗯……啊……！♡”</string>
-    <string name="toast_debug_already_enabled">调试模式已开启，无需重复点击。</string>
     <string name="about_hero_title">萝莉共享</string>
     <string name="about_hero_subtitle">是一个国际非盈利组织，\n旨在促进萝莉控作品的流通\n与萝莉控之间的交流</string>
     <string name="about_hero_tagline">世界 需要更多萝莉 &lt;3</string>

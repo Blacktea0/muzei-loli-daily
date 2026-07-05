@@ -3,31 +3,61 @@ package me.eroi.lolidaily.muzei.ui.screen.pages
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Comment
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.FormatQuote
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import kotlinx.coroutines.launch
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.SessionManager
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.BangumiSubReply
 import me.eroi.lolidaily.muzei.model.ReactionCount
-import me.eroi.lolidaily.muzei.ui.screen.components.*
+import me.eroi.lolidaily.muzei.ui.screen.components.CharacterChip
+import me.eroi.lolidaily.muzei.ui.screen.components.CommentHeader
+import me.eroi.lolidaily.muzei.ui.screen.components.CommentInputPlaceholder
+import me.eroi.lolidaily.muzei.ui.screen.components.FloorCommentEntry
+import me.eroi.lolidaily.muzei.ui.screen.components.PixelEmoji
+import me.eroi.lolidaily.muzei.ui.screen.components.cleanCommentForQuote
 import me.eroi.lolidaily.muzei.worker.EmojiMap
-import kotlinx.coroutines.launch
 
 // ── Tablet Reaction Row (horizontal capsule chips) ──────────────
 
@@ -53,7 +83,7 @@ internal fun TabletReactionRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        for ((index, reactionResId) in valid.withIndex()) {
+        for ((_, reactionResId) in valid.withIndex()) {
             val (reaction, resId) = reactionResId
             val selected = reaction.emojiValue == userEmoji
 
@@ -172,9 +202,9 @@ internal fun TabletDetailContent(
     discussionId: String?,
     commentsToShow: List<BangumiSubReply>,
     onCommentPlaceholderClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
     onCommentReactionClick: ((Int) -> Unit)? = null,
     onCommentReactionChipClick: ((Int, Int) -> Unit)? = null,
-    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val token = preview.filename.substringBeforeLast('.')
