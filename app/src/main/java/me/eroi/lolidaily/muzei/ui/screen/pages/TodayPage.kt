@@ -2,11 +2,9 @@ package me.eroi.lolidaily.muzei.ui.screen.pages
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,7 +18,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshState
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
@@ -43,7 +42,6 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -105,7 +103,7 @@ fun TodayPage(
     }
     val scope = rememberCoroutineScope()
     val isRefreshing = refreshProgress != null
-    val state = rememberPullToRefreshState()
+    val state = rememberExpressivePullToRefreshState()
     val context = LocalContext.current
     val msgLoginToReact = stringResource(R.string.msg_login_to_react)
     var showReactionPicker by remember { mutableStateOf(false) }
@@ -188,7 +186,7 @@ fun TodayPage(
                     .fillMaxSize(),
                 state = state,
                 indicator = {
-                    ExpressivePullIndicator(
+                    PullToRefreshDefaults.LoadingIndicator(
                         state = state,
                         isRefreshing = isRefreshing,
                         modifier = Modifier.align(Alignment.TopCenter),
@@ -248,7 +246,7 @@ fun TodayPage(
                     modifier = Modifier.fillMaxSize(),
                     state = state,
                     indicator = {
-                        ExpressivePullIndicator(
+                        PullToRefreshDefaults.LoadingIndicator(
                             state = state,
                             isRefreshing = isRefreshing,
                             modifier = Modifier.align(Alignment.TopCenter),
@@ -734,68 +732,40 @@ fun TodayPage(
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun ExpressivePullIndicator(
-    state: androidx.compose.material3.pulltorefresh.PullToRefreshState,
-    isRefreshing: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val distanceFraction = state.distanceFraction.coerceIn(0f, 1f)
-    val rawDistanceFraction = state.distanceFraction
+/**
+ * A [PullToRefreshState] whose settle animations use the M3 Expressive spatial
+ * motion spec, so releasing the pull (and hiding after refresh) has the
+ * characteristic springy "bounce back" feel instead of a plain ease-out.
+ */
+private class ExpressivePullToRefreshState(
+    private val animationSpec: AnimationSpec<Float>,
+) : PullToRefreshState {
+    private val anim = Animatable(0f)
 
-    val alpha by animateFloatAsState(
-        targetValue = if (isRefreshing) 1f else distanceFraction,
-        animationSpec =
-            if (isRefreshing) {
-                spring(stiffness = Spring.StiffnessMedium)
-            } else {
-                snap()
-            },
-    )
+    override val distanceFraction: Float
+        get() = anim.value
 
-    val scale by animateFloatAsState(
-        targetValue = if (isRefreshing) 1f else distanceFraction / 2 + 0.5f,
-        animationSpec =
-            if (isRefreshing) {
-                spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)
-            } else {
-                snap()
-            },
-    )
+    override val isAnimating: Boolean
+        get() = anim.isRunning
 
-    val maxDistance = 80.dp
-    val slideOffset by animateDpAsState(
-        targetValue = if (rawDistanceFraction > 1f) 18.dp + maxDistance * (rawDistanceFraction - 1) else 18.dp,
-        animationSpec = spring()
-    )
-
-    Box(
-        modifier =
-            modifier
-                .offset { IntOffset(0, slideOffset.roundToPx()) }
-                .graphicsLayer {
-                    this.alpha = alpha
-                    scaleX = scale
-                    scaleY = scale
-                },
-        contentAlignment = Alignment.Center,
-    ) {
-        androidx.compose.animation.Crossfade(
-            targetState = isRefreshing,
-            animationSpec = tween(durationMillis = 200),
-        ) { refreshing ->
-            if (refreshing) {
-                ContainedLoadingIndicator(
-                    modifier = Modifier.size(48.dp),
-                )
-            } else {
-                ContainedLoadingIndicator(
-                    progress = { rawDistanceFraction / 2 },
-                    modifier = Modifier.size(48.dp),
-                    polygons = listOf(MaterialShapes.SoftBurst, MaterialShapes.SoftBurst),
-                )
-            }
-        }
+    override suspend fun animateToThreshold() {
+        anim.animateTo(1f, animationSpec)
     }
+
+    override suspend fun animateToHidden() {
+        anim.animateTo(0f, animationSpec)
+    }
+
+    override suspend fun snapTo(targetValue: Float) {
+        anim.snapTo(targetValue)
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun rememberExpressivePullToRefreshState(): PullToRefreshState {
+    // fastSpatialSpec of the expressive MotionScheme is a bouncy spring
+    // (damping < 1), matching the M3 pull-to-refresh release motion.
+    val bounceSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+    return remember(bounceSpec) { ExpressivePullToRefreshState(bounceSpec) }
 }
