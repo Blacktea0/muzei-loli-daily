@@ -34,7 +34,7 @@ android {
         applicationId = "me.eroi.lolidaily.muzei"
         minSdk = 28
         targetSdk = 37
-        versionName = envOrProp("VERSION_NAME") ?: "0.2.4"
+        versionName = envOrProp("VERSION_NAME") ?: "0.3.0"
         versionCode = envOrProp("VERSION_CODE")?.toIntOrNull()
             ?: versionName?.split(".")?.let { parts ->
                 val major = parts.getOrElse(0) { "0" }.toIntOrNull() ?: 0
