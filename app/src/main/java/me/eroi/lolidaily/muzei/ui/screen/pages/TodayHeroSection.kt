@@ -240,7 +240,9 @@ private fun HeroDetailContent(
             ) {
                 preview.characterNames.forEachIndexed { index, name ->
                     val characterId = preview.characterIds.getOrNull(index)
-                    SuggestionChip(
+                    CharacterChip(
+                        defaultName = name,
+                        characterId = characterId,
                         onClick = {
                             if (characterId != null) {
                                 val url = "https://$bgmDomain/character/$characterId"
@@ -249,7 +251,6 @@ private fun HeroDetailContent(
                                 )
                             }
                         },
-                        label = { Text(name, style = MaterialTheme.typography.labelMedium) },
                         modifier = Modifier.height(32.dp),
                     )
                 }

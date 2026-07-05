@@ -22,6 +22,7 @@ object SessionManager {
     private const val KEY_BGM_DOMAIN = "bgm_domain"
     private const val KEY_LC_BADGE = "lc_badge"
     private const val KEY_PIXIV_SESSION_ID = "pixiv_session_id"
+    private const val KEY_PREFER_CHINESE_ROLE = "prefer_chinese_role"
     private const val DEFAULT_BGM_DOMAIN = "chii.in"
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -183,5 +184,15 @@ object SessionManager {
             .edit {
                 remove(KEY_PIXIV_SESSION_ID)
             }
+    }
+
+    fun loadPreferChineseRole(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getBoolean(KEY_PREFER_CHINESE_ROLE, false)
+    }
+
+    fun savePreferChineseRole(context: Context, value: Boolean) {
+        val prefs = context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit { putBoolean(KEY_PREFER_CHINESE_ROLE, value) }
     }
 }

@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -108,6 +109,7 @@ fun AdditionalSettingsScreen(onBack: () -> Unit) {
             item {
                 SettingsGroup {
                     LanguageCard()
+                    PreferChineseRoleCard()
                 }
             }
             item { SettingsSectionLabel(stringResource(R.string.section_debug_refresh)) }
@@ -613,6 +615,29 @@ private fun LanguageCard() {
             },
         )
     }
+}
+
+@Composable
+private fun PreferChineseRoleCard() {
+    val context = LocalContext.current
+    var preferChinese by remember {
+        mutableStateOf(SessionManager.loadPreferChineseRole(context))
+    }
+
+    SettingsRow(
+        icon = Icons.Default.Translate,
+        title = stringResource(R.string.title_prefer_chinese_role),
+        subtitle = stringResource(R.string.desc_prefer_chinese_role),
+        trailing = {
+            Switch(
+                checked = preferChinese,
+                onCheckedChange = { checked ->
+                    preferChinese = checked
+                    SessionManager.savePreferChineseRole(context, checked)
+                },
+            )
+        },
+    )
 }
 // ── Pixiv Account Card ────────────────────────────────────────
 @Composable

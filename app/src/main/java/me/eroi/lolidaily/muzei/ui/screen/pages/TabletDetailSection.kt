@@ -329,7 +329,9 @@ internal fun TabletDetailContent(
             ) {
                 preview.characterNames.forEachIndexed { index, name ->
                     val characterId = preview.characterIds.getOrNull(index)
-                    SuggestionChip(
+                    CharacterChip(
+                        defaultName = name,
+                        characterId = characterId,
                         onClick = {
                             if (characterId != null) {
                                 val url = "https://$bgmDomain/character/$characterId"
@@ -338,7 +340,6 @@ internal fun TabletDetailContent(
                                 )
                             }
                         },
-                        label = { Text(name, style = MaterialTheme.typography.labelMedium) },
                         modifier = Modifier.height(32.dp),
                     )
                 }

@@ -1264,7 +1264,8 @@ fun SubmitPage(
                 if (state.selectedCharacters.isNotEmpty()) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         state.selectedCharacters.forEach { character ->
-                            val chipLabel = character.name.ifBlank { character.nameCN }
+                            val preferChinese = SessionManager.loadPreferChineseRole(context)
+                            val chipLabel = if (preferChinese && character.nameCN.isNotBlank()) character.nameCN else character.name.ifBlank { character.nameCN }
                             val avatarUrl = character.images?.small
                             InputChip(
                                 selected = true,

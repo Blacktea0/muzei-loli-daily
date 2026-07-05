@@ -57,6 +57,11 @@ import me.eroi.lolidaily.muzei.api.BangumiApiClient
 import me.eroi.lolidaily.muzei.model.SlimCharacter
 import me.eroi.lolidaily.muzei.model.SlimCharacterImages
 import me.eroi.lolidaily.muzei.db.CharacterHistoryEntity
+import androidx.compose.material3.SuggestionChip
+import me.eroi.lolidaily.muzei.api.SessionManager
+import me.eroi.lolidaily.muzei.db.DatabaseProvider
+import me.eroi.lolidaily.muzei.db.CharacterNameCacheEntity
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * State holder for [CharacterSearchBar].
@@ -100,6 +105,7 @@ fun CharacterSearchBar(
     state: CharacterSearchBarState = rememberCharacterSearchBarState(),
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val textFieldState = rememberTextFieldState()
     val searchBarState = state.searchBarState
 
@@ -201,7 +207,14 @@ fun CharacterSearchBar(
         if (textFieldState.text.isEmpty() && results.isEmpty() && suggestions.isEmpty() && !isSearching && filteredHistory.isNotEmpty()) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(filteredHistory, key = { it.characterId }) { entry ->
-                    val displayName = if (entry.nameCN.isNotBlank()) "${entry.name} (${entry.nameCN})" else entry.name
+                    val preferChinese = SessionManager.loadPreferChineseRole(context)
+                    val displayName = if (preferChinese && entry.nameCN.isNotBlank()) {
+                        "${entry.nameCN} (${entry.name})"
+                    } else if (entry.nameCN.isNotBlank()) {
+                        "${entry.name} (${entry.nameCN})"
+                    } else {
+                        entry.name
+                    }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -271,7 +284,14 @@ fun CharacterSearchBar(
         if (results.isNotEmpty()) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(results, key = { it.id }) { character ->
-                    val displayName = if (character.nameCN.isNotBlank()) "${character.name} (${character.nameCN})" else character.name
+                    val preferChinese = SessionManager.loadPreferChineseRole(context)
+                    val displayName = if (preferChinese && character.nameCN.isNotBlank()) {
+                        "${character.nameCN} (${character.name})"
+                    } else if (character.nameCN.isNotBlank()) {
+                        "${character.name} (${character.nameCN})"
+                    } else {
+                        character.name
+                    }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -324,3 +344,66 @@ fun CharacterSearchBar(
         }
     }
 }
+
+@Composable
+fun rememberCharacterDisplayName(characterId: Long?, defaultName: String): String {
+    if (characterId == null) return defaultName
+    val context = LocalContext.current
+    val preferChinese = remember { SessionManager.loadPreferChineseRole(context) }
+    if (!preferChinese) return defaultName
+
+    var displayName by remember(characterId) { mutableStateOf(defaultName) }
+
+    LaunchedEffect(characterId) {
+        val cached = withContext(Dispatchers.IO) {
+            val db = DatabaseProvider.getInstance(context)
+            db.characterNameCacheDao().get(characterId.toInt())
+        }
+        if (cached?.nameCN?.isNotBlank() == true) {
+            displayName = cached.nameCN
+            return@LaunchedEffect
+        }
+
+        val fetched = withContext(Dispatchers.IO) {
+            val db = DatabaseProvider.getInstance(context)
+            val character = try {
+                BangumiApiClient.fetchCharacterDetail(characterId.toInt())
+            } catch (_: Exception) {
+                null
+            }
+            if (character != null) {
+                db.characterNameCacheDao().insert(
+                    CharacterNameCacheEntity(
+                        characterId = character.id,
+                        name = character.name,
+                        nameCN = character.nameCN,
+                    ),
+                )
+                character
+            } else {
+                null
+            }
+        }
+        if (fetched != null && fetched.nameCN.isNotBlank()) {
+            displayName = fetched.nameCN
+        }
+    }
+
+    return displayName
+}
+
+@Composable
+fun CharacterChip(
+    defaultName: String,
+    characterId: Long?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val displayName = rememberCharacterDisplayName(characterId, defaultName)
+    SuggestionChip(
+        onClick = onClick,
+        label = { Text(displayName, style = MaterialTheme.typography.labelMedium) },
+        modifier = modifier,
+    )
+}
+

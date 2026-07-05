@@ -717,7 +717,6 @@ object BangumiApiClient {
         }
     }
 
-    private data class CharacterDetail(val name: String, val nameCN: String, val images: SlimCharacterImages?)
 
     private fun List<ChiiCelebrity>.toSlimCharacters(): List<SlimCharacter> {
         val candidates = mapNotNull { celeb ->
@@ -786,7 +785,7 @@ object BangumiApiClient {
     private const val GET_BANGUMI_CHARACTER_QUERY =
         """query GetBangumiCharacter(${'$'}id: Int!, ${'$'}token: String) { queryBangumiCharacter(id: ${'$'}id, token: ${'$'}token) { ...BangumiCharacter __typename } } fragment BangumiCharacter on BangumiCharacter { id name images { ...Images __typename } infobox { ...Info __typename } __typename } fragment Images on Images { large medium small __typename } fragment Info on Info { key value { ...InfoValue __typename } __typename } fragment InfoValue on InfoValue { property list { ...KV __typename } __typename } fragment KV on KV { k v __typename }"""
 
-    private fun fetchCharacterDetail(characterId: Int): CharacterDetail? {
+    fun fetchCharacterDetail(characterId: Int): SlimCharacter? {
         val bodyStr = """{"operationName":"GetBangumiCharacter","variables":{"id":$characterId,"token":""},"query":"$GET_BANGUMI_CHARACTER_QUERY"}"""
         val body = bodyStr.toRequestBody("application/json".toMediaType())
         val request = Request.Builder()
@@ -808,8 +807,15 @@ object BangumiApiClient {
                 try {
                     val obj = item.jsonObject
                     if (obj["key"]?.jsonPrimitive?.contentOrNull == "简体中文名") {
-                        val list = (obj["value"] as? JsonObject)?.get("list") as? JsonArray
-                        nameCN = list?.firstOrNull()?.jsonObject?.get("v")?.jsonPrimitive?.contentOrNull ?: ""
+                        val value = obj["value"] as? JsonObject
+                        nameCN = value?.get("property")?.jsonPrimitive?.contentOrNull
+                            ?: (value?.get("list") as? JsonArray)
+                                ?.firstOrNull()
+                                ?.jsonObject
+                                ?.get("v")
+                                ?.jsonPrimitive
+                                ?.contentOrNull
+                            ?: ""
                     }
                 } catch (_: Exception) {}
             }
@@ -822,7 +828,7 @@ object BangumiApiClient {
                     grid = "",
                 )
             }
-            CharacterDetail(name, nameCN, images)
+            SlimCharacter(id = characterId, name = name, nameCN = nameCN, images = images)
         } catch (e: Exception) {
             Log.w(TAG, "Failed to fetch character detail for $characterId", e)
             null
