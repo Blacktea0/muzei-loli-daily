@@ -1,6 +1,11 @@
 package me.eroi.lolidaily.muzei.ui.screen
 
 import android.content.Intent
+import androidx.activity.compose.BackHandler
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -60,7 +65,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import me.eroi.lolidaily.muzei.AcknowledgmentsActivity
+import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.BuildConfig
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.ui.screen.components.*
@@ -85,23 +92,30 @@ private enum class UpdateCheckState {
 fun AboutScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val showToast = remember(context) {
-        var lastToast: Toast? = null
-        { text: String ->
-            lastToast?.cancel()
-            lastToast = Toast.makeText(context, text, Toast.LENGTH_SHORT).apply { show() }
+    val toastHelper = remember(context) {
+        object {
+            var lastToast: Toast? = null
+            fun show(text: String, duration: Int = Toast.LENGTH_SHORT) {
+                lastToast?.cancel()
+                lastToast = Toast.makeText(context, text, duration).apply { show() }
+            }
         }
     }
 
     var updateState by remember { mutableStateOf(UpdateCheckState.IDLE) }
     var updateResult by remember { mutableStateOf<VersionChecker.UpdateCheckResult?>(null) }
+    var isBlocked by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = isBlocked) {
+        // Intercepts and blocks system back navigation
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.title_about)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = { if (!isBlocked) onBack() }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.content_desc_back),
@@ -111,7 +125,7 @@ fun AboutScreen(onBack: () -> Unit) {
                 actions = {
                     IconButton(
                         onClick = {
-                            if (updateState == UpdateCheckState.IDLE) {
+                            if (updateState == UpdateCheckState.IDLE && !isBlocked) {
                                 updateState = UpdateCheckState.CHECKING
                                 scope.launch {
                                     val result = VersionChecker.checkForUpdate(context, forceRefresh = true)
@@ -120,7 +134,7 @@ fun AboutScreen(onBack: () -> Unit) {
                                 }
                             }
                         },
-                        enabled = updateState == UpdateCheckState.IDLE,
+                        enabled = updateState == UpdateCheckState.IDLE && !isBlocked,
                     ) {
                         Icon(
                             Icons.Default.SystemUpdate,
@@ -207,9 +221,11 @@ fun AboutScreen(onBack: () -> Unit) {
                         title = stringResource(R.string.about_official_site),
                         subtitle = OFFICIAL_SITE_URL,
                         onClick = {
-                            context.startActivity(
-                                Intent(Intent.ACTION_VIEW, OFFICIAL_SITE_URL.toUri()),
-                            )
+                            if (!isBlocked) {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, OFFICIAL_SITE_URL.toUri()),
+                                )
+                            }
                         },
                     )
                     GroupedSettingsRow(
@@ -217,9 +233,11 @@ fun AboutScreen(onBack: () -> Unit) {
                         title = stringResource(R.string.about_source_code),
                         subtitle = GITHUB_URL,
                         onClick = {
-                            context.startActivity(
-                                Intent(Intent.ACTION_VIEW, GITHUB_URL.toUri()),
-                            )
+                            if (!isBlocked) {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, GITHUB_URL.toUri()),
+                                )
+                            }
                         },
                     )
                     GroupedSettingsRow(
@@ -227,29 +245,102 @@ fun AboutScreen(onBack: () -> Unit) {
                         title = stringResource(R.string.about_acknowledgments),
                         subtitle = stringResource(R.string.about_acknowledgments_subtitle),
                         onClick = {
-                            context.startActivity(
-                                Intent(context, AcknowledgmentsActivity::class.java),
-                            )
+                            if (!isBlocked) {
+                                context.startActivity(
+                                    Intent(context, AcknowledgmentsActivity::class.java),
+                                )
+                            }
                         },
                     )
                     var clickCount by remember { mutableStateOf(0) }
+                    var activeClickCount by remember { mutableStateOf(0) }
+                    var lastClickTime by remember { mutableStateOf(0L) }
+                    var vibrationStartTime by remember { mutableStateOf(0L) }
+                    var vibrationDuration by remember { mutableStateOf(0L) }
+                    val vibrate = remember(context) {
+                        val vibrator = context.getSystemService("vibrator") as Vibrator?
+                        { duration: Long ->
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                vibrator?.vibrate(
+                                    VibrationEffect.createOneShot(
+                                        duration,
+                                        VibrationEffect.DEFAULT_AMPLITUDE
+                                    )
+                                )
+                            } else {
+                                @Suppress("DEPRECATION")
+                                vibrator?.vibrate(duration)
+                            }
+                        }
+                    }
                     GroupedSettingsRow(
                         icon = Icons.Default.Info,
                         title = stringResource(R.string.title_version),
                         subtitle = BuildConfig.VERSION_NAME,
                         onClick = {
-                            if (DebugMode.isEnabled) {
-                                showToast(context.getString(R.string.toast_debug_already_enabled))
-                            } else {
-                                clickCount++
-                                if (clickCount >= 3) {
-                                    val remaining = 7 - clickCount
-                                    if (remaining > 0) {
-                                        showToast(context.getString(R.string.toast_debug_steps, remaining))
-                                    } else {
-                                        DebugMode.isEnabled = true
-                                        clickCount = 0
-                                        showToast(context.getString(R.string.toast_debug_enabled))
+                            if (isBlocked) return@GroupedSettingsRow
+                            val currentTime = System.currentTimeMillis()
+                            if (currentTime - vibrationStartTime < vibrationDuration) {
+                                return@GroupedSettingsRow
+                            }
+                            if (currentTime - lastClickTime >= 721L) {
+                                lastClickTime = currentTime
+                                if (DebugMode.isEnabled) {
+                                    activeClickCount++
+                                    val duration = when (activeClickCount) {
+                                        1 -> 100L
+                                        2 -> 300L
+                                        3 -> 600L
+                                        4 -> 1000L
+                                        5 -> 2000L
+                                        6 -> 4000L
+                                        else -> 50L
+                                    }
+                                    vibrationStartTime = currentTime
+                                    vibrationDuration = duration
+                                    vibrate(duration)
+                                    when (activeClickCount) {
+                                        1 -> toastHelper.show(context.getString(R.string.toast_debug_active_click_1))
+                                        2 -> toastHelper.show(context.getString(R.string.toast_debug_active_click_2))
+                                        3 -> toastHelper.show(context.getString(R.string.toast_debug_active_click_3))
+                                        4 -> toastHelper.show(context.getString(R.string.toast_debug_active_click_4))
+                                        5 -> toastHelper.show(context.getString(R.string.toast_debug_active_click_5), Toast.LENGTH_LONG)
+                                        6 -> {
+                                            toastHelper.show(context.getString(R.string.toast_debug_active_click_6), Toast.LENGTH_LONG)
+                                            scope.launch {
+                                                isBlocked = true
+                                                delay(2000L)
+                                                toastHelper.show(context.getString(R.string.toast_debug_active_click_6), Toast.LENGTH_LONG)
+                                                delay(2000L)
+                                                val prefs = context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+                                                prefs.edit().putBoolean("debug_mode_enabled_crashed", true).apply()
+                                                (context as? android.app.Activity)?.finishAffinity()
+                                                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                                    // Trigger a genuine, unexpected NullPointerException in the foreground
+                                                    val obj: Any? = null
+                                                    obj!!.hashCode()
+                                                }, 100L)
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    clickCount++
+                                    when (clickCount) {
+                                        4 -> toastHelper.show(context.getString(R.string.toast_debug_click_1))
+                                        5 -> toastHelper.show(context.getString(R.string.toast_debug_click_2))
+                                        6 -> toastHelper.show(context.getString(R.string.toast_debug_click_3))
+                                        7 -> toastHelper.show(context.getString(R.string.toast_debug_click_4))
+                                        8 -> toastHelper.show(context.getString(R.string.toast_debug_click_5))
+                                        9 -> toastHelper.show(context.getString(R.string.toast_debug_click_6))
+                                        10 -> {
+                                            DebugMode.isEnabled = true
+                                            clickCount = 0
+                                            activeClickCount = 0
+                                            vibrationStartTime = currentTime
+                                            vibrationDuration = 3000L
+                                            vibrate(3000L)
+                                            toastHelper.show(context.getString(R.string.toast_debug_click_7), Toast.LENGTH_LONG)
+                                        }
                                     }
                                 }
                             }

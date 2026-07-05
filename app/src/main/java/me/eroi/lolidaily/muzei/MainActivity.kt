@@ -82,7 +82,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        DebugMode.isEnabled = false
+        if (prefs.getBoolean("debug_mode_enabled_crashed", false)) {
+            DebugMode.isEnabled = true
+            prefs.edit().remove("debug_mode_enabled_crashed").apply()
+        } else {
+            DebugMode.isEnabled = false
+        }
         enableEdgeToEdge()
 
         // Configure Coil with SVG and AVIF decoders
