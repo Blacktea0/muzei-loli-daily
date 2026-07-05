@@ -206,6 +206,9 @@
 
     <string name="title_override_api_tag">覆寫 API 標籤</string>
     <string name="title_select_api_tag">選擇 API 標籤</string>
+    <string name="title_override_api_topic_id">覆寫 API 返回的主題 ID</string>
+    <string name="label_api_topic_id">主題 ID</string>
+    <string name="placeholder_api_topic_id">例如 465120</string>
 
     <!-- Debug: Refresh -->
     <string name="section_debug_refresh">自動取得圖片</string>

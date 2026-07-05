@@ -414,7 +414,7 @@ private fun ApiCombinedCard() {
         )
         SettingsRowWithSwitchAndArrow(
             icon = Icons.Default.Forum,
-            title = "Override API Topic ID",
+            title = stringResource(R.string.title_override_api_topic_id),
             subtitle = overrideTopicId,
             checked = overrideTopicIdEnabled,
             onCheckedChange = { checked ->

@@ -360,7 +360,7 @@ fun ApiTopicIdPickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Override API Topic ID") },
+        title = { Text(stringResource(R.string.title_override_api_topic_id)) },
         text = {
             Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
                 OutlinedTextField(
@@ -371,9 +371,9 @@ fun ApiTopicIdPickerDialog(
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("e.g. 465120") },
+                    placeholder = { Text(stringResource(R.string.placeholder_api_topic_id)) },
                     singleLine = true,
-                    label = { Text("Topic ID") },
+                    label = { Text(stringResource(R.string.label_api_topic_id)) },
                 )
             }
         },

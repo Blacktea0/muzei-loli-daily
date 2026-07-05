@@ -206,6 +206,9 @@
 
     <string name="title_override_api_tag">APIタグを上書き</string>
     <string name="title_select_api_tag">APIタグを選択</string>
+    <string name="title_override_api_topic_id">APIトピックIDを上書き</string>
+    <string name="label_api_topic_id">トピックID</string>
+    <string name="placeholder_api_topic_id">例：465120</string>
 
     <!-- Debug: Refresh -->
     <string name="section_debug_refresh">画像の自動取得</string>
