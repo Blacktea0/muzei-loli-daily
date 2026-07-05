@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +29,15 @@ import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.rememberTooltipState
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.layout.widthIn
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -140,33 +150,69 @@ fun EmptyComments() {
 
 // ── Reaction Chips (read-only) ──────────────────────────────────
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun ReactionChips(reactions: List<BangumiReaction>) {
+fun ReactionChips(
+    reactions: List<BangumiReaction>,
+    onReactionClick: ((Int) -> Unit)? = null
+) {
     val valid = remember(reactions) { reactions.mapNotNull { r -> EmojiMap.emojiResId(r.value)?.let { r to it } } }
     if (valid.isEmpty()) return
+
+    val scope = rememberCoroutineScope()
 
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         for ((reaction, resId) in valid) {
-            Surface(
-                shape = RoundedCornerShape(50),
-                color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                modifier = Modifier.height(22.dp),
+            val tooltipState = rememberTooltipState(isPersistent = true)
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                    TooltipAnchorPosition.Above
+                ),
+                tooltip = {
+                    PlainTooltip {
+                        Text(
+                            text = formatUserList(reaction.users.map { it.nickname.takeIf { n -> n.isNotBlank() } ?: it.username }),
+                            modifier = Modifier.widthIn(max = 280.dp),
+                        )
+                    }
+                },
+                state = tooltipState,
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    modifier = Modifier
+                        .height(22.dp)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onTap = {
+                                    if (onReactionClick != null) {
+                                        onReactionClick(reaction.value)
+                                    }
+                                },
+                                onLongPress = {
+                                    if (reaction.users.isNotEmpty()) {
+                                        scope.launch { tooltipState.show() }
+                                    }
+                                }
+                            )
+                        },
                 ) {
-                    PixelEmoji(resId = resId, modifier = Modifier.size(16.dp))
-                    Text(
-                        text = "${reaction.users.size}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        PixelEmoji(resId = resId, modifier = Modifier.size(16.dp))
+                        Text(
+                            text = "${reaction.users.size}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }
@@ -180,7 +226,9 @@ fun ReactionChips(reactions: List<BangumiReaction>) {
 fun FloorCommentEntry(
     reply: BangumiSubReply,
     isLoggedIn: Boolean = false,
-    onReplyClick: (() -> Unit)? = null
+    onReplyClick: (() -> Unit)? = null,
+    onReactionClick: (() -> Unit)? = null,
+    onReactionChipClick: ((Int) -> Unit)? = null
 ) {
     if (reply.state != 0) return
 
@@ -231,6 +279,16 @@ fun FloorCommentEntry(
                                 .clickable { onReplyClick() }
                         )
                     }
+                    if (isLoggedIn && onReactionClick != null) {
+                        Icon(
+                            imageVector = Icons.Filled.Favorite,
+                            contentDescription = stringResource(R.string.content_desc_add_reaction),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clickable { onReactionClick() }
+                        )
+                    }
                 }
             }
 
@@ -244,7 +302,10 @@ fun FloorCommentEntry(
 
             Spacer(Modifier.height(8.dp))
 
-            ReactionChips(reactions = reply.reactions)
+            ReactionChips(
+                reactions = reply.reactions,
+                onReactionClick = onReactionChipClick
+            )
         }
     }
 }
@@ -576,3 +637,10 @@ private fun avatarGradient(userId: Int?): List<Color> {
 }
 
 
+
+private fun formatUserList(users: List<String>): String {
+    if (users.isEmpty()) return ""
+    val locale = java.util.Locale.getDefault()
+    val separator = if (locale.language == "zh" || locale.language == "ja") "、" else ", "
+    return users.joinToString(separator)
+}

@@ -182,6 +182,7 @@
     <!-- Toast messages -->
     <string name="msg_logged_out">ログアウトしました</string>
     <string name="msg_reaction_failed">リアクションに失敗 — セッションが期限切れの可能性があります</string>
+    <string name="reaction_success">リアクションを送信しました</string>
     <string name="msg_muzei_not_installed_opening">Muzei が未インストール — Play Store を開きます</string>
     <string name="msg_no_app_store">利用可能なアプリストアがありません</string>
 

@@ -172,6 +172,8 @@ internal fun TabletDetailContent(
     discussionId: String?,
     commentsToShow: List<BangumiSubReply>,
     onCommentPlaceholderClick: (String) -> Unit,
+    onCommentReactionClick: ((Int) -> Unit)? = null,
+    onCommentReactionChipClick: ((Int, Int) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -386,6 +388,12 @@ internal fun TabletDetailContent(
                             val quoteContent = cleanCommentForQuote(reply.content)
                             val initialText = "[quote][b]$nickname[/b] 说: $quoteContent[/quote]\n"
                             onCommentPlaceholderClick(initialText)
+                        },
+                        onReactionClick = {
+                            onCommentReactionClick?.invoke(reply.id)
+                        },
+                        onReactionChipClick = { emojiValue ->
+                            onCommentReactionChipClick?.invoke(reply.id, emojiValue)
                         }
                     )
                 }

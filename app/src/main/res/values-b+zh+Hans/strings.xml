@@ -182,6 +182,7 @@
     <!-- Toast messages -->
     <string name="msg_logged_out">已退出登录</string>
     <string name="msg_reaction_failed">贴贴失败 — 会话可能已过期</string>
+    <string name="reaction_success">贴贴成功</string>
     <string name="msg_muzei_not_installed_opening">未安装 Muzei — 正在打开 Play Store</string>
     <string name="msg_no_app_store">没有可用的应用商店</string>
 

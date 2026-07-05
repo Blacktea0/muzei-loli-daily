@@ -183,6 +183,7 @@
     <!-- Toast messages -->
     <string name="msg_logged_out">Logged out</string>
     <string name="msg_reaction_failed">Reaction failed — session may have expired</string>
+    <string name="reaction_success">Reaction posted successfully</string>
     <string name="msg_muzei_not_installed_opening">Muzei not installed — opening Play Store</string>
     <string name="msg_no_app_store">No app store available</string>
 

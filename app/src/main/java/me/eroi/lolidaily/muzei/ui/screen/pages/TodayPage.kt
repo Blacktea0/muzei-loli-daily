@@ -265,6 +265,8 @@ fun TodayPage(
                         var commentDraftText by rememberSaveable { mutableStateOf("") }
                         val coroutineScope = rememberCoroutineScope()
                         var isRefreshingComments by remember { mutableStateOf(false) }
+                        var activeReactionReplyId by remember { mutableStateOf<Int?>(null) }
+
 
                         fun refreshComments() {
                             if (discussionId == null) return
@@ -302,6 +304,32 @@ fun TodayPage(
                                 todayFloor = ReactionService.loadTopicFloors(context)[discussionId]
                             }
                             refreshComments()
+                        }
+
+                        val onPostReaction: (Int, Int) -> Unit = { replyId, emojiValue ->
+                            val overrideTopicId = LoliApiClient.getDebugOverrideTopicId(context)
+                            val targetTopicId = overrideTopicId ?: (discussionId?.let {
+                                BangumiApiClient.parseDiscussionId(it).first
+                            } ?: 0)
+
+                            if (targetTopicId > 0) {
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    val ok = BangumiApiClient.postLike(
+                                        context = context,
+                                        topicId = targetTopicId,
+                                        replyId = replyId,
+                                        value = emojiValue
+                                    )
+                                    withContext(Dispatchers.Main) {
+                                        if (ok) {
+                                            Toast.makeText(context, R.string.reaction_success, Toast.LENGTH_SHORT).show()
+                                            refreshComments()
+                                        } else {
+                                            Toast.makeText(context, R.string.msg_reaction_failed, Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         val onPostReply: (String, (Boolean) -> Unit) -> Unit = { commentText, callback ->
@@ -407,6 +435,12 @@ fun TodayPage(
                                                         commentSheetInitialText = text
                                                         showCommentSheet = true
                                                     },
+                                                    onCommentReactionClick = { replyId ->
+                                                        activeReactionReplyId = replyId
+                                                    },
+                                                    onCommentReactionChipClick = { replyId, emojiValue ->
+                                                        onPostReaction(replyId, emojiValue)
+                                                    }
                                                 )
 
                                             }
@@ -471,6 +505,12 @@ fun TodayPage(
                                                         val initialText = "[quote][b]$nickname[/b] 说: $quoteContent[/quote]\n"
                                                         commentSheetInitialText = initialText
                                                         showCommentSheet = true
+                                                    },
+                                                    onReactionClick = {
+                                                        activeReactionReplyId = reply.id
+                                                    },
+                                                    onReactionChipClick = { emojiValue ->
+                                                        onPostReaction(reply.id, emojiValue)
                                                     }
                                                 )
                                             }
@@ -490,6 +530,17 @@ fun TodayPage(
                                         initialText = commentSheetInitialText,
                                         draftText = commentDraftText,
                                         onDraftTextChange = { commentDraftText = it }
+                                    )
+                                }
+
+                                activeReactionReplyId?.let { replyId ->
+                                    ReactionPickerDialog(
+                                        onDismiss = { activeReactionReplyId = null },
+                                        onEmojiSelected = { value ->
+                                            activeReactionReplyId = null
+                                            onPostReaction(replyId, value)
+                                        },
+                                        emojis = listOf(0, 79, 54, 140, 62, 122, 104, 80, 141, 88, 85, 90)
                                     )
                                 }
 

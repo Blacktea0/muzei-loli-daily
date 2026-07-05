@@ -60,6 +60,7 @@ fun PixelEmoji(
 fun ReactionPickerDialog(
     onDismiss: () -> Unit,
     onEmojiSelected: (Int) -> Unit,
+    emojis: List<Int> = listOf(0, 104, 54, 140, 122, 90, 88, 80),
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -78,7 +79,6 @@ fun ReactionPickerDialog(
                     modifier = Modifier.padding(bottom = 16.dp),
                 )
 
-                val emojis = listOf(0, 104, 54, 140, 122, 90, 88, 80)
 
                 for (row in emojis.chunked(4)) {
                     Row(

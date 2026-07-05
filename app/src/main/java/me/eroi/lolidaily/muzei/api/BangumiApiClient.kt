@@ -224,6 +224,44 @@ object BangumiApiClient {
         return postTopicSubReply(context, topicId, floor.id, content)
     }
 
+    fun postLike(
+        context: Context,
+        topicId: Int,
+        replyId: Int,
+        value: Int,
+    ): Boolean {
+        val topicPage = openTopicPostSession(context, topicId) ?: return false
+        val uri = topicPage.topicUrl.toUri()
+        val domain = uri.host ?: "chii.in"
+        val likeUrl = "https://$domain/like?type=8&main_id=$topicId&id=$replyId&value=$value&gh=${topicPage.formhash}&ajax=1"
+
+        val request = Request.Builder()
+            .url(likeUrl)
+            .header("User-Agent", LoliApiClient.MOBILE_UA)
+            .header("Cookie", topicPage.cookies)
+            .header("Accept", "application/json, text/javascript, */*; q=0.01")
+            .header("Referer", topicPage.topicUrl)
+            .header("X-Requested-With", "XMLHttpRequest")
+            .get()
+            .build()
+
+        return try {
+            LoliApiClient.httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    Log.w(TAG, "postLike failed with status ${response.code}")
+                    false
+                } else {
+                    val body = response.body?.string()
+                    Log.d(TAG, "postLike response: $body")
+                    response.code == 200
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "postLike failed", e)
+            false
+        }
+    }
+
     private fun openTopicPostSession(
         context: Context,
         topicId: Int,
