@@ -71,6 +71,7 @@ import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.worker.WorkScheduler
 import me.eroi.lolidaily.muzei.api.SessionManager
+import me.eroi.lolidaily.muzei.util.DebugMode
 
 const val KEY_HIDE_RECENTS_CONTENT = "hide_recents_content"
 
@@ -109,8 +110,6 @@ fun AdditionalSettingsScreen(onBack: () -> Unit) {
                     LanguageCard()
                 }
             }
-            item { SettingsSectionLabel(stringResource(R.string.section_debug_api)) }
-            item { ApiCombinedCard() }
             item { SettingsSectionLabel(stringResource(R.string.section_debug_refresh)) }
             item {
                 SettingsGroup {
@@ -128,6 +127,10 @@ fun AdditionalSettingsScreen(onBack: () -> Unit) {
                 SettingsGroup {
                     HideRecentsCard()
                 }
+            }
+            if (DebugMode.isEnabled) {
+                item { SettingsSectionLabel(stringResource(R.string.section_debug_api)) }
+                item { ApiCombinedCard() }
             }
         }
     }
@@ -422,6 +425,14 @@ private fun ApiCombinedCard() {
                 prefs.edit { putBoolean(LoliApiClient.KEY_DEBUG_OVERRIDE_TOPIC_ID_ENABLED, checked) }
             },
             onClick = { showApiTopicIdDialog = true },
+        )
+        SettingsRow(
+            icon = Icons.Default.VisibilityOff,
+            title = stringResource(R.string.title_disable_debug_mode),
+            subtitle = stringResource(R.string.desc_disable_debug_mode),
+            onClick = {
+                DebugMode.isEnabled = false
+            },
         )
     }
 

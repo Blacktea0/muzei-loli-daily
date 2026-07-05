@@ -193,7 +193,9 @@
     <string name="msg_export_failed">儲存失敗：%1$s</string>
 
     <!-- Debug: API -->
-    <string name="section_debug_api">API</string>
+    <string name="section_debug_api">調試用設置</string>
+    <string name="title_disable_debug_mode">關閉調試模式</string>
+    <string name="desc_disable_debug_mode">關閉後需重新在關於頁面點擊版本號以開啟</string>
     <string name="title_api_server">Loli Commons 伺服器</string>
     <string name="label_custom">自訂</string>
     <string name="label_server_url">伺服器 URL</string>
@@ -243,6 +245,10 @@
     <!-- About -->
     <string name="title_about">關於每日蘿莉</string>
     <string name="about_version_info">目前版本 %1$s</string>
+    <string name="title_version">目前版本</string>
+    <string name="toast_debug_steps">只需再點擊 %1$d 次即可開啟調試用設置。</string>
+    <string name="toast_debug_enabled">調試用設置已開啟！</string>
+    <string name="toast_debug_already_enabled">調試用設置已開啟，無需重複點擊。</string>
     <string name="about_hero_title">蘿莉共享</string>
     <string name="about_hero_subtitle">是一個國際非營利組織，\n旨在促進蘿莉控作品的流通\n與蘿莉控之間的交流</string>
     <string name="about_hero_tagline">世界 需要更多蘿莉 &lt;3</string>

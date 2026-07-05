@@ -193,7 +193,9 @@
     <string name="msg_export_failed">保存失敗：%1$s</string>
 
     <!-- Debug: API -->
-    <string name="section_debug_api">API</string>
+    <string name="section_debug_api">デバッグ設定</string>
+    <string name="title_disable_debug_mode">デバッグモードを無効化</string>
+    <string name="desc_disable_debug_mode">無効化すると、再度「バージョン情報」を連打するまでデバッグ設定が非表示になります</string>
     <string name="title_api_server">Loli Commons サーバー</string>
     <string name="label_custom">カスタム</string>
     <string name="label_server_url">サーバー URL</string>
@@ -243,6 +245,10 @@
     <!-- About -->
     <string name="title_about">Loli Daily について</string>
     <string name="about_version_info">現在のバージョン %1$s</string>
+    <string name="title_version">現在のバージョン</string>
+    <string name="toast_debug_steps">あと %1$d 回クリックすると、デバッグ設定が有効になります。</string>
+    <string name="toast_debug_enabled">デバッグ設定が有効になりました！</string>
+    <string name="toast_debug_already_enabled">デバッグ設定はすでに有効になっています。</string>
     <string name="about_hero_title">Loli Commons</string>
     <string name="about_hero_subtitle">は国際非営利団体です。\nロリコン作品の流通促進と\nロリコン間の交流を目的としています</string>
     <string name="about_hero_tagline">世界にはもっとロリが必要 &lt;3</string>

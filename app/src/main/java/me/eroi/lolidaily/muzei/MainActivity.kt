@@ -45,6 +45,7 @@ import me.eroi.lolidaily.muzei.ui.theme.ThemeMode
 import me.eroi.lolidaily.muzei.util.ArtworkColorExtractor
 import me.eroi.lolidaily.muzei.util.Md5
 import me.eroi.lolidaily.muzei.util.applyRecentsPrivacy
+import me.eroi.lolidaily.muzei.util.DebugMode
 import java.io.File
 
 /**
@@ -81,6 +82,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        DebugMode.isEnabled = false
         enableEdgeToEdge()
 
         // Configure Coil with SVG and AVIF decoders

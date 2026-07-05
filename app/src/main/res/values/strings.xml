@@ -194,7 +194,9 @@
     <string name="msg_export_failed">Export failed: %1$s</string>
 
     <!-- Debug: API -->
-    <string name="section_debug_api">API</string>
+    <string name="section_debug_api">Debug Settings</string>
+    <string name="title_disable_debug_mode">Disable Debug Mode</string>
+    <string name="desc_disable_debug_mode">Hide debug settings until enabled again from About page</string>
     <string name="title_api_server">Loli Commons Server</string>
     <string name="label_custom">Custom</string>
     <string name="label_server_url">Server URL</string>
@@ -243,6 +245,10 @@
     <!-- About -->
     <string name="title_about">About Loli Daily</string>
     <string name="about_version_info">Current Version %1$s</string>
+    <string name="title_version">Current Version</string>
+    <string name="toast_debug_steps">Only %1$d more clicks to enable debug settings.</string>
+    <string name="toast_debug_enabled">Debug settings enabled!</string>
+    <string name="toast_debug_already_enabled">Debug settings are already enabled.</string>
     <string name="about_hero_title">Loli Commons</string>
     <string name="about_hero_subtitle">Is an international nonprofit organization\naimed at promoting the circulation of lolicon works\nand facilitating exchange among lolicons</string>
     <string name="about_hero_tagline">The world needs more lolis &lt;3</string>

@@ -65,6 +65,9 @@ import me.eroi.lolidaily.muzei.BuildConfig
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.ui.screen.components.*
 import me.eroi.lolidaily.muzei.util.VersionChecker
+import android.widget.Toast
+import androidx.compose.material.icons.filled.Info
+import me.eroi.lolidaily.muzei.util.DebugMode
 
 private const val GITHUB_URL = "https://github.com/Blacktea0/muzei-loli-daily"
 private const val OFFICIAL_SITE_URL = "https://lolicommons.tsuki.ga/"
@@ -82,6 +85,13 @@ private enum class UpdateCheckState {
 fun AboutScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val showToast = remember(context) {
+        var lastToast: Toast? = null
+        { text: String ->
+            lastToast?.cancel()
+            lastToast = Toast.makeText(context, text, Toast.LENGTH_SHORT).apply { show() }
+        }
+    }
 
     var updateState by remember { mutableStateOf(UpdateCheckState.IDLE) }
     var updateResult by remember { mutableStateOf<VersionChecker.UpdateCheckResult?>(null) }
@@ -220,6 +230,29 @@ fun AboutScreen(onBack: () -> Unit) {
                             context.startActivity(
                                 Intent(context, AcknowledgmentsActivity::class.java),
                             )
+                        },
+                    )
+                    var clickCount by remember { mutableStateOf(0) }
+                    GroupedSettingsRow(
+                        icon = Icons.Default.Info,
+                        title = stringResource(R.string.title_version),
+                        subtitle = BuildConfig.VERSION_NAME,
+                        onClick = {
+                            if (DebugMode.isEnabled) {
+                                showToast(context.getString(R.string.toast_debug_already_enabled))
+                            } else {
+                                clickCount++
+                                if (clickCount >= 3) {
+                                    val remaining = 7 - clickCount
+                                    if (remaining > 0) {
+                                        showToast(context.getString(R.string.toast_debug_steps, remaining))
+                                    } else {
+                                        DebugMode.isEnabled = true
+                                        clickCount = 0
+                                        showToast(context.getString(R.string.toast_debug_enabled))
+                                    }
+                                }
+                            }
                         },
                     )
                 }
