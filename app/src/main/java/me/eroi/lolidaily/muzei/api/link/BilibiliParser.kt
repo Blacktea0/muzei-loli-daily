@@ -3,7 +3,7 @@ package me.eroi.lolidaily.muzei.api.link
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
+import me.eroi.lolidaily.muzei.util.Log
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient

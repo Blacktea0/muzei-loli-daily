@@ -1,7 +1,7 @@
 package me.eroi.lolidaily.muzei.api.link
 
 import android.content.Context
-import android.util.Log
+import me.eroi.lolidaily.muzei.util.Log
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.model.ArtistResolveResponse
 import okhttp3.Request

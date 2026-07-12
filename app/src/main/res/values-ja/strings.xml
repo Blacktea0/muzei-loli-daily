@@ -212,6 +212,28 @@
     <string name="label_api_topic_id">トピックID</string>
     <string name="placeholder_api_topic_id">例：465120</string>
 
+    <string name="title_enable_logging">ログの有効化</string>
+    <string name="desc_enable_logging">アプリの実行ログを記録します。パフォーマンスに若干の影響を与える可能性があります</string>
+    <string name="title_view_logs">ログを表示</string>
+    <string name="desc_view_logs">現在記録されているアプリのログを表示します</string>
+    <string name="title_log_viewer">アプリログ</string>
+    <string name="action_copy">コピー</string>
+    <string name="action_refresh">更新</string>
+    <string name="action_close">閉じる</string>
+    <string name="action_clear_logs">ログを消去</string>
+    <string name="msg_logs_copied">ログをクリップボードにコピーしました</string>
+    <string name="msg_logs_cleared">ログを消去しました</string>
+    <string name="msg_logs_loading">ログを読み込んでいます…</string>
+    <string name="msg_no_logs">ログなし</string>
+    <string name="msg_logs_failed">ログの読み込みに失敗しました：%1$s</string>
+    <string name="label_log_all">すべて</string>
+    <string name="label_log_debug">デバッグ</string>
+    <string name="label_log_info">情報</string>
+    <string name="label_log_warn">警告</string>
+    <string name="label_log_error">エラー</string>
+    <string name="msg_no_matching_logs">一致するログが見つかりません</string>
+    <string name="hint_search_logs">ログを検索…</string>
+
     <!-- Debug: Refresh -->
     <string name="section_debug_refresh">画像の自動取得</string>
     <string name="title_refresh_time">毎日の画像自動取得時刻</string>

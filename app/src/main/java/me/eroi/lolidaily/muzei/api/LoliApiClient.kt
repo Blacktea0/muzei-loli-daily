@@ -3,7 +3,7 @@ package me.eroi.lolidaily.muzei.api
 import me.eroi.lolidaily.muzei.BuildConfig
 import android.content.Context
 import android.net.Uri
-import android.util.Log
+import me.eroi.lolidaily.muzei.util.Log
 import android.webkit.CookieManager
 import kotlinx.serialization.json.Json
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker

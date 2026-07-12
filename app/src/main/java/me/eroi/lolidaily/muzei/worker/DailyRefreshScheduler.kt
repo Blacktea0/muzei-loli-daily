@@ -4,7 +4,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.util.Log
+import me.eroi.lolidaily.muzei.util.Log
 import androidx.core.content.edit
 import me.eroi.lolidaily.muzei.DailyRefreshReceiver
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker

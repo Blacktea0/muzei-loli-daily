@@ -3,7 +3,7 @@ package me.eroi.lolidaily.muzei
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.util.Log
+import me.eroi.lolidaily.muzei.util.Log
 import androidx.core.content.edit
 import androidx.work.*
 import com.google.android.apps.muzei.api.provider.ProviderContract

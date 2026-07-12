@@ -1,7 +1,7 @@
 package me.eroi.lolidaily.muzei.api
 
 import android.content.Context
-import android.util.Log
+import me.eroi.lolidaily.muzei.util.Log
 import androidx.core.content.edit
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer

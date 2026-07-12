@@ -3,7 +3,7 @@ package me.eroi.lolidaily.muzei
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.os.Bundle
-import android.util.Log
+import me.eroi.lolidaily.muzei.util.Log
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebResourceRequest

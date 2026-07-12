@@ -1,7 +1,7 @@
 package me.eroi.lolidaily.muzei.util
 
 import android.content.Context
-import android.util.Log
+import me.eroi.lolidaily.muzei.util.Log
 import androidx.core.content.edit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

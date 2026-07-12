@@ -2,7 +2,7 @@ package me.eroi.lolidaily.muzei
 
 import android.app.PendingIntent
 import android.content.Intent
-import android.util.Log
+import me.eroi.lolidaily.muzei.util.Log
 import androidx.core.app.RemoteActionCompat
 import androidx.core.graphics.drawable.IconCompat
 import androidx.core.net.toUri

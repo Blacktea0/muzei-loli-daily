@@ -3,7 +3,7 @@ package me.eroi.lolidaily.muzei
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.util.Log
+import me.eroi.lolidaily.muzei.util.Log
 import me.eroi.lolidaily.muzei.worker.DailyRefreshScheduler
 import me.eroi.lolidaily.muzei.worker.WorkScheduler
 

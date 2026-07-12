@@ -51,7 +51,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.eroi.lolidaily.muzei.api.BangumiApiClient
-import android.util.Log
+import me.eroi.lolidaily.muzei.util.Log
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.ReactionService
 import me.eroi.lolidaily.muzei.api.LoliApiClient

@@ -1,6 +1,6 @@
 package me.eroi.lolidaily.muzei.ui.screen
 import android.annotation.SuppressLint
-import android.util.Log
+import me.eroi.lolidaily.muzei.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -73,66 +73,98 @@ import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.worker.WorkScheduler
 import me.eroi.lolidaily.muzei.api.SessionManager
 import me.eroi.lolidaily.muzei.util.DebugMode
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.sp
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import android.content.Context
+import android.content.ClipboardManager
+import android.content.ClipData
+import android.widget.Toast
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 
 const val KEY_HIDE_RECENTS_CONTENT = "hide_recents_content"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdditionalSettingsScreen(onBack: () -> Unit) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.title_debug_settings)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.content_desc_back),
-                        )
+    var showLogViewer by remember { mutableStateOf(false) }
+
+    if (showLogViewer) {
+        LogViewerScreen(onBack = { showLogViewer = false })
+    } else {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.title_debug_settings)) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.content_desc_back),
+                            )
+                        }
+                    },
+                    colors =
+                        TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                        ),
+                )
+            },
+        ) { padding ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 28.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                item { SettingsSectionLabel(stringResource(R.string.section_language)) }
+                item {
+                    SettingsGroup {
+                        LanguageCard()
+                        PreferChineseRoleCard()
                     }
-                },
-                colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                    ),
-            )
-        },
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            item { SettingsSectionLabel(stringResource(R.string.section_language)) }
-            item {
-                SettingsGroup {
-                    LanguageCard()
-                    PreferChineseRoleCard()
                 }
-            }
-            item { SettingsSectionLabel(stringResource(R.string.section_debug_refresh)) }
-            item {
-                SettingsGroup {
-                    RefreshTimeCard()
+                item { SettingsSectionLabel(stringResource(R.string.section_debug_refresh)) }
+                item {
+                    SettingsGroup {
+                        RefreshTimeCard()
+                    }
                 }
-            }
-            item { SettingsSectionLabel(stringResource(R.string.section_third_party_accounts)) }
-            item {
-                SettingsGroup {
-                    PixivAccountCard()
+                item { SettingsSectionLabel(stringResource(R.string.section_third_party_accounts)) }
+                item {
+                    SettingsGroup {
+                        PixivAccountCard()
+                    }
                 }
-            }
-            item { SettingsSectionLabel(stringResource(R.string.section_privacy)) }
-            item {
-                SettingsGroup {
-                    HideRecentsCard()
+                item { SettingsSectionLabel(stringResource(R.string.section_privacy)) }
+                item {
+                    SettingsGroup {
+                        HideRecentsCard()
+                    }
                 }
-            }
-            if (DebugMode.isEnabled) {
-                item { SettingsSectionLabel(stringResource(R.string.section_debug_api)) }
-                item { ApiCombinedCard() }
+                if (DebugMode.isEnabled) {
+                    item { SettingsSectionLabel(stringResource(R.string.section_debug_api)) }
+                    item { ApiCombinedCard(onViewLogs = { showLogViewer = true }) }
+                }
             }
         }
     }
@@ -330,7 +362,7 @@ private fun SettingsRowWithSwitchAndArrow(
 // ── API Combined Card ────────────────────────────────────────────
 
 @Composable
-private fun ApiCombinedCard() {
+private fun ApiCombinedCard(onViewLogs: () -> Unit) {
     val context = LocalContext.current
     val prefs =
         remember {
@@ -378,6 +410,10 @@ private fun ApiCombinedCard() {
     var showBangumiDialog by remember { mutableStateOf(false) }
     var showApiTagDialog by remember { mutableStateOf(false) }
     var showApiTopicIdDialog by remember { mutableStateOf(false) }
+    var debugLoggingEnabled by remember {
+        mutableStateOf(prefs.getBoolean("debug_logging_enabled", false))
+    }
+    val scope = rememberCoroutineScope()
 
     SettingsGroup {
         SettingsRow(
@@ -428,6 +464,25 @@ private fun ApiCombinedCard() {
             },
             onClick = { showApiTopicIdDialog = true },
         )
+        SettingsRowWithSwitchAndArrow(
+            icon = Icons.Default.BugReport,
+            title = stringResource(R.string.title_enable_logging),
+            subtitle = stringResource(R.string.desc_enable_logging),
+            checked = debugLoggingEnabled,
+            onCheckedChange = { checked ->
+                debugLoggingEnabled = checked
+                prefs.edit { putBoolean("debug_logging_enabled", checked) }
+                Log.d("DebugSettings", "Logging state changed to: $checked")
+            },
+        )
+        if (debugLoggingEnabled) {
+            SettingsRow(
+                icon = Icons.Default.Terminal,
+                title = stringResource(R.string.title_view_logs),
+                subtitle = stringResource(R.string.desc_view_logs),
+                onClick = onViewLogs,
+            )
+        }
         SettingsRow(
             icon = Icons.Default.VisibilityOff,
             title = stringResource(R.string.title_disable_debug_mode),
@@ -693,4 +748,255 @@ private fun PixivAccountCard() {
         },
     )
 }
+
+private enum class LogLevelFilter(val labelRes: Int, val levelChar: Char?) {
+    ALL(R.string.label_log_all, null),
+    DEBUG(R.string.label_log_debug, 'D'),
+    INFO(R.string.label_log_info, 'I'),
+    WARN(R.string.label_log_warn, 'W'),
+    ERROR(R.string.label_log_error, 'E')
+}
+
+private data class LogEntry(
+    val header: String,
+    val levelChar: Char?,
+    val body: List<String>
+) {
+    fun toText(): String {
+        return if (body.isEmpty()) header else "$header\n${body.joinToString("\n")}"
+    }
+}
+
+@Composable
+private fun LogViewerScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    var logText by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedLogLevel by remember { mutableStateOf(LogLevelFilter.ALL) }
+    val scope = rememberCoroutineScope()
+
+    fun load() {
+        Log.d("LogViewer", "Log viewer page loaded")
+        isLoading = true
+        errorMessage = null
+        scope.launch(Dispatchers.IO) {
+            try {
+                val logs = me.eroi.lolidaily.muzei.util.Log.getLogs()
+                withContext(Dispatchers.Main) {
+                    logText = logs
+                    isLoading = false
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    errorMessage = e.message ?: e.toString()
+                    isLoading = false
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        load()
+    }
+
+    BackHandler {
+        onBack()
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(text = stringResource(R.string.title_log_viewer)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.content_desc_close)
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            if (logText.isNotEmpty()) {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText("LoliDaily Logs", logText)
+                                clipboard.setPrimaryClip(clip)
+                                Toast.makeText(context, context.getString(R.string.msg_logs_copied), Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        enabled = !isLoading && errorMessage == null && logText.isNotEmpty()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = stringResource(R.string.action_copy)
+                        )
+                    }
+                    IconButton(onClick = { load() }) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = stringResource(R.string.action_refresh)
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            me.eroi.lolidaily.muzei.util.Log.clearLogs()
+                            logText = ""
+                            Toast.makeText(context, context.getString(R.string.msg_logs_cleared), Toast.LENGTH_SHORT).show()
+                        },
+                        enabled = !isLoading
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.action_clear_logs)
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            // Search Bar
+            TextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                placeholder = { Text(stringResource(R.string.hint_search_logs)) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Default.Close, contentDescription = null)
+                        }
+                    }
+                },
+                singleLine = true,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                )
+            )
+
+            // Log Level Filter Chips
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                LogLevelFilter.values().forEach { level ->
+                    val selected = selectedLogLevel == level
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.clickable { selectedLogLevel = level }
+                    ) {
+                        Text(
+                            text = stringResource(level.labelRes),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isLoading) {
+                    Text(text = stringResource(R.string.msg_logs_loading))
+                } else if (errorMessage != null) {
+                    Text(text = stringResource(R.string.msg_logs_failed, errorMessage.orEmpty()))
+                } else if (logText.isEmpty()) {
+                    Text(text = stringResource(R.string.msg_no_logs))
+                } else {
+                    // Filter logs based on search query and log level by grouping into LogEntry structures
+                    val filteredLogs = remember(logText, searchQuery, selectedLogLevel) {
+                        if (logText.isBlank()) return@remember ""
+                        
+                        val entries = mutableListOf<LogEntry>()
+                        var currentHeader: String? = null
+                        var currentLevelChar: Char? = null
+                        var currentBody = mutableListOf<String>()
+                        
+                        val lines = logText.lineSequence()
+                        for (line in lines) {
+                            if (line.startsWith("[")) {
+                                if (currentHeader != null) {
+                                    entries.add(LogEntry(currentHeader, currentLevelChar, currentBody))
+                                    currentBody = mutableListOf()
+                                }
+                                currentHeader = line
+                                val charIdx = line.indexOf(']') + 2
+                                currentLevelChar = if (charIdx in line.indices) line[charIdx] else null
+                            } else {
+                                if (currentHeader != null) {
+                                    currentBody.add(line)
+                                }
+                            }
+                        }
+                        if (currentHeader != null) {
+                            entries.add(LogEntry(currentHeader, currentLevelChar, currentBody))
+                        }
+                        
+                        val filteredList = entries.filter { entry ->
+                            val levelMatches = selectedLogLevel.levelChar == null ||
+                                    (selectedLogLevel.levelChar == 'D' && (entry.levelChar == 'D' || entry.levelChar == 'I' || entry.levelChar == 'W' || entry.levelChar == 'E')) ||
+                                    (selectedLogLevel.levelChar == 'I' && (entry.levelChar == 'I' || entry.levelChar == 'W' || entry.levelChar == 'E')) ||
+                                    (selectedLogLevel.levelChar == 'W' && (entry.levelChar == 'W' || entry.levelChar == 'E')) ||
+                                    (selectedLogLevel.levelChar == 'E' && entry.levelChar == 'E')
+                            
+                            if (!levelMatches) return@filter false
+                            
+                            if (searchQuery.isEmpty()) return@filter true
+                            
+                            entry.header.contains(searchQuery, ignoreCase = true) ||
+                                    entry.body.any { it.contains(searchQuery, ignoreCase = true) }
+                        }
+                        
+                        filteredList.joinToString("\n") { it.toText() }
+                    }
+
+
+                    if (filteredLogs.isEmpty()) {
+                        Text(text = stringResource(R.string.msg_no_matching_logs))
+                    } else {
+                        val scrollState = rememberScrollState()
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp)
+                                .verticalScroll(scrollState)
+                        ) {
+                            SelectionContainer {
+                                Text(
+                                    text = filteredLogs,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 

@@ -7,5 +7,6 @@ class LoliDailyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         DebugMode.initialize(this)
+        me.eroi.lolidaily.muzei.util.Log.initialize(this)
     }
 }

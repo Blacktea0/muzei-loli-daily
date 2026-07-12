@@ -2,7 +2,7 @@ package me.eroi.lolidaily.muzei.api.decoder
 
 import android.graphics.ImageDecoder
 import android.os.Build
-import android.util.Log
+import me.eroi.lolidaily.muzei.util.Log
 import coil3.ImageLoader
 import coil3.asImage
 import coil3.decode.DecodeResult

@@ -2,7 +2,7 @@ package me.eroi.lolidaily.muzei.worker
 
 import android.content.Context
 import android.net.Uri
-import android.util.Log
+import me.eroi.lolidaily.muzei.util.Log
 import androidx.core.content.FileProvider
 import androidx.core.content.edit
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker

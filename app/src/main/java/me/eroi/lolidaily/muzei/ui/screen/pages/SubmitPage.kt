@@ -3,7 +3,7 @@ package me.eroi.lolidaily.muzei.ui.screen.pages
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.util.Log
+import me.eroi.lolidaily.muzei.util.Log
 import android.webkit.MimeTypeMap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest

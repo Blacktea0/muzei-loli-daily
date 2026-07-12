@@ -212,6 +212,28 @@
     <string name="label_api_topic_id">Topic ID</string>
     <string name="placeholder_api_topic_id">e.g. 465120</string>
 
+    <string name="title_enable_logging">Enable Logging</string>
+    <string name="desc_enable_logging">Record application runtime logs, which may slightly affect performance</string>
+    <string name="title_view_logs">View Logs</string>
+    <string name="desc_view_logs">View currently captured application logs</string>
+    <string name="title_log_viewer">App Logs</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_close">Close</string>
+    <string name="action_clear_logs">Clear Logs</string>
+    <string name="msg_logs_copied">Logs copied to clipboard</string>
+    <string name="msg_logs_cleared">Logs cleared</string>
+    <string name="msg_logs_loading">Loading logs…</string>
+    <string name="msg_no_logs">No logs</string>
+    <string name="msg_logs_failed">Failed to read logs: %1$s</string>
+    <string name="label_log_all">All</string>
+    <string name="label_log_debug">Debug</string>
+    <string name="label_log_info">Info</string>
+    <string name="label_log_warn">Warn</string>
+    <string name="label_log_error">Error</string>
+    <string name="msg_no_matching_logs">No matching logs found</string>
+    <string name="hint_search_logs">Search logs…</string>
+
     <!-- Debug: Refresh -->
     <string name="section_debug_refresh">Artwork Auto-Fetch</string>
     <string name="title_refresh_time">Daily Artwork Fetch Time</string>

@@ -3,7 +3,7 @@ package me.eroi.lolidaily.muzei.api
 import android.content.Context
 import android.net.Uri
 import androidx.core.net.toUri
-import android.util.Log
+import me.eroi.lolidaily.muzei.util.Log
 import me.eroi.lolidaily.muzei.model.BangumiReply
 import me.eroi.lolidaily.muzei.model.BangumiTopic
 import me.eroi.lolidaily.muzei.model.BangumiUser

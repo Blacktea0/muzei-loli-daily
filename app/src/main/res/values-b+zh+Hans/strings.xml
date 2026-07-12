@@ -212,6 +212,28 @@
     <string name="label_api_topic_id">主题 ID</string>
     <string name="placeholder_api_topic_id">例如 465120</string>
 
+    <string name="title_enable_logging">启用日志</string>
+    <string name="desc_enable_logging">记录应用运行日志，可能会稍微影响性能</string>
+    <string name="title_view_logs">查看日志</string>
+    <string name="desc_view_logs">查看当前记录的应用运行日志</string>
+    <string name="title_log_viewer">应用日志</string>
+    <string name="action_copy">复制</string>
+    <string name="action_refresh">刷新</string>
+    <string name="action_close">关闭</string>
+    <string name="action_clear_logs">清空日志</string>
+    <string name="msg_logs_copied">日志已复制到剪贴板</string>
+    <string name="msg_logs_cleared">日志已清空</string>
+    <string name="msg_logs_loading">正在加载日志…</string>
+    <string name="msg_no_logs">暂无日志</string>
+    <string name="msg_logs_failed">读取日志失败：%1$s</string>
+    <string name="label_log_all">所有</string>
+    <string name="label_log_debug">调试</string>
+    <string name="label_log_info">信息</string>
+    <string name="label_log_warn">警告</string>
+    <string name="label_log_error">错误</string>
+    <string name="msg_no_matching_logs">未找到匹配的日志</string>
+    <string name="hint_search_logs">搜索日志…</string>
+
     <!-- Debug: Refresh -->
     <string name="section_debug_refresh">自动拉取图片</string>
     <string name="title_refresh_time">每日自动拉取图片时间</string>
