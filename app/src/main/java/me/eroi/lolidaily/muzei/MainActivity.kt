@@ -211,6 +211,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        lifecycleScope.launch {
+            LoliDailyArtWorker.refreshProgress.collect { fraction ->
+                refreshProgress = fraction
+            }
+        }
         loadPreview()
         if (!LoliDailyArtWorker.isAlreadyFetchedToday(this) || todayPreviews.isEmpty()) {
             startRefresh()
@@ -230,13 +235,6 @@ class MainActivity : AppCompatActivity() {
                         if (state == WorkInfo.State.SUCCEEDED) {
                             loadPreview(forceRefresh = true)
                         }
-                    }
-                }
-            }
-            lifecycleScope.launch {
-                LoliDailyArtWorker.refreshProgress.collect { fraction ->
-                    if (fraction != null) {
-                        refreshProgress = fraction
                     }
                 }
             }
