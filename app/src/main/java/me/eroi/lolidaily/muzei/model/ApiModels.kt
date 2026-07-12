@@ -120,6 +120,9 @@ data class LcUserInfo(
 data class DailySubmitResponse(val otc: String)
 
 @Serializable
+data class DailySubmitStatusResponse(val queued: Int, val position: String? = null)
+
+@Serializable
 data class PresignResponse(val signedUrl: String)
 
 @Serializable

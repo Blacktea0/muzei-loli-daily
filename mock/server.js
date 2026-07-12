@@ -170,6 +170,18 @@ app.patch("/api/v1/daily/react", (req, res) => {
 
 // ── Submit flow ────────────────────────────────────────────
 
+// GET /api/v1/daily/submit-status — get artwork submission status
+app.get("/api/v1/daily/submit-status", (req, res) => {
+  const authHeader = req.headers.authorization || "";
+  if (!authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "missing or invalid authorization header" });
+  }
+  res.json({
+    queued: 2,
+    position: "一周内"
+  });
+});
+
 // POST /api/v1/daily/submit — submit artwork metadata, returns a one-time code
 app.post("/api/v1/daily/submit", (req, res) => {
   const authHeader = req.headers.authorization || "";

@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.filled.Comment
@@ -118,6 +119,7 @@ import me.eroi.lolidaily.muzei.api.link.isShortLink
 import me.eroi.lolidaily.muzei.api.link.resolveShortLink
 import me.eroi.lolidaily.muzei.api.link.stripTrackingParams
 import me.eroi.lolidaily.muzei.model.SlimCharacter
+import me.eroi.lolidaily.muzei.model.DailySubmitStatusResponse
 import me.eroi.lolidaily.muzei.ui.screen.components.CharacterSearchBar
 import me.eroi.lolidaily.muzei.ui.screen.components.FullscreenImageViewer
 import me.eroi.lolidaily.muzei.ui.screen.components.ImagePickerDialog
@@ -742,6 +744,43 @@ fun SubmitPage(
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(R.string.title_submit)) },
                 actions = {
+                    IconButton(onClick = {
+                        scope.launch(Dispatchers.IO) {
+                            val session = SessionManager.loadSession(context)
+                            if (session == null || !session.isValid) {
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(context, "请先登录班固米以查看投稿队列状态。", Toast.LENGTH_SHORT).show()
+                                }
+                                return@launch
+                            }
+                            val result = LoliApiClient.fetchDailyStatus(context, session.token)
+                            withContext(Dispatchers.Main) {
+                                result.fold(
+                                    onSuccess = { status ->
+                                        val message = buildString {
+                                            if (status.queued > 0) {
+                                                append("你在队列中有${status.queued}份投稿")
+                                            } else {
+                                                append("你在队列中没有投稿")
+                                            }
+                                            status.position?.let { pos ->
+                                                append("，下次出场在${pos}")
+                                            }
+                                        }
+                                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                                    },
+                                    onFailure = { e ->
+                                        Toast.makeText(context, e.message ?: "获取投稿队列状态失败", Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                            }
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Outlined.Info,
+                            contentDescription = "投稿队列状态",
+                        )
+                    }
                     IconButton(onClick = { showClearDialog = true }) {
                         Icon(
                             imageVector = Icons.Filled.DeleteOutline,

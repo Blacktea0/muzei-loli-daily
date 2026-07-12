@@ -12,6 +12,7 @@ import me.eroi.lolidaily.muzei.model.ArtistResolveResponse
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyResponse
 import me.eroi.lolidaily.muzei.model.DailySubmitResponse
+import me.eroi.lolidaily.muzei.model.DailySubmitStatusResponse
 import me.eroi.lolidaily.muzei.model.LcUserInfo
 import me.eroi.lolidaily.muzei.model.PresignResponse
 import okhttp3.MediaType.Companion.toMediaType
@@ -194,6 +195,37 @@ object LoliApiClient {
         } catch (e: Exception) {
             Log.w(TAG, "Failed to update badge", e)
             false
+        }
+    }
+
+    /**
+     * Fetches daily submission queue status.
+     * Mirrors JS: lcClient.fetchDailyStatus → GET /v1/daily/submit-status
+     */
+    fun fetchDailyStatus(
+        context: Context,
+        token: String,
+    ): Result<DailySubmitStatusResponse> {
+        val url = "${getApiBaseUrl(context)}/api/v1/daily/submit-status"
+        val request =
+            Request.Builder()
+                .url(url)
+                .header("User-Agent", USER_AGENT)
+                .header("Authorization", "Bearer $token")
+                .get()
+                .build()
+        return try {
+            val response = httpClient.newCall(request).execute()
+            val responseBody = response.body?.string() ?: ""
+            if (!response.isSuccessful) {
+                Log.w(TAG, "fetchDailyStatus returned ${response.code}: $responseBody")
+                return Result.failure(Exception("获取投稿队列状态失败"))
+            }
+            val status = json.decodeFromString<DailySubmitStatusResponse>(responseBody)
+            Result.success(status)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to fetch daily status", e)
+            Result.failure(e)
         }
     }
 
