@@ -345,7 +345,7 @@ fun AboutScreen(onBack: () -> Unit) {
                                         8 -> toastHelper.show(debugClickToast5)
                                         9 -> toastHelper.show(debugClickToast6)
                                         10 -> {
-                                            DebugMode.isEnabled = true
+                                            DebugMode.setDebugMode(true)
                                             clickCount = 0
                                             activeClickCount = 0
                                             vibrationStartTime = currentTime

@@ -433,7 +433,7 @@ private fun ApiCombinedCard() {
             title = stringResource(R.string.title_disable_debug_mode),
             subtitle = stringResource(R.string.desc_disable_debug_mode),
             onClick = {
-                DebugMode.isEnabled = false
+                DebugMode.setDebugMode(false)
             },
         )
     }

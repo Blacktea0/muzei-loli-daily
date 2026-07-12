@@ -193,7 +193,7 @@
     <string name="msg_export_failed">保存失敗：%1$s</string>
 
     <!-- Debug: API -->
-    <string name="section_debug_api">デバッグ設定</string>
+    <string name="section_debug_api">デバッグ</string>
     <string name="title_disable_debug_mode">デバッグモードを無効化</string>
     <string name="desc_disable_debug_mode">無効化すると、再度「バージョン情報」を連打するまでデバッグ設定が非表示になります</string>
     <string name="title_api_server">Loli Commons サーバー</string>

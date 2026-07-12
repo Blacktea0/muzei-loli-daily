@@ -194,7 +194,7 @@
     <string name="msg_export_failed">Export failed: %1$s</string>
 
     <!-- Debug: API -->
-    <string name="section_debug_api">Debug Settings</string>
+    <string name="section_debug_api">Debug</string>
     <string name="title_disable_debug_mode">Disable Debug Mode</string>
     <string name="desc_disable_debug_mode">Hide debug settings until enabled again from About page</string>
     <string name="title_api_server">Loli Commons Server</string>

@@ -193,7 +193,7 @@
     <string name="msg_export_failed">保存失败：%1$s</string>
 
     <!-- Debug: API -->
-    <string name="section_debug_api">调试用设置</string>
+    <string name="section_debug_api">调试</string>
     <string name="title_disable_debug_mode">关闭调试模式</string>
     <string name="desc_disable_debug_mode">关闭后需重新在关于页面点击版本号以开启</string>
     <string name="title_api_server">Loli Commons 服务器</string>
