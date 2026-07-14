@@ -62,6 +62,7 @@ class MainActivity : AppCompatActivity() {
     private var bookmarkPreviews by mutableStateOf(emptyList<ArtworkPreview>())
     private var cachedCardsByToken: Map<String, Card> = emptyMap()
     private var isLoggedIn by mutableStateOf(false)
+    private var optimisticArtworkReactions by mutableStateOf<Map<String, Int?>>(emptyMap())
     private var bgmUsername by mutableStateOf<String?>(null)
     private var bgmNickname by mutableStateOf<String?>(null)
     private var bgmAvatarUrl by mutableStateOf<String?>(null)
@@ -263,8 +264,6 @@ class MainActivity : AppCompatActivity() {
         val cardIndex = LoliDailyArtWorker.getCardIndex(this, token) ?: return
         if (token in pendingReactionTokens) return
 
-        val previousTodayPreviews = todayPreviews
-        val previousBookmarkPreviews = bookmarkPreviews
         val optimisticReaction = applyOptimisticReaction(token, emojiValue) ?: return
 
         pendingReactionTokens += token
@@ -286,8 +285,8 @@ class MainActivity : AppCompatActivity() {
             } else {
                 runOnUiThread {
                     pendingReactionTokens -= token
-                    todayPreviews = previousTodayPreviews
-                    bookmarkPreviews = previousBookmarkPreviews
+                    optimisticArtworkReactions = optimisticArtworkReactions - token
+                    buildPreviews()
                     Toast.makeText(
                         this,
                         getString(R.string.msg_reaction_failed),
@@ -311,8 +310,8 @@ class MainActivity : AppCompatActivity() {
         val previousEmoji = currentPreview.userEmoji
         val nextEmoji = if (previousEmoji == emojiValue) null else emojiValue
 
-        todayPreviews = todayPreviews.withOptimisticReaction(token, previousEmoji, nextEmoji)
-        bookmarkPreviews = bookmarkPreviews.withOptimisticReaction(token, previousEmoji, nextEmoji)
+        optimisticArtworkReactions = optimisticArtworkReactions + (token to nextEmoji)
+        buildPreviews()
         return OptimisticReaction(nextEmoji)
     }
 
@@ -695,9 +694,42 @@ class MainActivity : AppCompatActivity() {
                         },
                 )
 
-        todayPreviews = previews.filter { it.date == apiDate }
-        bookmarkPreviews = previews.filter { it.isBookmarked }
+        val currentUser = bgmNickname ?: bgmUsername
+        val reconciledMap = optimisticArtworkReactions.toMutableMap()
+        val reconciledPreviews = previews.map { preview ->
+            val token = preview.filename.substringBeforeLast('.')
+            if (token !in reconciledMap) {
+                preview
+            } else {
+                val targetEmoji = reconciledMap[token]
+                val serverReflects = if (currentUser.isNullOrBlank()) {
+                    false
+                } else if (targetEmoji == null) {
+                    preview.reactions.none { r -> r.users.contains(currentUser) }
+                } else {
+                    preview.reactions.any { r -> r.emojiValue == targetEmoji && r.users.contains(currentUser) }
+                }
 
+                if (serverReflects) {
+                    reconciledMap.remove(token)
+                    preview
+                } else {
+                    val previousEmoji = preview.reactions.firstOrNull { r ->
+                        currentUser != null && r.users.contains(currentUser)
+                    }?.emojiValue
+                    preview.copy(
+                        reactions = preview.reactions.withOptimisticReactionCount(previousEmoji, targetEmoji),
+                        userEmoji = targetEmoji
+                    )
+                }
+            }
+        }
+        if (reconciledMap != optimisticArtworkReactions) {
+            optimisticArtworkReactions = reconciledMap
+        }
+
+        todayPreviews = reconciledPreviews.filter { it.date == apiDate }
+        bookmarkPreviews = reconciledPreviews.filter { it.isBookmarked }
         if (colorSource == ColorSource.IMAGE) {
             resolveSourceColor()
         }

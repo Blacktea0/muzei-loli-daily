@@ -51,12 +51,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.eroi.lolidaily.muzei.api.BangumiApiClient
+import me.eroi.lolidaily.muzei.api.SessionManager
 import me.eroi.lolidaily.muzei.util.Log
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.ReactionService
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.model.BangumiReply
+import me.eroi.lolidaily.muzei.model.BangumiReaction
+import me.eroi.lolidaily.muzei.model.BangumiReactionUser
 import me.eroi.lolidaily.muzei.ui.screen.components.*
 import me.eroi.lolidaily.muzei.util.exportArtwork
 import java.time.LocalDate
@@ -258,13 +261,41 @@ fun TodayPage(
                         val discussionId = preview.discussionId
 
                         var todayFloor by remember { mutableStateOf<BangumiReply?>(null) }
+                        var serverFloor by remember { mutableStateOf<BangumiReply?>(null) }
+                        var optimisticCommentReactions by remember { mutableStateOf<Map<Int, Int?>>(emptyMap()) }
                         var showCommentSheet by remember { mutableStateOf(false) }
                         var commentSheetInitialText by remember { mutableStateOf("") }
                         var commentDraftText by rememberSaveable { mutableStateOf("") }
                         val coroutineScope = rememberCoroutineScope()
                         var isRefreshingComments by remember { mutableStateOf(false) }
                         var activeReactionReplyId by remember { mutableStateOf<Int?>(null) }
+                        var pendingCommentReactions by remember { mutableStateOf<Set<Int>>(emptySet()) }
 
+                        fun updateUiFloor(
+                            floor: BangumiReply?,
+                            username: String?,
+                            nickname: String?,
+                            optimisticMap: Map<Int, Int?>
+                        ) {
+                            if (floor == null) {
+                                todayFloor = null
+                                return
+                            }
+                            if (username == null) {
+                                todayFloor = floor
+                                return
+                            }
+                            val (reconciled, remainingOptimistic) = reconcileFloor(
+                                floor = floor,
+                                username = username,
+                                nickname = nickname.orEmpty(),
+                                optimisticMap = optimisticMap
+                            )
+                            todayFloor = reconciled
+                            if (remainingOptimistic != optimisticCommentReactions) {
+                                optimisticCommentReactions = remainingOptimistic
+                            }
+                        }
 
                         fun refreshComments() {
                             if (discussionId == null) return
@@ -280,7 +311,10 @@ fun TodayPage(
                                         BangumiApiClient.findTodayFloor(it, preview.date, preview.tags)
                                     }
                                     withContext(Dispatchers.Main) {
-                                        todayFloor = floor
+                                        serverFloor = floor
+                                        val username = SessionManager.loadUsername(context)
+                                        val nickname = SessionManager.loadNickname(context)
+                                        updateUiFloor(floor, username, nickname, optimisticCommentReactions)
                                         isRefreshingComments = false
                                     }
                                 } catch (e: Exception) {
@@ -294,12 +328,17 @@ fun TodayPage(
 
                         LaunchedEffect(discussionId, todayArtwork) {
                             if (discussionId == null) {
+                                serverFloor = null
                                 todayFloor = null
                                 return@LaunchedEffect
                             }
                             val overrideTopicId = LoliApiClient.getDebugOverrideTopicId(context)
                             if (overrideTopicId == null) {
-                                todayFloor = ReactionService.loadTopicFloors(context)[discussionId]
+                                val floor = ReactionService.loadTopicFloors(context)[discussionId]
+                                serverFloor = floor
+                                val username = SessionManager.loadUsername(context)
+                                val nickname = SessionManager.loadNickname(context)
+                                updateUiFloor(floor, username, nickname, optimisticCommentReactions)
                             }
                             refreshComments()
                         }
@@ -310,7 +349,23 @@ fun TodayPage(
                                 BangumiApiClient.parseDiscussionId(it).first
                             } ?: 0)
 
-                            if (targetTopicId > 0) {
+                            if (targetTopicId > 0 && replyId !in pendingCommentReactions) {
+                                pendingCommentReactions = pendingCommentReactions + replyId
+                                val username = SessionManager.loadUsername(context)
+                                val nickname = SessionManager.loadNickname(context)
+
+                                val floor = todayFloor ?: serverFloor
+                                if (username != null && floor != null) {
+                                    val previousEmoji = floor.replies.firstOrNull { it.id == replyId }?.reactions?.firstOrNull { r ->
+                                        r.users.any { it.username == username }
+                                    }?.value
+                                    val nextEmoji = if (previousEmoji == emojiValue) null else emojiValue
+                                    
+                                    val updatedMap = optimisticCommentReactions + (replyId to nextEmoji)
+                                    optimisticCommentReactions = updatedMap
+                                    updateUiFloor(serverFloor, username, nickname, updatedMap)
+                                }
+
                                 coroutineScope.launch(Dispatchers.IO) {
                                     val ok = BangumiApiClient.postLike(
                                         context = context,
@@ -319,11 +374,15 @@ fun TodayPage(
                                         value = emojiValue
                                     )
                                     withContext(Dispatchers.Main) {
+                                        pendingCommentReactions = pendingCommentReactions - replyId
                                         if (ok) {
                                             Toast.makeText(context, R.string.reaction_success, Toast.LENGTH_SHORT).show()
                                             refreshComments()
                                         } else {
                                             Toast.makeText(context, R.string.msg_reaction_failed, Toast.LENGTH_SHORT).show()
+                                            val updatedMap = optimisticCommentReactions - replyId
+                                            optimisticCommentReactions = updatedMap
+                                            updateUiFloor(serverFloor, username, nickname, updatedMap)
                                         }
                                     }
                                 }
@@ -768,4 +827,85 @@ private fun rememberExpressivePullToRefreshState(): PullToRefreshState {
     // (damping < 1), matching the M3 pull-to-refresh release motion.
     val bounceSpec = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
     return remember(bounceSpec) { ExpressivePullToRefreshState(bounceSpec) }
+}
+
+private fun List<BangumiReaction>.withOptimisticReactionCount(
+    username: String,
+    nickname: String,
+    previousEmoji: Int?,
+    nextEmoji: Int?,
+): List<BangumiReaction> {
+    val reactionsMap = associateBy { it.value }.toMutableMap()
+
+    // 1. Remove user from previous emoji reaction
+    if (previousEmoji != null) {
+        val prevReaction = reactionsMap[previousEmoji]
+        if (prevReaction != null) {
+            val updatedUsers = prevReaction.users.filterNot { it.username == username }
+            if (updatedUsers.isNotEmpty()) {
+                reactionsMap[previousEmoji] = prevReaction.copy(users = updatedUsers)
+            } else {
+                reactionsMap.remove(previousEmoji)
+            }
+        }
+    }
+
+    // 2. Add user to next emoji reaction
+    if (nextEmoji != null) {
+        val nextReaction = reactionsMap[nextEmoji]
+        if (nextReaction != null) {
+            val alreadyExists = nextReaction.users.any { it.username == username }
+            val updatedUsers = if (alreadyExists) {
+                nextReaction.users
+            } else {
+                nextReaction.users + BangumiReactionUser(username = username, nickname = nickname)
+            }
+            reactionsMap[nextEmoji] = nextReaction.copy(users = updatedUsers)
+        } else {
+            reactionsMap[nextEmoji] = BangumiReaction(
+                value = nextEmoji,
+                users = listOf(BangumiReactionUser(username = username, nickname = nickname))
+            )
+        }
+    }
+
+    return reactionsMap.values.toList()
+}
+
+private fun reconcileFloor(
+    floor: BangumiReply,
+    username: String,
+    nickname: String,
+    optimisticMap: Map<Int, Int?>
+): Pair<BangumiReply, Map<Int, Int?>> {
+    val newOptimisticMap = optimisticMap.toMutableMap()
+    val updatedReplies = floor.replies.map { subReply ->
+        if (subReply.id !in newOptimisticMap) {
+            subReply
+        } else {
+            val targetEmoji = newOptimisticMap[subReply.id]
+            val serverReflects = if (targetEmoji == null) {
+                subReply.reactions.none { r -> r.users.any { it.username == username } }
+            } else {
+                subReply.reactions.any { r -> r.value == targetEmoji && r.users.any { it.username == username } }
+            }
+
+            if (serverReflects) {
+                newOptimisticMap.remove(subReply.id)
+                subReply
+            } else {
+                val previousEmoji = subReply.reactions.firstOrNull { r ->
+                    r.users.any { it.username == username }
+                }?.value
+                val updatedReactions = subReply.reactions.withOptimisticReactionCount(
+                    username = username,
+                    nickname = nickname,
+                    previousEmoji = previousEmoji,
+                    nextEmoji = targetEmoji
+                )
+                subReply.copy(reactions = updatedReactions)
+            }
+        }
+    }
+    return floor.copy(replies = updatedReplies) to newOptimisticMap
 }

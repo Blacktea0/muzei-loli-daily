@@ -33,8 +33,14 @@ import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.ui.draw.scale
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -89,6 +95,45 @@ internal fun TabletReactionRow(
 
             val tooltipState = rememberTooltipState(isPersistent = true)
 
+            val containerColor = if (selected) {
+                colorScheme.primaryContainer
+            } else {
+                colorScheme.surfaceContainerHigh
+            }
+
+            val contentColor = if (selected) {
+                colorScheme.onPrimaryContainer
+            } else {
+                colorScheme.onSurfaceVariant
+            }
+
+            val animatedContainerColor by animateColorAsState(
+                targetValue = containerColor,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                label = "tabletReactionContainerColor"
+            )
+
+            val animatedContentColor by animateColorAsState(
+                targetValue = contentColor,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                label = "tabletReactionContentColor"
+            )
+
+            val scale by animateFloatAsState(
+                targetValue = if (selected) 1.05f else 1.0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                label = "tabletReactionScale"
+            )
+
             TooltipBox(
                 positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
                     TooltipAnchorPosition.Above
@@ -105,15 +150,12 @@ internal fun TabletReactionRow(
             ) {
                 Surface(
                     shape = RoundedCornerShape(50),
-                    color =
-                        if (selected) {
-                            colorScheme.primaryContainer
-                        } else {
-                            colorScheme.surfaceContainerHigh
-                        },
+                    color = animatedContainerColor,
+                    contentColor = animatedContentColor,
                     modifier =
                         Modifier
                             .height(32.dp)
+                            .scale(scale)
                             .pointerInput(Unit) {
                                 detectTapGestures(
                                     onTap = {
@@ -145,12 +187,6 @@ internal fun TabletReactionRow(
                         Text(
                             text = "${reaction.count}",
                             style = MaterialTheme.typography.labelMedium,
-                            color =
-                                if (selected) {
-                                    colorScheme.onPrimaryContainer
-                                } else {
-                                    colorScheme.onSurfaceVariant
-                                },
                         )
                     }
                 }
@@ -279,7 +315,7 @@ internal fun TabletDetailContent(
         }
 
         // ── Reactions Section ──
-        if (preview.reactions.isNotEmpty()) {
+        if (preview.reactions.isNotEmpty() || isLoggedIn) {
             SectionLabel(text = stringResource(R.string.section_reactions))
             TabletReactionRow(
                 reactions = preview.reactions,

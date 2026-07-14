@@ -37,6 +37,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.layout.widthIn
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.ui.draw.scale
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -150,7 +155,12 @@ fun ReactionChips(
     reactions: List<BangumiReaction>,
     onReactionClick: ((Int) -> Unit)? = null
 ) {
-    val valid = remember(reactions) { reactions.mapNotNull { r -> EmojiMap.emojiResId(r.value)?.let { r to it } } }
+    val context = LocalContext.current
+    val username = SessionManager.loadUsername(context)
+    val valid = remember(reactions) {
+        reactions.filter { it.users.isNotEmpty() }
+            .mapNotNull { r -> EmojiMap.emojiResId(r.value)?.let { r to it } }
+    }
     if (valid.isEmpty()) return
 
     val scope = rememberCoroutineScope()
@@ -161,6 +171,47 @@ fun ReactionChips(
     ) {
         for ((reaction, resId) in valid) {
             val tooltipState = rememberTooltipState(isPersistent = true)
+            val selected = username != null && reaction.users.any { it.username == username }
+
+            val containerColor = if (selected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHighest
+            }
+
+            val contentColor = if (selected) {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            }
+
+            val animatedContainerColor by animateColorAsState(
+                targetValue = containerColor,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                label = "reactionContainerColor"
+            )
+
+            val animatedContentColor by animateColorAsState(
+                targetValue = contentColor,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                label = "reactionContentColor"
+            )
+
+            val scale by animateFloatAsState(
+                targetValue = if (selected) 1.05f else 1.0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                label = "reactionScale"
+            )
+
             TooltipBox(
                 positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
                     TooltipAnchorPosition.Above
@@ -177,9 +228,11 @@ fun ReactionChips(
             ) {
                 Surface(
                     shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    color = animatedContainerColor,
+                    contentColor = animatedContentColor,
                     modifier = Modifier
                         .height(22.dp)
+                        .scale(scale)
                         .pointerInput(Unit) {
                             detectTapGestures(
                                 onTap = {
@@ -204,7 +257,6 @@ fun ReactionChips(
                         Text(
                             text = "${reaction.users.size}",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }

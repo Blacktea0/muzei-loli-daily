@@ -154,7 +154,7 @@ private fun HeroDetailContent(
         }
 
         // ── Reactions Section ──
-        if (preview.reactions.isNotEmpty()) {
+        if (preview.reactions.isNotEmpty() || isLoggedIn) {
             SectionLabel(text = stringResource(R.string.section_reactions))
             TabletReactionRow(
                 reactions = preview.reactions,
