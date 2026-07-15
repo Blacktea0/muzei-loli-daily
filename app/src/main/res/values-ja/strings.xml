@@ -181,8 +181,6 @@
 
     <!-- Toast messages -->
     <string name="msg_logged_out">ログアウトしました</string>
-    <string name="msg_reaction_failed">リアクションに失敗 — セッションが期限切れの可能性があります</string>
-    <string name="reaction_success">リアクションを送信しました</string>
     <string name="msg_muzei_not_installed_opening">Muzei が未インストール — Play Store を開きます</string>
     <string name="msg_no_app_store">利用可能なアプリストアがありません</string>
 
@@ -219,7 +217,6 @@
     <string name="title_log_viewer">アプリログ</string>
     <string name="action_copy">コピー</string>
     <string name="action_refresh">更新</string>
-    <string name="action_close">閉じる</string>
     <string name="action_clear_logs">ログを消去</string>
     <string name="msg_logs_copied">ログをクリップボードにコピーしました</string>
     <string name="msg_logs_cleared">ログを消去しました</string>

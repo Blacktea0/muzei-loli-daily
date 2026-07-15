@@ -181,8 +181,6 @@
 
     <!-- Toast messages -->
     <string name="msg_logged_out">已登出</string>
-    <string name="msg_reaction_failed">貼貼失敗 — 工作階段可能已過期</string>
-    <string name="reaction_success">貼貼成功</string>
     <string name="msg_muzei_not_installed_opening">未安裝 Muzei — 正在開啟 Play Store</string>
     <string name="msg_no_app_store">沒有可用的應用程式商店</string>
 
@@ -219,7 +217,6 @@
     <string name="title_log_viewer">應用日誌</string>
     <string name="action_copy">複製</string>
     <string name="action_refresh">重新整理</string>
-    <string name="action_close">關閉</string>
     <string name="action_clear_logs">清除日誌</string>
     <string name="msg_logs_copied">日誌已複製到剪貼簿</string>
     <string name="msg_logs_cleared">日誌已清除</string>

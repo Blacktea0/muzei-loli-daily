@@ -287,12 +287,6 @@ class MainActivity : AppCompatActivity() {
                     pendingReactionTokens -= token
                     optimisticArtworkReactions = optimisticArtworkReactions - token
                     buildPreviews()
-                    Toast.makeText(
-                        this,
-                        getString(R.string.msg_reaction_failed),
-                        Toast.LENGTH_SHORT,
-                    )
-                        .show()
                 }
             }
         }

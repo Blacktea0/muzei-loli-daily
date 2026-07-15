@@ -376,10 +376,8 @@ fun TodayPage(
                                     withContext(Dispatchers.Main) {
                                         pendingCommentReactions = pendingCommentReactions - replyId
                                         if (ok) {
-                                            Toast.makeText(context, R.string.reaction_success, Toast.LENGTH_SHORT).show()
                                             refreshComments()
                                         } else {
-                                            Toast.makeText(context, R.string.msg_reaction_failed, Toast.LENGTH_SHORT).show()
                                             val updatedMap = optimisticCommentReactions - replyId
                                             optimisticCommentReactions = updatedMap
                                             updateUiFloor(serverFloor, username, nickname, updatedMap)

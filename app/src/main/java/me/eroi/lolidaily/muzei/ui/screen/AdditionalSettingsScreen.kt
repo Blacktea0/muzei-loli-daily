@@ -776,6 +776,8 @@ private fun LogViewerScreen(onBack: () -> Unit) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedLogLevel by remember { mutableStateOf(LogLevelFilter.ALL) }
     val scope = rememberCoroutineScope()
+    val logsCopiedMessage = stringResource(R.string.msg_logs_copied)
+    val logsClearedMessage = stringResource(R.string.msg_logs_cleared)
 
     fun load() {
         Log.d("LogViewer", "Log viewer page loaded")
@@ -824,7 +826,7 @@ private fun LogViewerScreen(onBack: () -> Unit) {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 val clip = ClipData.newPlainText("LoliDaily Logs", logText)
                                 clipboard.setPrimaryClip(clip)
-                                Toast.makeText(context, context.getString(R.string.msg_logs_copied), Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, logsCopiedMessage, Toast.LENGTH_SHORT).show()
                             }
                         },
                         enabled = !isLoading && errorMessage == null && logText.isNotEmpty()
@@ -844,7 +846,7 @@ private fun LogViewerScreen(onBack: () -> Unit) {
                         onClick = {
                             me.eroi.lolidaily.muzei.util.Log.clearLogs()
                             logText = ""
-                            Toast.makeText(context, context.getString(R.string.msg_logs_cleared), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, logsClearedMessage, Toast.LENGTH_SHORT).show()
                         },
                         enabled = !isLoading
                     ) {
