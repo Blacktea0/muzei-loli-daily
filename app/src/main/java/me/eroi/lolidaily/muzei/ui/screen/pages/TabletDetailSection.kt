@@ -2,7 +2,6 @@ package me.eroi.lolidaily.muzei.ui.screen.pages
 
 import android.content.Intent
 import android.widget.Toast
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Comment
@@ -26,32 +24,24 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TooltipAnchorPosition
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.rememberTooltipState
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.Spring
-import androidx.compose.ui.draw.scale
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
-import kotlinx.coroutines.launch
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.SessionManager
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
@@ -61,10 +51,9 @@ import me.eroi.lolidaily.muzei.ui.screen.components.CharacterChip
 import me.eroi.lolidaily.muzei.ui.screen.components.CommentHeader
 import me.eroi.lolidaily.muzei.ui.screen.components.CommentInputPlaceholder
 import me.eroi.lolidaily.muzei.ui.screen.components.FloorCommentEntry
-import me.eroi.lolidaily.muzei.ui.screen.components.PixelEmoji
 import me.eroi.lolidaily.muzei.ui.screen.components.cleanCommentForQuote
+import me.eroi.lolidaily.muzei.ui.screen.components.ReactionChip
 import me.eroi.lolidaily.muzei.worker.EmojiMap
-
 // ── Tablet Reaction Row (horizontal capsule chips) ──────────────
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
@@ -82,7 +71,19 @@ internal fun TabletReactionRow(
     val context = LocalContext.current
     val msgLoginToReact = stringResource(R.string.msg_login_to_react)
     val colorScheme = MaterialTheme.colorScheme
-    val scope = rememberCoroutineScope()
+
+    var prevUserEmoji by remember { mutableStateOf(userEmoji) }
+    var triggeredEmoji by remember { mutableStateOf<Int?>(null) }
+    var triggerId by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(userEmoji) {
+        if (userEmoji != null && userEmoji != prevUserEmoji) {
+            triggeredEmoji = userEmoji
+            triggerId++
+        }
+        prevUserEmoji = userEmoji
+    }
+
 
     FlowRow(
         modifier = modifier,
@@ -91,105 +92,35 @@ internal fun TabletReactionRow(
     ) {
         for ((_, reactionResId) in valid.withIndex()) {
             val (reaction, resId) = reactionResId
-            val selected = reaction.emojiValue == userEmoji
+            key(reaction.emojiValue) {
+                val selected = reaction.emojiValue == userEmoji
+                val animTriggerKey = if (reaction.emojiValue == triggeredEmoji) triggerId else null
 
-            val tooltipState = rememberTooltipState(isPersistent = true)
-
-            val containerColor = if (selected) {
-                colorScheme.primaryContainer
-            } else {
-                colorScheme.surfaceContainerHigh
-            }
-
-            val contentColor = if (selected) {
-                colorScheme.onPrimaryContainer
-            } else {
-                colorScheme.onSurfaceVariant
-            }
-
-            val animatedContainerColor by animateColorAsState(
-                targetValue = containerColor,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMedium
-                ),
-                label = "tabletReactionContainerColor"
-            )
-
-            val animatedContentColor by animateColorAsState(
-                targetValue = contentColor,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMedium
-                ),
-                label = "tabletReactionContentColor"
-            )
-
-            val scale by animateFloatAsState(
-                targetValue = if (selected) 1.05f else 1.0f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
-                ),
-                label = "tabletReactionScale"
-            )
-
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                    TooltipAnchorPosition.Above
-                ),
-                tooltip = {
-                    PlainTooltip {
-                        Text(
-                            text = formatUserList(reaction.users),
-                            modifier = Modifier.widthIn(max = 280.dp),
-                        )
-                    }
-                },
-                state = tooltipState,
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = animatedContainerColor,
-                    contentColor = animatedContentColor,
-                    modifier =
-                        Modifier
-                            .height(32.dp)
-                            .scale(scale)
-                            .pointerInput(Unit) {
-                                detectTapGestures(
-                                    onTap = {
-                                        if (isLoggedIn) {
-                                            onReactionClick(token, reaction.emojiValue)
-                                        } else {
-                                            Toast
-                                                .makeText(
-                                                    context,
-                                                    msgLoginToReact,
-                                                    Toast.LENGTH_SHORT,
-                                                ).show()
-                                        }
-                                    },
-                                    onLongPress = {
-                                        if (reaction.users.isNotEmpty()) {
-                                            scope.launch { tooltipState.show() }
-                                        }
-                                    },
-                                )
-                            },
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        PixelEmoji(resId = resId, modifier = Modifier.size(20.dp))
-                        Text(
-                            text = "${reaction.count}",
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                    }
-                }
+                ReactionChip(
+                    reactionCount = reaction.count,
+                    resId = resId,
+                    selected = selected,
+                    enabled = isLoggedIn,
+                    selectedTriggerKey = animTriggerKey,
+                    tooltipText = formatUserList(reaction.users),
+                    onTap = {
+                        if (isLoggedIn) {
+                            onReactionClick(token, reaction.emojiValue)
+                        } else {
+                            Toast.makeText(context, msgLoginToReact, Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    onLongPress = {},
+                    height = 32.dp,
+                    emojiSize = 20.dp,
+                    horizontalPadding = 12.dp,
+                    spacing = 6.dp,
+                    textStyle = MaterialTheme.typography.labelMedium,
+                    containerColor = colorScheme.surfaceContainerHigh,
+                    contentColor = colorScheme.onSurfaceVariant,
+                    selectedContainerColor = colorScheme.primaryContainer,
+                    selectedContentColor = colorScheme.onPrimaryContainer
+                )
             }
         }
         // Add reaction button

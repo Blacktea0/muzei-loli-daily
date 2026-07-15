@@ -6,8 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,21 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.PlainTooltip
-import androidx.compose.material3.rememberTooltipState
-import androidx.compose.material3.TooltipAnchorPosition
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.foundation.layout.widthIn
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.Composable
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.Spring
-import androidx.compose.ui.draw.scale
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,14 +42,14 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.imageLoader
@@ -75,9 +59,7 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.SessionManager
-import me.eroi.lolidaily.muzei.model.BangumiReaction
 import me.eroi.lolidaily.muzei.model.BangumiSubReply
-import me.eroi.lolidaily.muzei.worker.EmojiMap
 import me.eroi.lolidaily.muzei.util.CommentBlock
 import me.eroi.lolidaily.muzei.util.BBCodeParser
 import kotlin.math.roundToInt
@@ -147,125 +129,6 @@ fun EmptyComments() {
 }
 
 
-// ── Reaction Chips (read-only) ──────────────────────────────────
-
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
-@Composable
-fun ReactionChips(
-    reactions: List<BangumiReaction>,
-    onReactionClick: ((Int) -> Unit)? = null
-) {
-    val context = LocalContext.current
-    val username = SessionManager.loadUsername(context)
-    val valid = remember(reactions) {
-        reactions.filter { it.users.isNotEmpty() }
-            .mapNotNull { r -> EmojiMap.emojiResId(r.value)?.let { r to it } }
-    }
-    if (valid.isEmpty()) return
-
-    val scope = rememberCoroutineScope()
-
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        for ((reaction, resId) in valid) {
-            val tooltipState = rememberTooltipState(isPersistent = true)
-            val selected = username != null && reaction.users.any { it.username == username }
-
-            val containerColor = if (selected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceContainerHighest
-            }
-
-            val contentColor = if (selected) {
-                MaterialTheme.colorScheme.onPrimaryContainer
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            }
-
-            val animatedContainerColor by animateColorAsState(
-                targetValue = containerColor,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMedium
-                ),
-                label = "reactionContainerColor"
-            )
-
-            val animatedContentColor by animateColorAsState(
-                targetValue = contentColor,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMedium
-                ),
-                label = "reactionContentColor"
-            )
-
-            val scale by animateFloatAsState(
-                targetValue = if (selected) 1.05f else 1.0f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
-                ),
-                label = "reactionScale"
-            )
-
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                    TooltipAnchorPosition.Above
-                ),
-                tooltip = {
-                    PlainTooltip {
-                        Text(
-                            text = formatUserList(reaction.users.map { it.nickname.takeIf { n -> n.isNotBlank() } ?: it.username }),
-                            modifier = Modifier.widthIn(max = 280.dp),
-                        )
-                    }
-                },
-                state = tooltipState,
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = animatedContainerColor,
-                    contentColor = animatedContentColor,
-                    modifier = Modifier
-                        .height(22.dp)
-                        .scale(scale)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onTap = {
-                                    if (onReactionClick != null) {
-                                        onReactionClick(reaction.value)
-                                    }
-                                },
-                                onLongPress = {
-                                    if (reaction.users.isNotEmpty()) {
-                                        scope.launch { tooltipState.show() }
-                                    }
-                                }
-                            )
-                        },
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                    ) {
-                        PixelEmoji(resId = resId, modifier = Modifier.size(16.dp))
-                        Text(
-                            text = "${reaction.users.size}",
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-
 // ── Floor Comment Entry (sub-reply rendered as top-level) ────────
 
 @Composable
@@ -330,9 +193,10 @@ fun FloorCommentEntry(
                             imageVector = Icons.Filled.Favorite,
                             contentDescription = stringResource(R.string.content_desc_add_reaction),
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .size(16.dp)
-                                .clickable { onReactionClick() }
+                            modifier =
+                                Modifier
+                                    .size(16.dp)
+                                    .clickable { onReactionClick() },
                         )
                     }
                 }
@@ -350,7 +214,7 @@ fun FloorCommentEntry(
 
             ReactionChips(
                 reactions = reply.reactions,
-                onReactionClick = onReactionChipClick
+                onReactionClick = onReactionChipClick,
             )
         }
     }
@@ -684,9 +548,3 @@ private fun avatarGradient(userId: Int?): List<Color> {
 
 
 
-private fun formatUserList(users: List<String>): String {
-    if (users.isEmpty()) return ""
-    val locale = java.util.Locale.getDefault()
-    val separator = if (locale.language == "zh" || locale.language == "ja") "、" else ", "
-    return users.joinToString(separator)
-}
