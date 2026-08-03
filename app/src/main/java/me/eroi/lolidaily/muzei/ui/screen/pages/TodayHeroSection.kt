@@ -18,6 +18,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
@@ -203,10 +207,19 @@ private fun HeroDetailContent(
         }
 
         // Uploader (placed last)
+        val suggestedByColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
         val suggestedByDisplay =
-            buildString {
+            buildAnnotatedString {
                 append(preview.suggestedByName ?: stringResource(R.string.label_unknown))
-                preview.suggestedByUsername?.let { append(" @$it") }
+                preview.suggestedByUsername?.let { username ->
+                    withStyle(
+                        style = SpanStyle(
+                            color = suggestedByColor
+                        )
+                    ) {
+                        append(" @$username")
+                    }
+                }
             }
         DetailMetaItem(
             icon = Icons.Default.Person,
@@ -316,6 +329,25 @@ internal fun DetailMetaItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     value: String,
+    maxLines: Int = 2,
+    onClick: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    DetailMetaItem(
+        icon = icon,
+        label = label,
+        value = AnnotatedString(value),
+        maxLines = maxLines,
+        onClick = onClick,
+        trailing = trailing,
+    )
+}
+
+@Composable
+internal fun DetailMetaItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: AnnotatedString,
     maxLines: Int = 2,
     onClick: (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,

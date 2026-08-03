@@ -35,6 +35,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.compose.runtime.setValue
@@ -295,10 +298,19 @@ internal fun TabletDetailContent(
         }
 
         // Uploader (placed last)
+        val suggestedByColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
         val suggestedByDisplay =
-            buildString {
+            buildAnnotatedString {
                 append(preview.suggestedByName ?: stringResource(R.string.label_anonymous))
-                preview.suggestedByUsername?.let { append(" @$it") }
+                preview.suggestedByUsername?.let { username ->
+                    withStyle(
+                        style = SpanStyle(
+                            color = suggestedByColor
+                        )
+                    ) {
+                        append(" @$username")
+                    }
+                }
             }
         DetailMetaItem(
             icon = Icons.Default.Person,
