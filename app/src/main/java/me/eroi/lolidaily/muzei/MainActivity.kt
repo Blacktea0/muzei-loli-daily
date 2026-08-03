@@ -218,7 +218,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startRefresh() {
-        refreshProgress = 0f // Immediately show refresh indicator in PullToRefreshBox
         val workId = WorkScheduler.enqueueLoad(this, forceRefresh = true)
         if (workId != null) {
             val workManager = WorkManager.getInstance(this)
