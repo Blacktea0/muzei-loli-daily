@@ -49,12 +49,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.api.SessionManager
+import me.eroi.lolidaily.muzei.api.WebCookieStore
 import me.eroi.lolidaily.muzei.ui.theme.LoliDailyTheme
 import org.json.JSONObject
 
 private const val TAG = "PixivLoginActivity"
 private const val PIXIV_LOGIN_URL = "https://accounts.pixiv.net/login"
-private const val PIXIV_COOKIE_DOMAIN = ".pixiv.net"
 private const val PHPSESSID = "PHPSESSID"
 
 class PixivLoginActivity : ComponentActivity() {
@@ -78,13 +78,11 @@ class PixivLoginActivity : ComponentActivity() {
     }
 
     companion object {
+        private val PIXIV_COOKIE_DOMAINS =
+            listOf("pixiv.net", "www.pixiv.net", "accounts.pixiv.net")
+
         fun clearPixivCookies() {
-            val cm = CookieManager.getInstance()
-            val cookie = cm.getCookie(PIXIV_COOKIE_DOMAIN)
-            if (cookie != null) {
-                cm.removeAllCookies(null)
-                cm.flush()
-            }
+            WebCookieStore.clearDomains(PIXIV_COOKIE_DOMAINS)
         }
     }
 }

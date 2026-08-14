@@ -365,6 +365,7 @@
     <string name="comment_msg_login_to_comment">登录后即可发表评论</string>
     <string name="comment_post_success">回复成功</string>
     <string name="comment_post_failure">回复失败，请稍后重试</string>
+    <string name="comment_login_expired">班固米登录已过期，请重新登录</string>
     <string name="comment_editor_bold">加粗</string>
     <string name="comment_editor_italic">斜体</string>
     <string name="comment_editor_underline">下划线</string>

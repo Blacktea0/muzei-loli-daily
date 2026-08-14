@@ -22,8 +22,10 @@ import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.svg.SvgDecoder
 import com.google.android.apps.muzei.api.MuzeiContract
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import me.eroi.lolidaily.muzei.api.BangumiApiClient
 import me.eroi.lolidaily.muzei.api.LoliApiClient
@@ -241,6 +243,7 @@ class MainActivity : AppCompatActivity() {
         val wasLoggedIn = isLoggedIn
         isLoggedIn = LoliDailyArtWorker.loadSession(this) != null
         loadAccountProfile()
+        refreshLoginSession()
         loadSourceStatus()
 
         val needsProfile = bgmNickname == null || bgmAvatarUrl == null || lcBadge == null
@@ -253,6 +256,20 @@ class MainActivity : AppCompatActivity() {
                 refreshAccountProfile()
             }
             loadPreview()
+        }
+    }
+
+    private fun refreshLoginSession() {
+        if (!isLoggedIn) return
+        lifecycleScope.launch {
+            val session =
+                withContext(Dispatchers.IO) {
+                    LoliDailyArtWorker.refreshSessionIfNeeded(this@MainActivity)
+                }
+            isLoggedIn = session != null
+            if (session == null) {
+                loadAccountProfile()
+            }
         }
     }
 
@@ -397,7 +414,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun refreshAccountProfile(forceRefreshOnComplete: Boolean = false) {
         val username = bgmUsername ?: return
-        val session = LoliDailyArtWorker.loadSession(this)
+        val shouldFetchLcProfile = LoliDailyArtWorker.loadSession(this) != null
         val oldBadge = LoliDailyArtWorker.loadBadge(this)
         Thread {
             // Fetch Bangumi user profile (avatar, nickname)
@@ -420,10 +437,10 @@ class MainActivity : AppCompatActivity() {
 
             // Fetch LC badge (independent of Bangumi profile)
             var newBadge = oldBadge
-            if (session != null) {
+            if (shouldFetchLcProfile) {
                 Log.d("MainActivity", "Fetching LC badge for $username")
                 try {
-                    val userInfo = LoliApiClient.fetchUserInfo(this@MainActivity, username, session.token)
+                    val userInfo = LoliApiClient.fetchUserInfo(this@MainActivity, username)
                     if (userInfo != null) {
                         Log.d("MainActivity", "LC badge fetched: ${userInfo.badge}")
                         LoliDailyArtWorker.saveBadge(this@MainActivity, userInfo.badge)
@@ -440,6 +457,7 @@ class MainActivity : AppCompatActivity() {
 
             val badgeChanged = newBadge != oldBadge
             runOnUiThread {
+                isLoggedIn = LoliDailyArtWorker.loadSession(this@MainActivity) != null
                 loadAccountProfile()
                 if (forceRefreshOnComplete && badgeChanged) {
                     startRefresh()
@@ -449,9 +467,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateBadge(badge: String) {
-        val session = LoliDailyArtWorker.loadSession(this) ?: return
+        if (LoliDailyArtWorker.loadSession(this) == null) return
         Thread {
-            val ok = LoliApiClient.updateBadge(this@MainActivity, badge, session.token)
+            val ok = LoliApiClient.updateBadge(this@MainActivity, badge)
             if (ok) {
                 LoliDailyArtWorker.saveBadge(this@MainActivity, badge)
                 runOnUiThread { lcBadge = badge }

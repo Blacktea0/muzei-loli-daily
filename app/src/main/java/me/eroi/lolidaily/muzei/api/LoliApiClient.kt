@@ -5,8 +5,10 @@ import android.content.Context
 import android.net.Uri
 import me.eroi.lolidaily.muzei.util.Log
 import android.webkit.CookieManager
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
+import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.link.SourceLinkParserRegistry
 import me.eroi.lolidaily.muzei.model.ArtistResolveResponse
 import me.eroi.lolidaily.muzei.model.Card
@@ -20,6 +22,17 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
+
+internal sealed interface SessionRefreshResult {
+    data class Success(val session: Session) : SessionRefreshResult
+
+    data object Unauthorized : SessionRefreshResult
+
+    data object Failed : SessionRefreshResult
+}
+
+@Serializable
+private data class SessionRefreshResponse(val jwt: String)
 
 object LoliApiClient {
     private const val TAG = "LoliApiClient"
@@ -85,6 +98,42 @@ object LoliApiClient {
             ?: DEFAULT_BANGUMI_BASE_URL
     }
 
+    internal fun refreshSession(
+        baseUrl: String,
+        token: String,
+    ): SessionRefreshResult {
+        val request =
+            Request.Builder()
+                .url("${baseUrl.trimEnd('/')}/api/v1/oauth/refresh")
+                .header("User-Agent", USER_AGENT)
+                .header("Authorization", "Bearer $token")
+                .get()
+                .build()
+
+        return try {
+            httpClient.newCall(request).execute().use { response ->
+                if (response.code == 401) return SessionRefreshResult.Unauthorized
+                val responseBody = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    Log.w(TAG, "Session refresh returned ${response.code}: $responseBody")
+                    return SessionRefreshResult.Failed
+                }
+                val refreshedToken =
+                    json.decodeFromString<SessionRefreshResponse>(responseBody).jwt
+                val session = SessionManager.sessionFromJwt(refreshedToken)
+                if (session == null || !session.isValid) {
+                    Log.w(TAG, "Session refresh returned an invalid JWT")
+                    SessionRefreshResult.Failed
+                } else {
+                    SessionRefreshResult.Success(session)
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to refresh session", e)
+            SessionRefreshResult.Failed
+        }
+    }
+
     private fun getBadge(context: Context): String {
         val prefs =
             context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
@@ -121,6 +170,21 @@ object LoliApiClient {
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
 
+    private fun currentToken(context: Context): String? =
+        SessionManager.refreshSessionIfNeeded(context)?.token
+
+    private fun handleUnauthorized(
+        context: Context,
+        responseCode: Int,
+    ) {
+        if (responseCode == 401) {
+            SessionManager.clearSession(context)
+        }
+    }
+
+    private fun authenticationRequired(context: Context) =
+        IllegalStateException(context.getString(R.string.submit_error_login))
+
     /** Returns parsed cards + the response [DailyResponse.date] field, or null on failure. */
     fun fetchDailyResponse(context: Context): Pair<List<Card>, String>? {
         val url = apiUrl(context)
@@ -143,8 +207,8 @@ object LoliApiClient {
     fun fetchUserInfo(
         context: Context,
         username: String,
-        token: String,
     ): LcUserInfo? {
+        val token = currentToken(context) ?: return null
         val encodedUsername = Uri.encode(username)
         val url = "${getApiBaseUrl(context)}/api/v1/user/$encodedUsername"
         val request =
@@ -157,14 +221,16 @@ object LoliApiClient {
 
         return try {
             Log.d(TAG, "Fetching LC user info for $username from $url")
-            val response = httpClient.newCall(request).execute()
-            val responseBody = response.body?.string() ?: return null
-            if (!response.isSuccessful) {
-                Log.w(TAG, "LC user info API returned ${response.code}: $responseBody")
-                return null
+            httpClient.newCall(request).execute().use { response ->
+                val responseBody = response.body?.string().orEmpty()
+                handleUnauthorized(context, response.code)
+                if (!response.isSuccessful) {
+                    Log.w(TAG, "LC user info API returned ${response.code}: $responseBody")
+                    return null
+                }
+                Log.d(TAG, "LC user info response: $responseBody")
+                json.decodeFromString<LcUserInfo>(responseBody)
             }
-            Log.d(TAG, "LC user info response: $responseBody")
-            json.decodeFromString<LcUserInfo>(responseBody)
         } catch (e: Exception) {
             Log.w(TAG, "Failed to fetch LC user info for $username", e)
             null
@@ -174,8 +240,8 @@ object LoliApiClient {
     fun updateBadge(
         context: Context,
         badge: String,
-        token: String,
     ): Boolean {
+        val token = currentToken(context) ?: return false
         val url = "${getApiBaseUrl(context)}/api/v1/settings"
         val body = """{"badge":"$badge"}""".toRequestBody("application/json".toMediaType())
         val request =
@@ -188,6 +254,7 @@ object LoliApiClient {
 
         return try {
             val response = httpClient.newCall(request).execute()
+            handleUnauthorized(context, response.code)
             if (!response.isSuccessful) {
                 Log.w(TAG, "updateBadge returned ${response.code}: ${response.body?.string()}")
             }
@@ -202,10 +269,8 @@ object LoliApiClient {
      * Fetches daily submission queue status.
      * Mirrors JS: lcClient.fetchDailyStatus → GET /v1/daily/submit-status
      */
-    fun fetchDailyStatus(
-        context: Context,
-        token: String,
-    ): Result<DailySubmitStatusResponse> {
+    fun fetchDailyStatus(context: Context): Result<DailySubmitStatusResponse> {
+        val token = currentToken(context) ?: return Result.failure(authenticationRequired(context))
         val url = "${getApiBaseUrl(context)}/api/v1/daily/submit-status"
         val request =
             Request.Builder()
@@ -217,6 +282,10 @@ object LoliApiClient {
         return try {
             val response = httpClient.newCall(request).execute()
             val responseBody = response.body?.string() ?: ""
+            if (response.code == 401) {
+                handleUnauthorized(context, response.code)
+                return Result.failure(authenticationRequired(context))
+            }
             if (!response.isSuccessful) {
                 Log.w(TAG, "fetchDailyStatus returned ${response.code}: $responseBody")
                 return Result.failure(Exception("获取投稿队列状态失败"))
@@ -242,8 +311,8 @@ object LoliApiClient {
         tags: String,
         comment: String,
         anonymous: Boolean,
-        token: String,
     ): Result<String> {
+        val token = currentToken(context) ?: return Result.failure(authenticationRequired(context))
         val url = "${getApiBaseUrl(context)}/api/v1/daily/submit"
         val charactersJson = characters.joinToString(",", "[", "]")
         val bodyStr =
@@ -261,6 +330,10 @@ object LoliApiClient {
         return try {
             val response = httpClient.newCall(request).execute()
             val responseBody = response.body?.string() ?: ""
+            if (response.code == 401) {
+                handleUnauthorized(context, response.code)
+                return Result.failure(authenticationRequired(context))
+            }
             if (response.code == 429) {
                 return Result.failure(Exception("已达到提交队列上限，过一段时间再来吧"))
             }
@@ -287,8 +360,8 @@ object LoliApiClient {
         contentLength: Long,
         otc: String,
         imageBytes: ByteArray,
-        token: String,
     ): Result<Unit> {
+        val token = currentToken(context) ?: return Result.failure(authenticationRequired(context))
         return try {
             // Step 1: Get presigned URL
             val presignUrl = "${getApiBaseUrl(context)}/api/v1/daily/img-upload-presign"
@@ -305,6 +378,10 @@ object LoliApiClient {
             val signedUrl =
                 httpClient.newCall(presignRequest).execute().use { response ->
                     val responseBody = response.body?.string() ?: ""
+                    if (response.code == 401) {
+                        handleUnauthorized(context, response.code)
+                        return Result.failure(authenticationRequired(context))
+                    }
                     if (!response.isSuccessful) {
                         Log.w(TAG, "presign returned ${response.code}: $responseBody")
                         return Result.failure(Exception("上传请求被拒绝"))

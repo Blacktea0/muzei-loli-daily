@@ -78,6 +78,14 @@ function getBaseUrl(req) {
   return `${req.protocol}://${host}`;
 }
 
+function createMockJwt(username, expiresAt) {
+  const header = Buffer.from(JSON.stringify({ alg: "none", typ: "JWT" })).toString("base64url");
+  const payload = Buffer.from(
+    JSON.stringify({ bgmUsername: username, bgmUID: 1, expiresAt }),
+  ).toString("base64url");
+  return `${header}.${payload}.mock-signature`;
+}
+
 // Available Jimp bitmap font sizes (only those with both black & white variants)
 const FONT_SIZES = [
   { size: 128, suffix: "128" },
@@ -269,6 +277,16 @@ app.get("/p1/groups/-/topics/:topicID", (req, res) => {
   } else {
     res.status(404).json({ error: `fixture not found: ${fixtureName}.json` });
   }
+});
+
+// GET /api/v1/oauth/refresh — replace a valid bearer session with a fresh JWT
+app.get("/api/v1/oauth/refresh", (req, res) => {
+  const authHeader = req.headers.authorization || "";
+  if (!authHeader.startsWith("Bearer ") || authHeader === "Bearer expired-token") {
+    return res.status(401).json({ error: "invalid or expired session" });
+  }
+  const expiresAt = Date.now() + 86400000 * 7;
+  res.json({ jwt: createMockJwt("mock_user", expiresAt) });
 });
 
 // GET /api/v1/oauth/request — interactive mock OAuth flow

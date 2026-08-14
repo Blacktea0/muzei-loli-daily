@@ -367,20 +367,31 @@ fun TodayPage(
                                 }
 
                                 coroutineScope.launch(Dispatchers.IO) {
-                                    val ok = BangumiApiClient.postLike(
-                                        context = context,
-                                        topicId = targetTopicId,
-                                        replyId = replyId,
-                                        value = emojiValue
-                                    )
+                                    val result =
+                                        BangumiApiClient.postLike(
+                                            context = context,
+                                            topicId = targetTopicId,
+                                            replyId = replyId,
+                                            value = emojiValue,
+                                        )
                                     withContext(Dispatchers.Main) {
                                         pendingCommentReactions = pendingCommentReactions - replyId
-                                        if (ok) {
+                                        if (result == BangumiApiClient.WriteResult.SUCCESS) {
                                             refreshComments()
                                         } else {
                                             val updatedMap = optimisticCommentReactions - replyId
                                             optimisticCommentReactions = updatedMap
                                             updateUiFloor(serverFloor, username, nickname, updatedMap)
+                                            if (
+                                                result ==
+                                                BangumiApiClient.WriteResult.AUTHENTICATION_REQUIRED
+                                            ) {
+                                                Toast.makeText(
+                                                    context,
+                                                    R.string.comment_login_expired,
+                                                    Toast.LENGTH_SHORT,
+                                                ).show()
+                                            }
                                         }
                                     }
                                 }
@@ -397,22 +408,42 @@ fun TodayPage(
                                 callback(false)
                             } else {
                                 coroutineScope.launch(Dispatchers.IO) {
-                                    val ok = BangumiApiClient.postDailyComment(
-                                        context = context,
-                                        topicId = targetTopicId,
-                                        dailyDate = preview.date,
-                                        tags = preview.tags,
-                                        content = commentText
-                                    )
+                                    val result =
+                                        BangumiApiClient.postDailyComment(
+                                            context = context,
+                                            topicId = targetTopicId,
+                                            dailyDate = preview.date,
+                                            tags = preview.tags,
+                                            content = commentText,
+                                        )
                                     withContext(Dispatchers.Main) {
-                                        if (ok) {
-                                            Toast.makeText(context, R.string.comment_post_success, Toast.LENGTH_SHORT).show()
-                                            refreshComments()
-                                            commentDraftText = ""
-                                            callback(true)
-                                        } else {
-                                            Toast.makeText(context, R.string.comment_post_failure, Toast.LENGTH_SHORT).show()
-                                            callback(false)
+                                        when (result) {
+                                            BangumiApiClient.WriteResult.SUCCESS -> {
+                                                Toast.makeText(
+                                                    context,
+                                                    R.string.comment_post_success,
+                                                    Toast.LENGTH_SHORT,
+                                                ).show()
+                                                refreshComments()
+                                                commentDraftText = ""
+                                                callback(true)
+                                            }
+                                            BangumiApiClient.WriteResult.AUTHENTICATION_REQUIRED -> {
+                                                Toast.makeText(
+                                                    context,
+                                                    R.string.comment_login_expired,
+                                                    Toast.LENGTH_SHORT,
+                                                ).show()
+                                                callback(false)
+                                            }
+                                            BangumiApiClient.WriteResult.FAILED -> {
+                                                Toast.makeText(
+                                                    context,
+                                                    R.string.comment_post_failure,
+                                                    Toast.LENGTH_SHORT,
+                                                ).show()
+                                                callback(false)
+                                            }
                                         }
                                     }
                                 }

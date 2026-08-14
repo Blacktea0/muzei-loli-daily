@@ -365,6 +365,7 @@
     <string name="comment_msg_login_to_comment">ログイン後にコメントを投稿できます</string>
     <string name="comment_post_success">返信に成功しました</string>
     <string name="comment_post_failure">返信に失敗しました。後でもう一度お試しください</string>
+    <string name="comment_login_expired">Bangumiのログイン期限が切れました。再度ログインしてください。</string>
     <string name="comment_editor_bold">太字</string>
     <string name="comment_editor_italic">斜体</string>
     <string name="comment_editor_underline">下線</string>

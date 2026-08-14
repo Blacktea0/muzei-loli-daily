@@ -24,6 +24,12 @@ import okhttp3.Request
 object BangumiApiClient {
     private const val TAG = "BangumiApiClient"
 
+    enum class WriteResult {
+        SUCCESS,
+        AUTHENTICATION_REQUIRED,
+        FAILED,
+    }
+
     fun fetchUser(
         context: Context,
         username: String,
@@ -104,34 +110,46 @@ object BangumiApiClient {
     /**
      * Posts a reply to a Bangumi group topic using the WebView's login cookies.
      * Steps: GET the topic page HTML → extract formhash → POST the reply form.
-     * Returns true on success, false on failure.
+     * Distinguishes an expired WebView login from other write failures.
      */
-    fun postTopicReply(context: Context, topicId: Int, content: String): Boolean {
+    fun postTopicReply(
+        context: Context,
+        topicId: Int,
+        content: String,
+    ): WriteResult {
         if (content.isBlank()) {
             Log.w(TAG, "postTopicReply: blank content")
-            return false
+            return WriteResult.FAILED
         }
 
-        val topicPage = openTopicPostSession(context, topicId) ?: return false
+        val topicPage =
+            when (val result = openTopicPostSession(context, topicId)) {
+                is TopicPostSessionResult.Success -> result.session
+                TopicPostSessionResult.AuthenticationRequired ->
+                    return WriteResult.AUTHENTICATION_REQUIRED
+                TopicPostSessionResult.Failed -> return WriteResult.FAILED
+            }
 
         val postUrl = resolveReplyPostUrl(topicPage.topicUrl, topicPage.pageHtml)
-        val postResult = submitTopicReply(
-            postUrl = postUrl,
-            topicUrl = topicPage.topicUrl,
-            topicId = topicId,
-            cookies = topicPage.cookies,
-            formhash = topicPage.formhash,
-            content = content,
-        )
-        if (!postResult.accepted) return false
-        if (!postResult.needsVerification) return true
+        val postResult =
+            submitTopicReply(
+                postUrl = postUrl,
+                topicUrl = topicPage.topicUrl,
+                topicId = topicId,
+                cookies = topicPage.cookies,
+                formhash = topicPage.formhash,
+                content = content,
+            )
+        if (!postResult.accepted) return WriteResult.FAILED
+        if (!postResult.needsVerification) return WriteResult.SUCCESS
 
-        val verified = fetchTopicHtml(topicPage.topicUrl, topicPage.cookies, noCache = true)
-            ?.let { containsPostedContent(it, content) } == true
+        val verified =
+            fetchTopicHtml(topicPage.topicUrl, topicPage.cookies, noCache = true)
+                ?.let { containsPostedContent(it, content) } == true
         if (!verified) {
             Log.w(TAG, "postTopicReply: reply accepted but content was not visible after POST")
         }
-        return verified
+        return if (verified) WriteResult.SUCCESS else WriteResult.FAILED
     }
 
     fun postTopicSubReply(
@@ -139,75 +157,88 @@ object BangumiApiClient {
         topicId: Int,
         parentPostId: Int,
         content: String,
-    ): Boolean {
+    ): WriteResult {
         if (content.isBlank()) {
             Log.w(TAG, "postTopicSubReply: blank content")
-            return false
+            return WriteResult.FAILED
         }
 
-        val topicPage = openTopicPostSession(context, topicId) ?: return false
-        val subReplyTarget = extractSubReplyTarget(topicPage.pageHtml, topicId, parentPostId)
-            ?: run {
-                Log.w(TAG, "postTopicSubReply: missing subReply target for post $parentPostId")
-                return false
+        val topicPage =
+            when (val result = openTopicPostSession(context, topicId)) {
+                is TopicPostSessionResult.Success -> result.session
+                TopicPostSessionResult.AuthenticationRequired ->
+                    return WriteResult.AUTHENTICATION_REQUIRED
+                TopicPostSessionResult.Failed -> return WriteResult.FAILED
             }
+        val subReplyTarget =
+            extractSubReplyTarget(topicPage.pageHtml, topicId, parentPostId)
+                ?: run {
+                    Log.w(TAG, "postTopicSubReply: missing subReply target for post $parentPostId")
+                    return WriteResult.FAILED
+                }
         val lastview = extractInputValue(topicPage.pageHtml, "lastview") ?: "0"
         val postUrl = resolveReplyPostUrl(topicPage.topicUrl, topicPage.pageHtml)
-        val postResult = submitTopicSubReply(
-            postUrl = postUrl,
-            topicUrl = topicPage.topicUrl,
-            topicId = topicId,
-            cookies = topicPage.cookies,
-            formhash = topicPage.formhash,
-            lastview = lastview,
-            target = subReplyTarget,
-            content = content,
-        )
-        if (!postResult.accepted) return false
-        if (!postResult.needsVerification) return true
+        val postResult =
+            submitTopicSubReply(
+                postUrl = postUrl,
+                topicUrl = topicPage.topicUrl,
+                topicId = topicId,
+                cookies = topicPage.cookies,
+                formhash = topicPage.formhash,
+                lastview = lastview,
+                target = subReplyTarget,
+                content = content,
+            )
+        if (!postResult.accepted) return WriteResult.FAILED
+        if (!postResult.needsVerification) return WriteResult.SUCCESS
 
-        val verified = fetchTopicHtml(topicPage.topicUrl, topicPage.cookies, noCache = true)
-            ?.let { containsPostedContent(it, content) && it.contains("topic_reply_$parentPostId") } == true
+        val verified =
+            fetchTopicHtml(topicPage.topicUrl, topicPage.cookies, noCache = true)
+                ?.let {
+                    containsPostedContent(it, content) &&
+                        it.contains("topic_reply_$parentPostId")
+                } == true
         if (!verified) {
             Log.w(TAG, "postTopicSubReply: reply accepted but subreply content was not visible after POST")
         }
-        return verified
+        return if (verified) WriteResult.SUCCESS else WriteResult.FAILED
     }
 
     /**
      * Posts a comment for a daily card on a topic.
      * If the floor reply for that card does not exist yet, creates it, fetches the topic again to get its floor ID, and then posts the sub-reply.
-     * Returns true if successfully posted.
+     * Returns the write result, including an explicit expired-login state.
      */
     fun postDailyComment(
         context: Context,
         topicId: Int,
         dailyDate: String,
         tags: String,
-        content: String
-    ): Boolean {
+        content: String,
+    ): WriteResult {
         // Step 1: Fetch the topic to see if the floor already exists
-        var topic = fetchTopic(context, topicId) ?: return false
+        var topic = fetchTopic(context, topicId) ?: return WriteResult.FAILED
         var floor = findTodayFloor(topic, dailyDate, tags)
 
         if (floor == null) {
             // Step 2: Create a top-level topic reply first
-            val tagSuffix = when {
-                tags.contains("LC0") || tags.contains("LC YJ") -> "LC0 / LC YJ"
-                tags.contains("LC ES") || tags.contains("ES") -> "LC ES"
-                else -> tags
-            }
+            val tagSuffix =
+                when {
+                    tags.contains("LC0") || tags.contains("LC YJ") -> "LC0 / LC YJ"
+                    tags.contains("LC ES") || tags.contains("ES") -> "LC ES"
+                    else -> tags
+                }
             val floorHeader = "${dailyDate}清晨至次日凌晨 $tagSuffix"
-            val ok = postTopicReply(context, topicId, floorHeader)
-            if (!ok) {
+            val postResult = postTopicReply(context, topicId, floorHeader)
+            if (postResult != WriteResult.SUCCESS) {
                 Log.w(TAG, "postDailyComment: failed to post top-level floor reply")
-                return false
+                return postResult
             }
 
             // Step 3: Refetch and locate the floor
             var retries = 3
             while (retries > 0) {
-                topic = fetchTopic(context, topicId) ?: return false
+                topic = fetchTopic(context, topicId) ?: return WriteResult.FAILED
                 floor = findTodayFloor(topic, dailyDate, tags)
                 if (floor != null) break
                 retries--
@@ -216,7 +247,7 @@ object BangumiApiClient {
 
             if (floor == null) {
                 Log.w(TAG, "postDailyComment: failed to find newly created floor reply after retries")
-                return false
+                return WriteResult.FAILED
             }
         }
 
@@ -229,66 +260,92 @@ object BangumiApiClient {
         topicId: Int,
         replyId: Int,
         value: Int,
-    ): Boolean {
-        val topicPage = openTopicPostSession(context, topicId) ?: return false
+    ): WriteResult {
+        val topicPage =
+            when (val result = openTopicPostSession(context, topicId)) {
+                is TopicPostSessionResult.Success -> result.session
+                TopicPostSessionResult.AuthenticationRequired ->
+                    return WriteResult.AUTHENTICATION_REQUIRED
+                TopicPostSessionResult.Failed -> return WriteResult.FAILED
+            }
         val uri = topicPage.topicUrl.toUri()
         val domain = uri.host ?: "chii.in"
-        val likeUrl = "https://$domain/like?type=8&main_id=$topicId&id=$replyId&value=$value&gh=${topicPage.formhash}&ajax=1"
+        val likeUrl =
+            "https://$domain/like?type=8&main_id=$topicId&id=$replyId&value=$value&" +
+                "gh=${topicPage.formhash}&ajax=1"
 
-        val request = Request.Builder()
-            .url(likeUrl)
-            .header("User-Agent", LoliApiClient.MOBILE_UA)
-            .header("Cookie", topicPage.cookies)
-            .header("Accept", "application/json, text/javascript, */*; q=0.01")
-            .header("Referer", topicPage.topicUrl)
-            .header("X-Requested-With", "XMLHttpRequest")
-            .get()
-            .build()
+        val request =
+            Request.Builder()
+                .url(likeUrl)
+                .header("User-Agent", LoliApiClient.MOBILE_UA)
+                .header("Cookie", topicPage.cookies)
+                .header("Accept", "application/json, text/javascript, */*; q=0.01")
+                .header("Referer", topicPage.topicUrl)
+                .header("X-Requested-With", "XMLHttpRequest")
+                .get()
+                .build()
 
         return try {
             LoliApiClient.httpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
                     Log.w(TAG, "postLike failed with status ${response.code}")
-                    false
+                    WriteResult.FAILED
                 } else {
                     val body = response.body?.string()
                     Log.d(TAG, "postLike response: $body")
-                    response.code == 200
+                    WriteResult.SUCCESS
                 }
             }
         } catch (e: Exception) {
             Log.w(TAG, "postLike failed", e)
-            false
+            WriteResult.FAILED
         }
     }
 
     private fun openTopicPostSession(
         context: Context,
         topicId: Int,
-    ): TopicPostSession? {
+    ): TopicPostSessionResult {
         val preferredDomain = SessionManager.loadDomain(context)
         val domains = bangumiWebDomains(preferredDomain)
-        return domains.firstNotNullOfOrNull { domain ->
+        var sawCookies = false
+        var sawUnauthenticatedPage = false
+
+        domains.forEach { domain ->
             val topicUrl = "https://$domain/group/topic/$topicId"
-            val cookies = buildBangumiCookieHeader(listOf(domain) + domains.filterNot { it == domain })
+            val cookies =
+                buildBangumiCookieHeader(listOf(domain) + domains.filterNot { it == domain })
             if (cookies.isNullOrBlank()) {
                 Log.w(TAG, "openTopicPostSession: no cookies for $domain")
-                return@firstNotNullOfOrNull null
+                return@forEach
             }
+            sawCookies = true
 
-            val pageHtml = fetchTopicHtml(topicUrl, cookies) ?: return@firstNotNullOfOrNull null
+            val pageHtml = fetchTopicHtml(topicUrl, cookies) ?: return@forEach
             val formhash = extractFormhash(pageHtml)
             if (formhash.isNullOrBlank()) {
-                Log.w(TAG, "openTopicPostSession: no formhash on $domain; ${summarizeTopicPage(pageHtml)}")
-                null
-            } else {
+                Log.w(
+                    TAG,
+                    "openTopicPostSession: no formhash on $domain; ${summarizeTopicPage(pageHtml)}",
+                )
+                sawUnauthenticatedPage =
+                    sawUnauthenticatedPage || isAuthenticationRequiredPage(pageHtml)
+                return@forEach
+            }
+            return TopicPostSessionResult.Success(
                 TopicPostSession(
                     topicUrl = topicUrl,
                     cookies = cookies,
                     pageHtml = pageHtml,
                     formhash = formhash,
-                )
-            }
+                ),
+            )
+        }
+
+        return if (!sawCookies || sawUnauthenticatedPage) {
+            TopicPostSessionResult.AuthenticationRequired
+        } else {
+            TopicPostSessionResult.Failed
         }
     }
 
@@ -304,6 +361,14 @@ object BangumiApiClient {
         val pageHtml: String,
         val formhash: String,
     )
+
+    private sealed interface TopicPostSessionResult {
+        data class Success(val session: TopicPostSession) : TopicPostSessionResult
+
+        data object AuthenticationRequired : TopicPostSessionResult
+
+        data object Failed : TopicPostSessionResult
+    }
 
     private data class ReplyPostResult(
         val accepted: Boolean,
@@ -554,6 +619,18 @@ object BangumiApiClient {
         val match = attrRegex.find(tag) ?: return null
         return (1..3)
             .firstNotNullOfOrNull { index -> match.groupValues.getOrNull(index)?.takeIf { it.isNotEmpty() } }
+    }
+
+    internal fun isAuthenticationRequiredPage(pageHtml: String): Boolean {
+        val uid =
+            Regex("""CHOBITS_UID\s*=\s*(\d+)""")
+                .find(pageHtml)
+                ?.groupValues
+                ?.getOrNull(1)
+                ?.toLongOrNull()
+        if (uid == 0L) return true
+        return pageHtml.contains("/login", ignoreCase = true) &&
+            !pageHtml.contains("formhash", ignoreCase = true)
     }
 
     private fun extractSubReplyTarget(

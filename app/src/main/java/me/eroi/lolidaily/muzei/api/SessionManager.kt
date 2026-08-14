@@ -1,17 +1,31 @@
 package me.eroi.lolidaily.muzei.api
 
 import android.content.Context
-import android.util.Base64
 import androidx.core.content.edit
+import java.util.Base64
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 
 /** Mirrors the JS session data structure: { token: "JWT", expiresAt: 1234567890000 }. */
 @Serializable
 data class Session(val token: String, val expiresAt: Long) {
     val isValid: Boolean
-        get() = token.isNotBlank() && expiresAt > System.currentTimeMillis()
+        get() = isValidAt(System.currentTimeMillis())
+
+    internal fun isValidAt(now: Long): Boolean = token.isNotBlank() && expiresAt > now
+
+    internal fun shouldRefreshAt(now: Long): Boolean =
+        isValidAt(now) && expiresAt - now <= REFRESH_WINDOW_MS
+
+    companion object {
+        internal const val REFRESH_WINDOW_MS = 5L * 24L * 60L * 60L * 1000L
+    }
 }
 
 object SessionManager {
@@ -25,14 +39,43 @@ object SessionManager {
     private const val KEY_PREFER_CHINESE_ROLE = "prefer_chinese_role"
     private const val DEFAULT_BGM_DOMAIN = "chii.in"
     private val json = Json { ignoreUnknownKeys = true }
+    private val refreshLock = Any()
 
-    fun loadSession(context: Context): Session? {
+    fun loadSession(context: Context): Session? =
+        loadStoredSession(context)?.takeIf { it.isValid }
+
+    fun refreshSessionIfNeeded(context: Context): Session? =
+        synchronized(refreshLock) {
+            val current = loadStoredSession(context) ?: return@synchronized null
+            val now = System.currentTimeMillis()
+            if (!current.isValidAt(now)) return@synchronized null
+            if (!current.shouldRefreshAt(now)) return@synchronized current
+
+            when (
+                val result =
+                    LoliApiClient.refreshSession(
+                        baseUrl = LoliApiClient.getApiBaseUrl(context),
+                        token = current.token,
+                    )
+            ) {
+                is SessionRefreshResult.Success -> {
+                    saveSession(context, result.session)
+                    result.session
+                }
+                SessionRefreshResult.Unauthorized -> {
+                    clearSession(context)
+                    null
+                }
+                SessionRefreshResult.Failed -> current
+            }
+        }
+
+    private fun loadStoredSession(context: Context): Session? {
         val prefs =
             context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
         val raw = prefs.getString(KEY_LC_SESSION, null) ?: return null
         return try {
-            val s = json.decodeFromString<Session>(raw)
-            if (s.isValid) s else null
+            json.decodeFromString<Session>(raw)
         } catch (_: Exception) {
             null
         }
@@ -151,17 +194,34 @@ object SessionManager {
     }
 
     fun getUsername(session: Session): String? {
+        val payload = decodeJwtPayload(session.token) ?: return null
+        return payload["bgmUsername"]?.jsonPrimitive?.contentOrNull?.ifBlank { null }
+            ?: payload["username"]?.jsonPrimitive?.contentOrNull?.ifBlank { null }
+            ?: payload["sub"]?.jsonPrimitive?.contentOrNull?.ifBlank { null }
+    }
+
+    internal fun sessionFromJwt(token: String): Session? {
+        if (token.isBlank()) return null
+        val expiresAt =
+            decodeJwtPayload(token)
+                ?.get("expiresAt")
+                ?.jsonPrimitive
+                ?.longOrNull
+                ?: return null
+        return Session(token = token, expiresAt = expiresAt)
+    }
+
+    private fun decodeJwtPayload(token: String): JsonObject? {
         return try {
-            val parts = session.token.split('.')
+            val parts = token.split('.')
             if (parts.size < 2) return null
-            val payload = String(Base64.decode(parts[1], Base64.DEFAULT))
-            val json = org.json.JSONObject(payload)
-            json.optString("username", "").ifEmpty { null }
-                ?: json.optString("sub", "").ifEmpty { null }
+            val payload = String(Base64.getUrlDecoder().decode(parts[1]), Charsets.UTF_8)
+            json.parseToJsonElement(payload).jsonObject
         } catch (_: Exception) {
             null
         }
     }
+
     fun savePixivSessionId(
         context: Context,
         sessionId: String,
@@ -172,12 +232,14 @@ object SessionManager {
                 putString(KEY_PIXIV_SESSION_ID, sessionId)
             }
     }
+
     fun loadPixivSessionId(context: Context): String? {
         return context
             .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
             .getString(KEY_PIXIV_SESSION_ID, null)
             ?.takeIf { it.isNotBlank() }
     }
+
     fun clearPixivSession(context: Context) {
         context
             .getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)

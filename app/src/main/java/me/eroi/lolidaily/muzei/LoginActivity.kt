@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.api.Session
+import me.eroi.lolidaily.muzei.api.WebCookieStore
 import me.eroi.lolidaily.muzei.ui.theme.LoliDailyTheme
 
 class LoginActivity : ComponentActivity() {
@@ -77,12 +78,12 @@ class LoginActivity : ComponentActivity() {
     }
 
     companion object {
+        private val BANGUMI_COOKIE_DOMAINS = listOf("chii.in", "bgm.tv", "bangumi.tv")
+
         fun oauthUrl(context: android.content.Context) = "${LoliApiClient.getApiBaseUrl(context)}/api/v1/oauth/request"
 
         fun clearBgmCookies() {
-            val cm = CookieManager.getInstance()
-            cm.removeAllCookies(null)
-            cm.flush()
+            WebCookieStore.clearDomains(BANGUMI_COOKIE_DOMAINS)
         }
     }
 }

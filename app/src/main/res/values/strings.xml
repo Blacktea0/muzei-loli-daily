@@ -366,6 +366,7 @@
     <string name="comment_msg_login_to_comment">Login to post a comment</string>
     <string name="comment_post_success">Comment posted successfully</string>
     <string name="comment_post_failure">Failed to post comment, please try again later</string>
+    <string name="comment_login_expired">Bangumi login expired. Please log in again.</string>
     <string name="comment_editor_bold">Bold</string>
     <string name="comment_editor_italic">Italic</string>
     <string name="comment_editor_underline">Underline</string>

@@ -134,6 +134,7 @@ Parameters:
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/v1/oauth/request` | Interactive mock OAuth login page |
+| `GET` | `/api/v1/oauth/refresh` | Returns a fresh JWT for a bearer session; `expired-token` returns `401` |
 | `GET` | `/user/<username>?bgm-lcjs-session=<token>&expiresAt=<ts>` | OAuth callback landing page |
 | `GET` | `/api/v1/user/<username>` | LC user info (requires `Authorization: Bearer <token>`) |
 | `GET` | `/p1/users/<username>` | Bangumi user profile |

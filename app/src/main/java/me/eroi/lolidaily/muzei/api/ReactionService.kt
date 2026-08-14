@@ -255,7 +255,7 @@ object ReactionService {
         token: String,
         nextEmoji: Int?,
     ): Boolean {
-        val session = SessionManager.loadSession(context) ?: return false
+        val session = SessionManager.refreshSessionIfNeeded(context) ?: return false
         val body = "{\"react\":$emojiValue}".toRequestBody("application/json".toMediaType())
 
         val request =
@@ -268,6 +268,9 @@ object ReactionService {
 
         return try {
             val response = LoliApiClient.httpClient.newCall(request).execute()
+            if (response.code == 401) {
+                SessionManager.clearSession(context)
+            }
             val ok = response.isSuccessful
             response.close()
 

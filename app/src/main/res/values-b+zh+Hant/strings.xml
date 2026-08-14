@@ -366,6 +366,7 @@
     <string name="comment_msg_login_to_comment">登入後即可發表評論</string>
     <string name="comment_post_success">回覆成功</string>
     <string name="comment_post_failure">回覆失敗，請稍後重試</string>
+    <string name="comment_login_expired">Bangumi 登入已過期，請重新登入</string>
     <string name="comment_editor_bold">加粗</string>
     <string name="comment_editor_italic">斜體</string>
     <string name="comment_editor_underline">底線</string>

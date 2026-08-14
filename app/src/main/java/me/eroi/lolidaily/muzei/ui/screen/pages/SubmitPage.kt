@@ -610,8 +610,7 @@ fun SubmitPage(
         }
         // Character IDs from selected characters
         val characterIds = s.selectedCharacters.map { it.id.toLong() }
-        val session = SessionManager.loadSession(context)
-        if (session == null || !session.isValid) {
+        if (SessionManager.loadSession(context) == null) {
             state = state.copy(statusMessage = null, isError = true)
             Toast.makeText(context, res.getString(R.string.submit_error_login), Toast.LENGTH_SHORT)
                 .show()
@@ -630,7 +629,6 @@ fun SubmitPage(
                     tags = s.selectedTag,
                     comment = s.comment.trim(),
                     anonymous = s.anonymous,
-                    token = session.token,
                 )
             val otc =
                 submitResult.getOrElse { e ->
@@ -658,7 +656,6 @@ fun SubmitPage(
                     contentLength = s.imageBytes.size.toLong(),
                     otc = otc,
                     imageBytes = s.imageBytes,
-                    token = session.token,
                 )
             withContext(Dispatchers.Main) {
                 if (uploadResult.isSuccess) {
@@ -746,14 +743,13 @@ fun SubmitPage(
                 actions = {
                     IconButton(onClick = {
                         scope.launch(Dispatchers.IO) {
-                            val session = SessionManager.loadSession(context)
-                            if (session == null || !session.isValid) {
+                            if (SessionManager.loadSession(context) == null) {
                                 withContext(Dispatchers.Main) {
                                     Toast.makeText(context, "请先登录班固米以查看投稿队列状态。", Toast.LENGTH_SHORT).show()
                                 }
                                 return@launch
                             }
-                            val result = LoliApiClient.fetchDailyStatus(context, session.token)
+                            val result = LoliApiClient.fetchDailyStatus(context)
                             withContext(Dispatchers.Main) {
                                 result.fold(
                                     onSuccess = { status ->

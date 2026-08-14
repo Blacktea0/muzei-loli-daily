@@ -64,6 +64,9 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
             }
 
             refreshProgress.value = 0f
+            if (!refilterOnly) {
+                SessionManager.refreshSessionIfNeeded(applicationContext)
+            }
 
             var isNewDay = false
             var cards = emptyList<Card>()
@@ -514,6 +517,9 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
             context: Context,
             session: Session,
         ) = SessionManager.saveSession(context, session)
+
+        fun refreshSessionIfNeeded(context: Context): Session? =
+            SessionManager.refreshSessionIfNeeded(context)
 
         fun clearSession(context: Context) = SessionManager.clearSession(context)
 
