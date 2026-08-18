@@ -48,7 +48,7 @@ internal object BBCodeParser {
     }
 
     private val TOKEN_REGEX = Regex(
-        """(\[/?(?:url|img|quote|b|i|u|s|mask|code|color|size|right|center|left)(?:=[^]]*)?])|\((bgm\d+|musume_\d+|blake_\d+)\)""",
+        """(\[/?(?:url|user|img|quote|b|i|u|s|mask|code|color|size|right|center|left)(?:=[^]]*)?])|\((bgm\d+|musume_\d+|blake_\d+)\)""",
         RegexOption.IGNORE_CASE
     )
 
@@ -146,11 +146,18 @@ internal object BBCodeParser {
                     }
 
                     for (span in closedSpans) {
-                        applyTagStyle(span.tag, span.range.first, span.range.last + 1, textStr, spoilerRanges)
+                        applyTagStyle(
+                            span.tag,
+                            span.range.first,
+                            span.range.last + 1,
+                            textStr,
+                            bgmDomain,
+                            spoilerRanges,
+                        )
                     }
 
                     for (tag in activeTags) {
-                        applyTagStyle(tag, tag.start, textStr.length, textStr, spoilerRanges)
+                        applyTagStyle(tag, tag.start, textStr.length, textStr, bgmDomain, spoilerRanges)
                     }
 
                     highlightMentions(this, textStr, tertiaryColor)
@@ -178,6 +185,12 @@ internal object BBCodeParser {
             when (val token = tokens[i]) {
                 is Token.TagOpen -> {
                     when (token.name) {
+                        "user" -> {
+                            val tagState = TagState(token.name, token.arg, builder.length)
+                            builder.append("@")
+                            activeTags.add(tagState)
+                            i++
+                        }
                         "img" -> {
                             val nextToken = tokens.getOrNull(i + 1)
                             val afterNextToken = tokens.getOrNull(i + 2)
@@ -263,7 +276,8 @@ internal object BBCodeParser {
         start: Int,
         end: Int,
         textStr: String,
-        spoilerRanges: MutableList<IntRange>
+        bgmDomain: String,
+        spoilerRanges: MutableList<IntRange>,
     ) {
         if (start >= end) return
 
@@ -297,6 +311,24 @@ internal object BBCodeParser {
                         ),
                         start,
                         end
+                    )
+                }
+            }
+            "user" -> {
+                val userId = tag.arg?.trim()
+                if (!userId.isNullOrEmpty()) {
+                    addLink(
+                        LinkAnnotation.Url(
+                            url = "https://$bgmDomain/user/$userId",
+                            styles = TextLinkStyles(
+                                style = SpanStyle(
+                                    color = Color(0xFF1E88E5),
+                                    textDecoration = TextDecoration.Underline,
+                                ),
+                            ),
+                        ),
+                        start,
+                        end,
                     )
                 }
             }

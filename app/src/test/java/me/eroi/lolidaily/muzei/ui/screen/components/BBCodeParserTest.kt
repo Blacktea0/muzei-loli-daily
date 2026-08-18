@@ -223,6 +223,19 @@ class BBCodeParserTest {
         assertEquals(0, invalidLinks.size)
     }
 
+    @OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
+    @Test
+    fun testClickableUserLinkAnnotation() {
+        val result = BBCodeParser.parse("[user=12345]Username[/user]", "bangumi.tv", Color.Red)
+        val annotated = (result.first() as CommentBlock.Text).annotatedString
+
+        assertEquals("@Username", annotated.text)
+        val links = annotated.getLinkAnnotations(0, annotated.length)
+        assertEquals(1, links.size)
+        val link = links[0].item as androidx.compose.ui.text.LinkAnnotation.Url
+        assertEquals("https://bangumi.tv/user/12345", link.url)
+    }
+
     @Test
     fun testMentionsFormatting() {
         val result = BBCodeParser.parse("Hello @user_name world", "bangumi.tv", Color.Blue)

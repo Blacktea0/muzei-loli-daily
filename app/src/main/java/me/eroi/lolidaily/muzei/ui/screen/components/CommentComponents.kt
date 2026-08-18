@@ -1,5 +1,6 @@
 package me.eroi.lolidaily.muzei.ui.screen.components
 
+import android.content.Intent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
@@ -69,6 +70,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material.icons.filled.FormatQuote
+import androidx.core.net.toUri
 
 // ── Comment Header ───────────────────────────────────────────────
 
@@ -231,19 +233,36 @@ fun UserAvatar(
     userId: Int? = null,
     size: Int,
 ) {
+    val context = LocalContext.current
     val initial = remember(nickname) { nickname?.firstOrNull()?.toString() ?: "?" }
     val gradientColors = remember(userId) { avatarGradient(userId) }
+    val bgmDomain = remember { SessionManager.loadDomain(context) }
+    val modifier =
+        Modifier
+            .size(size.dp)
+            .clip(CircleShape)
+            .then(
+                if (userId != null) {
+                    Modifier.clickable {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, "https://$bgmDomain/user/$userId".toUri()),
+                        )
+                    }
+                } else {
+                    Modifier
+                },
+            )
 
     if (!avatarUrl.isNullOrBlank()) {
         AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current).data(avatarUrl).build(),
+            model = ImageRequest.Builder(context).data(avatarUrl).build(),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.size(size.dp).clip(CircleShape),
+            modifier = modifier,
         )
     } else {
         Box(
-            modifier = Modifier.size(size.dp).background(Brush.linearGradient(gradientColors), CircleShape),
+            modifier = modifier.background(Brush.linearGradient(gradientColors), CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Text(
