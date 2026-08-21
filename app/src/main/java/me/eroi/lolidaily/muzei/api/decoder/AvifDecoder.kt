@@ -1,7 +1,7 @@
 package me.eroi.lolidaily.muzei.api.decoder
 
-import android.graphics.ImageDecoder
-import android.os.Build
+import com.github.penfeizhou.animation.avif.AVIFDrawable
+import com.github.penfeizhou.animation.loader.ByteBufferLoader
 import me.eroi.lolidaily.muzei.util.Log
 import coil3.ImageLoader
 import coil3.asImage
@@ -15,8 +15,11 @@ import java.nio.ByteBuffer
 private const val TAG = "AvifDecoder"
 
 /**
- * Coil decoder for AVIF images using Android's ImageDecoder (API 28+).
- * AVIF decode support requires API 31+.
+ * Coil decoder for static and animated AVIF images.
+ *
+ * Android's platform decoder only guarantees AVIF support on API 34+ and renders AVIF
+ * inconsistently on some devices. AVIFDrawable decodes frames with its bundled decoder and
+ * retains the source bytes for the drawable's asynchronous playback.
  */
 class AvifDecoder(private val source: ImageSource) : Decoder {
 
@@ -24,13 +27,15 @@ class AvifDecoder(private val source: ImageSource) : Decoder {
         val bytes = source.source().use { it.readByteArray() }
         Log.d(TAG, "Decoding AVIF: ${bytes.size} bytes")
         return try {
-            val buffer = ByteBuffer.wrap(bytes)
-            val src = ImageDecoder.createSource(buffer)
-            val bitmap = ImageDecoder.decodeBitmap(src) { decoder, _, _ ->
-                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-            }
-            Log.d(TAG, "AVIF decoded: ${bitmap.width}x${bitmap.height}")
-            DecodeResult(image = bitmap.asImage(), isSampled = false)
+            val drawable =
+                AVIFDrawable(
+                    object : ByteBufferLoader() {
+                        override fun getByteBuffer(): ByteBuffer = ByteBuffer.wrap(bytes)
+                    },
+                )
+            drawable.start()
+            Log.d(TAG, "AVIF decoded: ${drawable.intrinsicWidth}x${drawable.intrinsicHeight}")
+            DecodeResult(image = drawable.asImage(), isSampled = false)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to decode AVIF", e)
             null
@@ -39,7 +44,6 @@ class AvifDecoder(private val source: ImageSource) : Decoder {
 
     class Factory : Decoder.Factory {
         override fun create(result: SourceFetchResult, options: Options, imageLoader: ImageLoader): Decoder? {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return null
             if (!isAvif(result.source.source())) return null
             return AvifDecoder(result.source)
         }

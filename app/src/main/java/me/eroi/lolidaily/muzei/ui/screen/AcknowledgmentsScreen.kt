@@ -88,6 +88,11 @@ private val libraries = listOf(
         license = "Apache-2.0",
     ),
     ThirdPartyLibrary(
+        name = "APNG4Android",
+        description = "Animated image decoder with AVIF support",
+        license = "Apache-2.0",
+    ),
+    ThirdPartyLibrary(
         name = "OkHttp",
         description = "HTTP client for Android and Java",
         license = "Apache-2.0",

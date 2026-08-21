@@ -165,7 +165,7 @@ object ImageDownloader {
     fun isFileValid(file: File): Boolean {
         if (!file.exists() || file.length() < 8) return false
         return try {
-            val header = ByteArray(4)
+            val header = ByteArray(12)
             file.inputStream().use { it.read(header) }
             val ext = file.extension.lowercase()
             when {
@@ -175,6 +175,9 @@ object ImageDownloader {
                 ext == "webp" -> header[0] == 0x52.toByte() && header[1] == 0x49.toByte()
                 ext == "gif" -> header[0] == 0x47.toByte() && header[1] == 0x49.toByte()
                 ext == "bmp" -> header[0] == 0x42.toByte() && header[1] == 0x4D.toByte()
+                ext == "avif" ->
+                    header.copyOfRange(4, 8).decodeToString() == "ftyp" &&
+                        header.copyOfRange(8, 12).decodeToString() in setOf("avif", "avis", "mif1")
                 else -> true
             }
         } catch (e: Exception) {
@@ -191,6 +194,7 @@ object ImageDownloader {
             when (subtype?.lowercase()) {
                 "png" -> "png"
                 "webp" -> "webp"
+                "avif" -> "avif"
                 "jpeg" -> "jpg"
                 else -> null
             }
@@ -204,7 +208,7 @@ object ImageDownloader {
             }
         val fromUrl =
             path?.substringAfterLast('.')?.lowercase()?.takeIf {
-                it in listOf("jpg", "jpeg", "png", "webp", "gif", "bmp")
+                it in listOf("jpg", "jpeg", "png", "webp", "gif", "bmp", "avif")
             }
         if (fromUrl != null) return fromUrl
 

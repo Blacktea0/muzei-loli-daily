@@ -482,6 +482,7 @@ fun SubmitPage(
                         when (mime) {
                             "image/png" -> "png"
                             "image/webp" -> "webp"
+                            "image/avif" -> "avif"
                             else -> "jpg"
                         }
                     }",
@@ -1672,6 +1673,7 @@ fun SubmitPage(
                                     when (mime) {
                                         "image/png" -> "png"
                                         "image/webp" -> "webp"
+                                        "image/avif" -> "avif"
                                         else -> "jpg"
                                     }
                                 }",

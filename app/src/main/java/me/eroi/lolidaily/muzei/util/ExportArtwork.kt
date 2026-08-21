@@ -26,6 +26,8 @@ fun exportArtwork(
                 "image/gif"
             } else if (preview.filename.endsWith(".webp", true)) {
                 "image/webp"
+            } else if (preview.filename.endsWith(".avif", true)) {
+                "image/avif"
             } else {
                 "image/jpeg"
             }
