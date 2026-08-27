@@ -81,6 +81,9 @@ fun TodayPage(
     onPageChanged: (Int) -> Unit = {},
     windowSizeClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
     onPageOpened: () -> Unit = {},
+    onLogin: () -> Unit = {},
+    bgmDomain: String = "chii.in",
+    onDomainChanged: (String) -> Unit = {},
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val currentDate =
@@ -110,6 +113,7 @@ fun TodayPage(
     val context = LocalContext.current
     val msgLoginToReact = stringResource(R.string.msg_login_to_react)
     var showReactionPicker by remember { mutableStateOf(false) }
+    var showLoginDomainPicker by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -270,6 +274,15 @@ fun TodayPage(
                         var isRefreshingComments by remember { mutableStateOf(false) }
                         var activeReactionReplyId by remember { mutableStateOf<Int?>(null) }
                         var pendingCommentReactions by remember { mutableStateOf<Set<Int>>(emptySet()) }
+                        val onCommentPlaceholderClick: (String) -> Unit = { initialText ->
+                            if (isLoggedIn) {
+                                commentSheetInitialText = initialText
+                                showCommentSheet = true
+                            } else {
+                                showLoginDomainPicker = true
+                            }
+                        }
+
 
                         fun updateUiFloor(
                             floor: BangumiReply?,
@@ -517,10 +530,7 @@ fun TodayPage(
                                                     onAddReaction = { showReactionPicker = true },
                                                     discussionId = discussionId,
                                                     commentsToShow = commentsToShow,
-                                                    onCommentPlaceholderClick = { text ->
-                                                        commentSheetInitialText = text
-                                                        showCommentSheet = true
-                                                    },
+                                                    onCommentPlaceholderClick = onCommentPlaceholderClick,
                                                     onCommentReactionClick = { replyId ->
                                                         activeReactionReplyId = replyId
                                                     },
@@ -567,10 +577,7 @@ fun TodayPage(
                                         item(key = "comment_input") {
                                             CommentInputPlaceholder(
                                                 isLoggedIn = isLoggedIn,
-                                                onClick = {
-                                                    commentSheetInitialText = ""
-                                                    showCommentSheet = true
-                                                }
+                                                onClick = { onCommentPlaceholderClick("") }
                                             )
                                         }
 
@@ -814,6 +821,18 @@ fun TodayPage(
                 onReactionClick(tokenForDialog, value)
                 showReactionPicker = false
             },
+        )
+    }
+
+    if (showLoginDomainPicker) {
+        DomainPickerDialog(
+            currentDomain = bgmDomain,
+            onDomainSelected = { domain ->
+                showLoginDomainPicker = false
+                onDomainChanged(domain)
+                onLogin()
+            },
+            onDismiss = { showLoginDomainPicker = false },
         )
     }
 

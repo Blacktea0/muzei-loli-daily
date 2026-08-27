@@ -173,6 +173,9 @@ fun MainScreen(
                                 onPageChanged = { todayPagerPage = it },
                                 windowSizeClass = windowSizeClass.widthSizeClass,
                                 onPageOpened = onTodayPageOpened,
+                                onLogin = onLogin,
+                                bgmDomain = bgmDomain,
+                                onDomainChanged = onDomainChanged,
                             )
                         1 ->
                             BookmarkPage(
@@ -318,6 +321,9 @@ fun MainScreen(
                             onPageChanged = { todayPagerPage = it },
                             windowSizeClass = windowSizeClass.widthSizeClass,
                             onPageOpened = onTodayPageOpened,
+                            onLogin = onLogin,
+                            bgmDomain = bgmDomain,
+                            onDomainChanged = onDomainChanged,
                         )
                     1 ->
                         BookmarkPage(
