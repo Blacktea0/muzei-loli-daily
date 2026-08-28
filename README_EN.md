@@ -26,6 +26,7 @@ Beyond the existing web client functionality, this app includes some features I 
 
 - **Image collection** — save images so they don't disappear over time
 - **Share from other apps** — supports sharing images from X, Pixiv, and BiliBili into this app, auto-filling image files and metadata for submissions
+- **Submission queue** — view images submitted from this device that have not appeared yet; published entries are removed automatically
 - **Character search** — search characters directly in the app, powered by [Bangumi Research](https://chii.ai/)
 - **Image export**
 

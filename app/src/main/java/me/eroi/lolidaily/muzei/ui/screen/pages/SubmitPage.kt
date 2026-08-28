@@ -119,7 +119,6 @@ import me.eroi.lolidaily.muzei.api.link.isShortLink
 import me.eroi.lolidaily.muzei.api.link.resolveShortLink
 import me.eroi.lolidaily.muzei.api.link.stripTrackingParams
 import me.eroi.lolidaily.muzei.model.SlimCharacter
-import me.eroi.lolidaily.muzei.model.DailySubmitStatusResponse
 import me.eroi.lolidaily.muzei.ui.screen.components.CharacterSearchBar
 import me.eroi.lolidaily.muzei.ui.screen.components.FullscreenImageViewer
 import me.eroi.lolidaily.muzei.ui.screen.components.ImagePickerDialog
@@ -131,6 +130,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import me.eroi.lolidaily.muzei.db.CharacterHistoryEntity
 import me.eroi.lolidaily.muzei.ui.screen.components.SubmitReviewBanner
 import me.eroi.lolidaily.muzei.db.DatabaseProvider
+import me.eroi.lolidaily.muzei.db.SubmissionQueueStore
 
 private const val TAG = "SubmitPage"
 private const val MAX_IMAGE_SIZE = 3L * 1024 * 1024 // 3 MB
@@ -252,6 +252,7 @@ fun SubmitPage(
     isLoggedIn: Boolean,
     onLogin: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenQueue: (String) -> Unit = {},
     bgmDomain: String = "chii.in",
     onDomainChanged: (String) -> Unit = {},
     initialSourceUrl: String? = null,
@@ -611,12 +612,16 @@ fun SubmitPage(
         }
         // Character IDs from selected characters
         val characterIds = s.selectedCharacters.map { it.id.toLong() }
-        if (SessionManager.loadSession(context) == null) {
+        val session = SessionManager.loadSession(context)
+        if (session == null) {
             state = state.copy(statusMessage = null, isError = true)
             Toast.makeText(context, res.getString(R.string.submit_error_login), Toast.LENGTH_SHORT)
                 .show()
             return
         }
+        val ownerUsername =
+            SessionManager.loadUsername(context)
+                ?: SessionManager.getUsername(session)
         state = state.copy(isSubmitting = true, statusMessage = null)
         scope.launch(Dispatchers.IO) {
             // Step 1: Submit metadata
@@ -658,6 +663,25 @@ fun SubmitPage(
                     otc = otc,
                     imageBytes = s.imageBytes,
                 )
+            val queueRecordFailed =
+                if (uploadResult.isSuccess && ownerUsername != null) {
+                    SubmissionQueueStore
+                        .recordSuccessfulSubmission(
+                            context = context,
+                            ownerUsername = ownerUsername,
+                            tag = s.selectedTag,
+                            sourceUrl = s.sourceUrl,
+                            imageBytes = s.imageBytes,
+                            imageMimeType = s.imageMimeType,
+                            artistName = s.artistName.trim(),
+                            artistUrl = s.artistUrl.trim(),
+                            characters = s.selectedCharacters,
+                            comment = s.comment.trim(),
+                            anonymous = s.anonymous,
+                        ).isFailure
+                } else {
+                    uploadResult.isSuccess
+                }
             withContext(Dispatchers.Main) {
                 if (uploadResult.isSuccess) {
                     state =
@@ -667,8 +691,14 @@ fun SubmitPage(
                         )
                     Toast.makeText(
                         context,
-                        res.getString(R.string.submit_success),
-                        Toast.LENGTH_SHORT
+                        res.getString(
+                            if (queueRecordFailed) {
+                                R.string.submit_success_queue_record_failed
+                            } else {
+                                R.string.submit_success
+                            },
+                        ),
+                        if (queueRecordFailed) Toast.LENGTH_LONG else Toast.LENGTH_SHORT,
                     ).show()
                 } else {
                     val msg = uploadResult.exceptionOrNull()?.message
@@ -742,40 +772,29 @@ fun SubmitPage(
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(R.string.title_submit)) },
                 actions = {
-                    IconButton(onClick = {
-                        scope.launch(Dispatchers.IO) {
-                            if (SessionManager.loadSession(context) == null) {
-                                withContext(Dispatchers.Main) {
-                                    Toast.makeText(context, "请先登录班固米以查看投稿队列状态。", Toast.LENGTH_SHORT).show()
+                    IconButton(
+                        onClick = {
+                            val session = SessionManager.loadSession(context)
+                            val ownerUsername =
+                                session?.let {
+                                    SessionManager.loadUsername(context)
+                                        ?: SessionManager.getUsername(it)
                                 }
-                                return@launch
+                            if (ownerUsername == null) {
+                                Toast
+                                    .makeText(
+                                        context,
+                                        res.getString(R.string.queue_login_required),
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                            } else {
+                                onOpenQueue(ownerUsername)
                             }
-                            val result = LoliApiClient.fetchDailyStatus(context)
-                            withContext(Dispatchers.Main) {
-                                result.fold(
-                                    onSuccess = { status ->
-                                        val message = buildString {
-                                            if (status.queued > 0) {
-                                                append("你在队列中有${status.queued}份投稿")
-                                            } else {
-                                                append("你在队列中没有投稿")
-                                            }
-                                            status.position?.let { pos ->
-                                                append("，下次出场在${pos}")
-                                            }
-                                        }
-                                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                                    },
-                                    onFailure = { e ->
-                                        Toast.makeText(context, e.message ?: "获取投稿队列状态失败", Toast.LENGTH_SHORT).show()
-                                    }
-                                )
-                            }
-                        }
-                    }) {
+                        },
+                    ) {
                         Icon(
                             imageVector = Icons.Outlined.Info,
-                            contentDescription = "投稿队列状态",
+                            contentDescription = stringResource(R.string.content_desc_submission_queue),
                         )
                     }
                     IconButton(onClick = { showClearDialog = true }) {

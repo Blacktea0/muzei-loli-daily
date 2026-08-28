@@ -90,10 +90,14 @@ fun MainScreen(
     var fullscreenPreview by remember { mutableStateOf<ArtworkPreview?>(null) }
     var bookmarkSearchQuery by remember { mutableStateOf("") }
     var bookmarkSelectedTag by remember { mutableStateOf<String?>(null) }
+    var submissionQueueOwner by remember { mutableStateOf<String?>(null) }
     val railState = rememberWideNavigationRailState()
 
     LaunchedEffect(selectedTab) {
         prefs.edit { putInt(KEY_LAST_TAB, selectedTab) }
+        if (selectedTab != 2) {
+            submissionQueueOwner = null
+        }
     }
 
     // NavigationRail item definitions (shared between rail and bar)
@@ -225,12 +229,23 @@ fun MainScreen(
                     SubmitPage(
                         isLoggedIn = isLoggedIn,
                         onLogin = onLogin,
+                        onOpenQueue = { submissionQueueOwner = it },
                         bgmDomain = bgmDomain,
                         onDomainChanged = onDomainChanged,
                         initialSourceUrl = initialSourceUrl,
                         windowSizeClass = windowSizeClass.widthSizeClass,
                         modifier = if (selectedTab == 2) Modifier else Modifier.size(0.dp),
                     )
+                    if (selectedTab == 2) {
+                        submissionQueueOwner?.let { ownerUsername ->
+                            SubmissionQueuePage(
+                                ownerUsername = ownerUsername,
+                                onBack = { submissionQueueOwner = null },
+                                windowSizeClass = windowSizeClass.widthSizeClass,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -373,12 +388,23 @@ fun MainScreen(
                 SubmitPage(
                     isLoggedIn = isLoggedIn,
                     onLogin = onLogin,
+                    onOpenQueue = { submissionQueueOwner = it },
                     bgmDomain = bgmDomain,
                     onDomainChanged = onDomainChanged,
                     initialSourceUrl = initialSourceUrl,
                     windowSizeClass = windowSizeClass.widthSizeClass,
                     modifier = if (selectedTab == 2) Modifier else Modifier.size(0.dp),
                 )
+                if (selectedTab == 2) {
+                    submissionQueueOwner?.let { ownerUsername ->
+                        SubmissionQueuePage(
+                            ownerUsername = ownerUsername,
+                            onBack = { submissionQueueOwner = null },
+                            windowSizeClass = windowSizeClass.widthSizeClass,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
             }
         }
     }

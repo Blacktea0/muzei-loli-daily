@@ -48,6 +48,31 @@ object DatabaseProvider {
             }
         }
 
+    val MIGRATION_3_4 =
+        object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `submission_queue` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `owner_username` TEXT NOT NULL,
+                        `queue_group` TEXT NOT NULL,
+                        `tag` TEXT NOT NULL,
+                        `source_url` TEXT NOT NULL,
+                        `source_key` TEXT NOT NULL,
+                        `artist_name` TEXT NOT NULL,
+                        `artist_url` TEXT NOT NULL,
+                        `characters` TEXT NOT NULL,
+                        `comment` TEXT NOT NULL,
+                        `anonymous` INTEGER NOT NULL,
+                        `image_file_name` TEXT NOT NULL,
+                        `submitted_at` INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
+
     fun getInstance(context: Context): AppDatabase {
         return instance
             ?: synchronized(this) {
@@ -57,7 +82,7 @@ object DatabaseProvider {
                         AppDatabase::class.java,
                         "lolidaily_artwork_cache.db",
                     )
-                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                         .build()
                         .also { instance = it }
             }

@@ -346,6 +346,22 @@
     <string name="submit_clear_title">清空表單</string>
     <string name="submit_clear_message">確定要清空所有表單內容嗎？</string>
     <string name="submit_action_cancel">取消</string>
+    <string name="submit_success_queue_record_failed">投稿已成功，但無法儲存至本機投稿佇列。</string>
+    <string name="title_submission_queue">投稿佇列</string>
+    <string name="content_desc_submission_queue">開啟投稿佇列</string>
+    <string name="queue_login_required">請先登入 Bangumi 以查看投稿佇列。</string>
+    <string name="queue_status_title">佇列狀態</string>
+    <string name="queue_local_count">本機記錄：%1$d</string>
+    <string name="queue_status_loading">正在取得伺服器狀態……</string>
+    <string name="queue_server_count">伺服器佇列：%1$d</string>
+    <string name="queue_server_position">下次出場：%1$s</string>
+    <string name="queue_local_only_notice">伺服器數量與本機記錄不同。升級前或其他裝置的投稿無法在此顯示。</string>
+    <string name="queue_status_error">無法取得伺服器佇列狀態。</string>
+    <string name="action_retry">重試</string>
+    <string name="queue_section_general">LC0 / LC YJ</string>
+    <string name="queue_section_es">LC ES</string>
+    <string name="queue_section_empty">此佇列暫無尚未出場的投稿。</string>
+    <string name="queue_image_description">待出場的 %1$s 投稿</string>
 
     <!-- Third-party accounts -->
     <string name="section_third_party_accounts">第三方帳號</string>

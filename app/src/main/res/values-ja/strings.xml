@@ -346,6 +346,22 @@
     <string name="submit_clear_title">フォームをクリア</string>
     <string name="submit_clear_message">すべてのフォーム内容をクリアしますか？</string>
     <string name="submit_action_cancel">キャンセル</string>
+    <string name="submit_success_queue_record_failed">投稿は成功しましたが、この端末の投稿キューに保存できませんでした。</string>
+    <string name="title_submission_queue">投稿キュー</string>
+    <string name="content_desc_submission_queue">投稿キューを開く</string>
+    <string name="queue_login_required">投稿キューを表示するにはBangumiにログインしてください。</string>
+    <string name="queue_status_title">キューの状態</string>
+    <string name="queue_local_count">この端末の記録：%1$d</string>
+    <string name="queue_status_loading">サーバーの状態を取得中……</string>
+    <string name="queue_server_count">サーバーのキュー：%1$d</string>
+    <string name="queue_server_position">次回の掲載予定：%1$s</string>
+    <string name="queue_local_only_notice">サーバーとこの端末の件数が異なります。更新前または他の端末からの投稿はここに表示できません。</string>
+    <string name="queue_status_error">サーバーのキュー状態を取得できませんでした。</string>
+    <string name="action_retry">再試行</string>
+    <string name="queue_section_general">LC0 / LC YJ</string>
+    <string name="queue_section_es">LC ES</string>
+    <string name="queue_section_empty">このキューには未掲載の投稿がありません。</string>
+    <string name="queue_image_description">掲載待ちの %1$s 投稿</string>
     <!-- Third-party accounts -->
     <string name="section_third_party_accounts">サードパーティアカウント</string>
     <string name="title_pixiv_account">Pixiv</string>

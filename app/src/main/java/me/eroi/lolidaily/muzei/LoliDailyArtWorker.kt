@@ -17,6 +17,7 @@ import me.eroi.lolidaily.muzei.api.Session
 import me.eroi.lolidaily.muzei.api.SessionManager
 import me.eroi.lolidaily.muzei.db.DatabaseProvider
 import me.eroi.lolidaily.muzei.db.EntityMapper
+import me.eroi.lolidaily.muzei.db.SubmissionQueueStore
 import me.eroi.lolidaily.muzei.model.Card
 import me.eroi.lolidaily.muzei.model.DailyResponse
 import me.eroi.lolidaily.muzei.util.Md5
@@ -129,6 +130,13 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
     private fun fetchAndCache(): Pair<List<Card>, String>? {
         val fetched = LoliApiClient.fetchDailyResponse(applicationContext) ?: return null
         val (cards, date) = fetched
+        try {
+            runBlocking {
+                SubmissionQueueStore.reconcilePublishedSubmissions(applicationContext, cards)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to reconcile published submissions", e)
+        }
         saveCachedResponse(cards, date)
         markFetchTime()
         saveDayChangeDate()

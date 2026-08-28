@@ -347,6 +347,22 @@
     <string name="submit_clear_title">Clear form</string>
     <string name="submit_clear_message">Are you sure you want to clear all form content?</string>
     <string name="submit_action_cancel">Cancel</string>
+    <string name="submit_success_queue_record_failed">Submission succeeded, but it could not be saved to this device\'s queue.</string>
+    <string name="title_submission_queue">Submission Queue</string>
+    <string name="content_desc_submission_queue">Open submission queue</string>
+    <string name="queue_login_required">Log in to view your submission queue.</string>
+    <string name="queue_status_title">Queue status</string>
+    <string name="queue_local_count">Saved on this device: %1$d</string>
+    <string name="queue_status_loading">Loading server status…</string>
+    <string name="queue_server_count">Server queue: %1$d</string>
+    <string name="queue_server_position">Next appearance: %1$s</string>
+    <string name="queue_local_only_notice">The server count and this device differ. Older or other-device submissions cannot be shown here.</string>
+    <string name="queue_status_error">Could not load server queue status.</string>
+    <string name="action_retry">Retry</string>
+    <string name="queue_section_general">LC0 / LC YJ</string>
+    <string name="queue_section_es">LC ES</string>
+    <string name="queue_section_empty">No pending submissions in this queue.</string>
+    <string name="queue_image_description">Pending %1$s submission</string>
     <!-- Third-party accounts -->
     <string name="section_third_party_accounts">Third-party Accounts</string>
     <string name="title_pixiv_account">Pixiv</string>
