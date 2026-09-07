@@ -69,6 +69,36 @@ class DatabaseMigrationTest {
             }
     }
 
+    @Test
+    fun migrate4To5PreservesQueuedSubmissionsWithoutMarkingThemPublished() {
+        helper.createDatabase(TEST_DATABASE, 4).apply {
+            execSQL(
+                """
+                INSERT INTO submission_queue (
+                    owner_username, queue_group, tag, source_url, source_key,
+                    artist_name, artist_url, characters, comment, anonymous,
+                    image_file_name, submitted_at
+                ) VALUES (
+                    'alice', 'general', 'LC0', 'https://example.com/source',
+                    'url:https://example.com/source', 'Artist', '', '[]', '', 0, 'queue.jpg', 5678
+                )
+                """.trimIndent(),
+            )
+            close()
+        }
+
+        helper
+            .runMigrationsAndValidate(TEST_DATABASE, 5, true, DatabaseProvider.MIGRATION_4_5)
+            .use { database ->
+                database.query("SELECT owner_username, image_file_name, published_date FROM submission_queue").use { cursor ->
+                    assertTrue(cursor.moveToFirst())
+                    assertEquals("alice", cursor.getString(0))
+                    assertEquals("queue.jpg", cursor.getString(1))
+                    assertTrue(cursor.isNull(2))
+                }
+            }
+    }
+
     private companion object {
         const val TEST_DATABASE = "room-migration-test"
     }

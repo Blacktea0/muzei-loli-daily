@@ -14,7 +14,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class SubmissionQueueStoreInstrumentedTest {
     @Test
-    fun publishedSubmissionClearsOnlyItsQueueThroughMatchedEntry() =
+    fun publishedSubmissionStaysUntilNextDailyRefresh() =
         runBlocking {
             val context = InstrumentationRegistry.getInstrumentation().targetContext
             val owner = "queue-test-${System.nanoTime()}"
@@ -43,12 +43,24 @@ class SubmissionQueueStoreInstrumentedTest {
                         tags = "LC0",
                     ),
                 ),
+                date = "2026-09-08",
             )
 
             val afterGeneralPublication = SubmissionQueueStore.observe(context, owner).first()
-            assertEquals(listOf(SUBMISSION_QUEUE_ES), afterGeneralPublication.map { it.queueGroup })
-            assertTrue(generalFiles.none { it.exists() })
+            assertEquals(3, afterGeneralPublication.size)
+            assertTrue(generalFiles.all { it.exists() })
+            assertEquals(
+                listOf("2026-09-08", "2026-09-08"),
+                afterGeneralPublication.filter { it.queueGroup == SUBMISSION_QUEUE_GENERAL }.map { it.publishedDate },
+            )
             assertTrue(esFile.exists())
+
+            // Repeated refreshes, missing cards, and stale or invalid dates must retain today's entries.
+            for (date in listOf("2026-09-08", "2026-09-07", "invalid")) {
+                SubmissionQueueStore.reconcilePublishedSubmissions(context, emptyList(), date)
+                assertEquals(3, SubmissionQueueStore.observe(context, owner).first().size)
+                assertTrue(generalFiles.all { it.exists() })
+            }
 
             SubmissionQueueStore.reconcilePublishedSubmissions(
                 context,
@@ -59,8 +71,25 @@ class SubmissionQueueStoreInstrumentedTest {
                         tags = "LC ES",
                     ),
                 ),
+                date = "2026-09-09",
             )
 
+            val afterNextRefresh = SubmissionQueueStore.observe(context, owner).first()
+            assertEquals(listOf(SUBMISSION_QUEUE_ES), afterNextRefresh.map { it.queueGroup })
+            assertTrue(generalFiles.none { it.exists() })
+            assertTrue(esFile.exists())
+
+            // A same-day match must not change the remembered publication date.
+            SubmissionQueueStore.reconcilePublishedSubmissions(
+                context,
+                listOf(Card(imgUrl = "", sourceUrl = "https://example.com/es-1", tags = "LC ES")),
+                date = "2026-09-09",
+            )
+            assertEquals(1, SubmissionQueueStore.observe(context, owner).first().size)
+            assertTrue(esFile.exists())
+
+            // Also clean up after skipped days, even if no matching cards are returned anymore.
+            SubmissionQueueStore.reconcilePublishedSubmissions(context, emptyList(), date = "2026-09-11")
             assertTrue(SubmissionQueueStore.observe(context, owner).first().isEmpty())
             assertFalse(esFile.exists())
         }

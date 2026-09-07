@@ -20,6 +20,7 @@ data class SubmissionQueueEntity(
     @ColumnInfo(name = "anonymous") val anonymous: Boolean = false,
     @ColumnInfo(name = "image_file_name") val imageFileName: String,
     @ColumnInfo(name = "submitted_at") val submittedAt: Long,
+    @ColumnInfo(name = "published_date") val publishedDate: String? = null,
 )
 
 internal const val SUBMISSION_QUEUE_GENERAL = "general"

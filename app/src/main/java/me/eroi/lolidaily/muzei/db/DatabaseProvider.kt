@@ -73,6 +73,13 @@ object DatabaseProvider {
             }
         }
 
+    val MIGRATION_4_5 =
+        object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE submission_queue ADD COLUMN published_date TEXT")
+            }
+        }
+
     fun getInstance(context: Context): AppDatabase {
         return instance
             ?: synchronized(this) {
@@ -82,7 +89,7 @@ object DatabaseProvider {
                         AppDatabase::class.java,
                         "lolidaily_artwork_cache.db",
                     )
-                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                         .build()
                         .also { instance = it }
             }

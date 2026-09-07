@@ -19,25 +19,21 @@ interface SubmissionQueueDao {
     @Query("SELECT * FROM submission_queue ORDER BY id ASC")
     suspend fun getAll(): List<SubmissionQueueEntity>
 
-    @Query(
-        "SELECT * FROM submission_queue " +
-            "WHERE owner_username = :ownerUsername AND queue_group = :queueGroup " +
-            "AND id <= :cutoffId ORDER BY id ASC",
-    )
-    suspend fun getThrough(
-        ownerUsername: String,
-        queueGroup: String,
-        cutoffId: Long,
-    ): List<SubmissionQueueEntity>
+    @Query("SELECT * FROM submission_queue WHERE published_date < :date ORDER BY id ASC")
+    suspend fun getPublishedBefore(date: String): List<SubmissionQueueEntity>
+
+    @Query("DELETE FROM submission_queue WHERE published_date < :date")
+    suspend fun deletePublishedBefore(date: String)
 
     @Query(
-        "DELETE FROM submission_queue " +
+        "UPDATE submission_queue SET published_date = :date " +
             "WHERE owner_username = :ownerUsername AND queue_group = :queueGroup " +
-            "AND id <= :cutoffId",
+            "AND id <= :cutoffId AND published_date IS NULL",
     )
-    suspend fun deleteThrough(
+    suspend fun markPublishedThrough(
         ownerUsername: String,
         queueGroup: String,
         cutoffId: Long,
+        date: String,
     )
 }

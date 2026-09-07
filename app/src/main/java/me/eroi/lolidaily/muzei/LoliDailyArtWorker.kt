@@ -132,7 +132,7 @@ class LoliDailyArtWorker(context: Context, params: WorkerParameters) : Worker(co
         val (cards, date) = fetched
         try {
             runBlocking {
-                SubmissionQueueStore.reconcilePublishedSubmissions(applicationContext, cards)
+                SubmissionQueueStore.reconcilePublishedSubmissions(applicationContext, cards, date)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to reconcile published submissions", e)

@@ -16,7 +16,7 @@ import androidx.room.RoomDatabase
         CharacterNameCacheEntity::class,
         SubmissionQueueEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {

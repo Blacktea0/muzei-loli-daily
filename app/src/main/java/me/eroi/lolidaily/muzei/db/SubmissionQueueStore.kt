@@ -3,15 +3,16 @@ package me.eroi.lolidaily.muzei.db
 import android.content.Context
 import androidx.room.withTransaction
 import java.io.File
+import java.time.LocalDate
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
-import me.eroi.lolidaily.muzei.api.link.SourceLinkParserRegistry
-import me.eroi.lolidaily.muzei.api.link.stripTrackingParams
 import kotlinx.serialization.builtins.ListSerializer
 import me.eroi.lolidaily.muzei.api.LoliApiClient
-import me.eroi.lolidaily.muzei.model.SlimCharacter
+import me.eroi.lolidaily.muzei.api.link.SourceLinkParserRegistry
+import me.eroi.lolidaily.muzei.api.link.stripTrackingParams
 import me.eroi.lolidaily.muzei.model.Card
+import me.eroi.lolidaily.muzei.model.SlimCharacter
 import me.eroi.lolidaily.muzei.util.Log
 
 private const val TAG = "SubmissionQueueStore"
@@ -163,8 +164,10 @@ object SubmissionQueueStore {
     suspend fun reconcilePublishedSubmissions(
         context: Context,
         cards: List<Card>,
+        date: String,
     ) {
-        if (cards.isEmpty()) return
+        // Use the API's daily rotation date, not the device clock or refresh time.
+        val publicationDate = runCatching { LocalDate.parse(date).toString() }.getOrNull() ?: return
 
         val published = HashSet<PublishedSubmissionKey>(cards.size)
         for (card in cards) {
@@ -172,22 +175,19 @@ object SubmissionQueueStore {
             if (card.sourceUrl.isBlank()) continue
             published += PublishedSubmissionKey(queueGroup, submissionSourceKey(card.sourceUrl))
         }
-        if (published.isEmpty()) return
 
         val applicationContext = context.applicationContext
         val database = DatabaseProvider.getInstance(applicationContext)
         val dao = database.submissionQueueDao()
         val removed =
             database.withTransaction {
+                val expired = dao.getPublishedBefore(publicationDate)
+                dao.deletePublishedBefore(publicationDate)
                 val cutoffs = findSubmissionQueueCutoffs(dao.getAll(), published)
-                if (cutoffs.isEmpty()) return@withTransaction emptyList()
-
-                buildList {
-                    for ((scope, cutoffId) in cutoffs) {
-                        addAll(dao.getThrough(scope.ownerUsername, scope.queueGroup, cutoffId))
-                        dao.deleteThrough(scope.ownerUsername, scope.queueGroup, cutoffId)
-                    }
+                for ((scope, cutoffId) in cutoffs) {
+                    dao.markPublishedThrough(scope.ownerUsername, scope.queueGroup, cutoffId, publicationDate)
                 }
+                expired
             }
 
         for (entry in removed) {
