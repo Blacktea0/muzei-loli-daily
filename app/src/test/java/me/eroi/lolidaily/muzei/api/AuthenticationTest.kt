@@ -115,6 +115,35 @@ class AuthenticationTest {
             ),
         )
     }
+    @Test
+    fun debugOverrideTopicIdReturnsDefaultWhenEnabledWithoutValue() {
+        val topicId = LoliApiClient.resolveDebugOverrideTopicId(enabled = true, overrideValue = null)
+        assertEquals(LoliApiClient.DEFAULT_TOPIC_ID.toInt(), topicId)
+    }
+
+    @Test
+    fun debugOverrideTopicIdReturnsDefaultWhenEnabledWithBlankValue() {
+        val topicId = LoliApiClient.resolveDebugOverrideTopicId(enabled = true, overrideValue = "   ")
+        assertEquals(LoliApiClient.DEFAULT_TOPIC_ID.toInt(), topicId)
+    }
+
+    @Test
+    fun debugOverrideTopicIdReturnsParsedValueWhenCustomValueProvided() {
+        val topicId = LoliApiClient.resolveDebugOverrideTopicId(enabled = true, overrideValue = "443086")
+        assertEquals(443086, topicId)
+    }
+
+    @Test
+    fun debugOverrideTopicIdReturnsNullWhenDisabled() {
+        val topicId = LoliApiClient.resolveDebugOverrideTopicId(enabled = false, overrideValue = "443086")
+        assertNull(topicId)
+    }
+
+    @Test
+    fun debugOverrideTopicIdReturnsNullWhenCustomValueInvalid() {
+        val topicId = LoliApiClient.resolveDebugOverrideTopicId(enabled = true, overrideValue = "not_a_number")
+        assertNull(topicId)
+    }
 
     private fun jwt(
         expiresAt: Long,

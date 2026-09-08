@@ -7,6 +7,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import me.eroi.lolidaily.muzei.LoliDailyArtWorker
 import me.eroi.lolidaily.muzei.model.BangumiReply
+import me.eroi.lolidaily.muzei.model.BangumiTopic
 import me.eroi.lolidaily.muzei.model.DailyReactResponse
 import me.eroi.lolidaily.muzei.model.DailyResponse
 import me.eroi.lolidaily.muzei.model.Discussion
@@ -129,33 +130,35 @@ object ReactionService {
 
             // Fetch and cache topic floors per discussion ID
             val topicFloors = mutableMapOf<String, BangumiReply?>()
-            val seenTopicIds = mutableSetOf<Int>()
+            val topicCache = mutableMapOf<Int, BangumiTopic?>()
+            val overrideTopicId = LoliApiClient.getDebugOverrideTopicId(context)
             reactData.discussions.forEachIndexed { idx, discussion ->
                 if (idx >= daily.cards.size) return@forEachIndexed
                 val rawId = discussion.id
                 if (rawId == "0") return@forEachIndexed
 
-                val (topicId, _) = BangumiApiClient.parseDiscussionId(rawId)
+                val parsedTopicId = BangumiApiClient.parseDiscussionId(rawId).first
+                val topicId = overrideTopicId ?: parsedTopicId
                 if (topicId == 0) return@forEachIndexed
 
-                if (seenTopicIds.add(topicId)) {
-                    try {
-                        val topic = BangumiApiClient.fetchTopic(context, topicId)
-                        if (topic != null) {
-                            topicFloors[rawId] =
-                                BangumiApiClient.findTodayFloor(
-                                    topic,
-                                    daily.date,
-                                    daily.cards[idx].tags,
-                                )
-                        } else {
-                            Log.w(TAG, "Topic $topicId returned null")
-                            topicFloors[rawId] = null
-                        }
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Failed to fetch topic $topicId", e)
+                try {
+                    val topic = topicCache.getOrPut(topicId) {
+                        BangumiApiClient.fetchTopic(context, topicId)
+                    }
+                    if (topic != null) {
+                        topicFloors[rawId] =
+                            BangumiApiClient.findTodayFloor(
+                                topic,
+                                daily.date,
+                                daily.cards[idx].tags,
+                            )
+                    } else {
+                        Log.w(TAG, "Topic $topicId returned null")
                         topicFloors[rawId] = null
                     }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to fetch topic $topicId", e)
+                    topicFloors[rawId] = null
                 }
             }
             prefs

@@ -54,6 +54,7 @@ object LoliApiClient {
 
     const val KEY_DEBUG_OVERRIDE_TOPIC_ID_ENABLED = "debug_override_topic_id_enabled"
     const val KEY_DEBUG_OVERRIDE_TOPIC_ID = "debug_override_topic_id"
+    const val DEFAULT_TOPIC_ID = "465120"
 
     val ALL_LC_TAGS =
         listOf(
@@ -144,13 +145,23 @@ object LoliApiClient {
         return SessionManager.loadBadge(context)
     }
 
-    fun getDebugOverrideTopicId(context: Context): Int? {
-        val prefs = context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
-        if (prefs.getBoolean(KEY_DEBUG_OVERRIDE_TOPIC_ID_ENABLED, false)) {
-            val value = prefs.getString(KEY_DEBUG_OVERRIDE_TOPIC_ID, null)
-            return value?.toIntOrNull()
+    internal fun resolveDebugOverrideTopicId(
+        enabled: Boolean,
+        overrideValue: String?,
+    ): Int? {
+        if (enabled) {
+            val value = overrideValue?.takeIf { it.isNotBlank() } ?: DEFAULT_TOPIC_ID
+            return value.toIntOrNull()
         }
         return null
+    }
+
+    fun getDebugOverrideTopicId(context: Context): Int? {
+        val prefs = context.getSharedPreferences(LoliDailyArtWorker.PREFS_NAME, Context.MODE_PRIVATE)
+        return resolveDebugOverrideTopicId(
+            enabled = prefs.getBoolean(KEY_DEBUG_OVERRIDE_TOPIC_ID_ENABLED, false),
+            overrideValue = prefs.getString(KEY_DEBUG_OVERRIDE_TOPIC_ID, null),
+        )
     }
 
     fun apiUrl(context: Context): String {

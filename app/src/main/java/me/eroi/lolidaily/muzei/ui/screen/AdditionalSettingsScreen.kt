@@ -402,7 +402,8 @@ private fun ApiCombinedCard(onViewLogs: () -> Unit) {
     }
     var overrideTopicId by remember {
         mutableStateOf(
-            prefs.getString(LoliApiClient.KEY_DEBUG_OVERRIDE_TOPIC_ID, "465120") ?: "465120"
+            prefs.getString(LoliApiClient.KEY_DEBUG_OVERRIDE_TOPIC_ID, null)
+                ?: LoliApiClient.DEFAULT_TOPIC_ID,
         )
     }
 
@@ -460,7 +461,13 @@ private fun ApiCombinedCard(onViewLogs: () -> Unit) {
             checked = overrideTopicIdEnabled,
             onCheckedChange = { checked ->
                 overrideTopicIdEnabled = checked
-                prefs.edit { putBoolean(LoliApiClient.KEY_DEBUG_OVERRIDE_TOPIC_ID_ENABLED, checked) }
+                val shouldPersistDefault = checked && !prefs.contains(LoliApiClient.KEY_DEBUG_OVERRIDE_TOPIC_ID)
+                prefs.edit {
+                    putBoolean(LoliApiClient.KEY_DEBUG_OVERRIDE_TOPIC_ID_ENABLED, checked)
+                    if (shouldPersistDefault) {
+                        putString(LoliApiClient.KEY_DEBUG_OVERRIDE_TOPIC_ID, overrideTopicId)
+                    }
+                }
             },
             onClick = { showApiTopicIdDialog = true },
         )
@@ -522,8 +529,9 @@ private fun ApiCombinedCard(onViewLogs: () -> Unit) {
             currentTopicId = overrideTopicId,
             onDismiss = { showApiTopicIdDialog = false },
             onTopicIdSelected = { topicId ->
-                overrideTopicId = topicId
-                prefs.edit { putString(LoliApiClient.KEY_DEBUG_OVERRIDE_TOPIC_ID, topicId) }
+                val cleanedId = topicId.trim().ifBlank { LoliApiClient.DEFAULT_TOPIC_ID }
+                overrideTopicId = cleanedId
+                prefs.edit { putString(LoliApiClient.KEY_DEBUG_OVERRIDE_TOPIC_ID, cleanedId) }
                 showApiTopicIdDialog = false
                 refreshKey++
             },
