@@ -120,6 +120,7 @@ import me.eroi.lolidaily.muzei.api.link.resolveShortLink
 import me.eroi.lolidaily.muzei.api.link.stripTrackingParams
 import me.eroi.lolidaily.muzei.model.SlimCharacter
 import me.eroi.lolidaily.muzei.ui.screen.components.CharacterSearchBar
+import me.eroi.lolidaily.muzei.ui.screen.components.CharacterUrlDialog
 import me.eroi.lolidaily.muzei.ui.screen.components.FullscreenImageViewer
 import me.eroi.lolidaily.muzei.ui.screen.components.ImagePickerDialog
 import me.eroi.lolidaily.muzei.ui.screen.components.SubmitTipBanner
@@ -738,6 +739,7 @@ fun SubmitPage(
     }
     // ── Character search ──
     val characterSearchBarState = rememberCharacterSearchBarState()
+    var showCharacterUrlDialog by remember { mutableStateOf(false) }
     val historyDao = remember { DatabaseProvider.getInstance(context).characterHistoryDao() }
     var characterHistory by remember { mutableStateOf<List<CharacterHistoryEntity>>(emptyList()) }
 
@@ -765,6 +767,20 @@ fun SubmitPage(
             historyDao.delete(characterId)
             characterHistory = historyDao.getAll()
         }
+    }
+
+    fun selectCharacter(character: SlimCharacter) {
+        if (state.selectedCharacters.any { it.id == character.id }) return
+        state = state.copy(selectedCharacters = state.selectedCharacters + character)
+        saveCharacterToHistory(character)
+    }
+
+    if (showCharacterUrlDialog) {
+        CharacterUrlDialog(
+            selectedCharacters = state.selectedCharacters,
+            onCharacterSelected = { selectCharacter(it) },
+            onDismiss = { showCharacterUrlDialog = false },
+        )
     }
 
     Scaffold(
@@ -811,10 +827,7 @@ fun SubmitPage(
             )
             CharacterSearchBar(
                 selectedCharacters = state.selectedCharacters,
-                onCharacterSelected = { character ->
-                    state = state.copy(selectedCharacters = state.selectedCharacters + character)
-                    saveCharacterToHistory(character)
-                },
+                onCharacterSelected = { selectCharacter(it) },
                 recentCharacters = characterHistory,
                 onRemoveHistory = { removeCharacterHistory(it) },
                 state = characterSearchBarState,
@@ -1360,21 +1373,32 @@ fun SubmitPage(
                     }
                 }
 
-                Button(
-                    onClick = { scope.launch { characterSearchBarState.animateToExpanded() } },
-                    enabled = !state.isSubmitting,
-                    contentPadding = ButtonDefaults.contentPaddingFor(
-                        ButtonDefaults.MinHeight,
-                        hasStartIcon = true
-                    ),
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Icon(
-                        Icons.Filled.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(ButtonDefaults.iconSizeFor(ButtonDefaults.MinHeight)),
-                    )
-                    Spacer(Modifier.size(ButtonDefaults.iconSpacingFor(ButtonDefaults.MinHeight)))
-                    Text(stringResource(R.string.submit_action_add_character))
+                    Button(
+                        onClick = { scope.launch { characterSearchBarState.animateToExpanded() } },
+                        enabled = !state.isSubmitting,
+                        contentPadding = ButtonDefaults.contentPaddingFor(
+                            ButtonDefaults.MinHeight,
+                            hasStartIcon = true,
+                        ),
+                    ) {
+                        Icon(
+                            Icons.Filled.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(ButtonDefaults.iconSizeFor(ButtonDefaults.MinHeight)),
+                        )
+                        Spacer(Modifier.size(ButtonDefaults.iconSpacingFor(ButtonDefaults.MinHeight)))
+                        Text(stringResource(R.string.submit_action_add_character))
+                    }
+                    TextButton(
+                        onClick = { showCharacterUrlDialog = true },
+                        enabled = !state.isSubmitting,
+                    ) {
+                        Text(stringResource(R.string.submit_action_manual_character))
+                    }
                 }
 
                 Text(

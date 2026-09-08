@@ -393,4 +393,11 @@
     <string name="comment_editor_emoji">絵文字</string>
     <string name="comment_editor_expand">展開</string>
     <string name="comment_editor_collapse">折りたたむ</string>
+    <string name="submit_action_manual_character">手動入力</string>
+    <string name="submit_character_url_title">キャラクターを手動で追加</string>
+    <string name="submit_character_url_label">Bangumi キャラクターの URL または ID</string>
+    <string name="submit_character_url_hint">複数の URL や ID はスペースで区切って入力できます。bgm.tv、bangumi.tv、chii.in に対応しています。</string>
+    <string name="submit_character_url_invalid">有効な Bangumi キャラクターの URL または正の整数 ID をスペースで区切って入力してください。</string>
+    <string name="submit_character_already_added">入力したキャラクターはすべて追加済みです。</string>
+    <string name="submit_character_fetch_failed">一部のキャラクターを取得できませんでした。失敗した ID のみ入力欄に残しています。確認して再試行してください。</string>
 </resources>

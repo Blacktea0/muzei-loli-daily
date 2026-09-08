@@ -394,4 +394,11 @@
     <string name="comment_editor_emoji">Emoji</string>
     <string name="comment_editor_expand">Expand</string>
     <string name="comment_editor_collapse">Collapse</string>
+    <string name="submit_action_manual_character">Manual input</string>
+    <string name="submit_character_url_title">Add characters manually</string>
+    <string name="submit_character_url_label">Bangumi character URLs or IDs</string>
+    <string name="submit_character_url_hint">Separate multiple URLs or IDs with spaces. Supports bgm.tv, bangumi.tv and chii.in.</string>
+    <string name="submit_character_url_invalid">Use valid Bangumi character URLs or positive numeric IDs, separated by spaces.</string>
+    <string name="submit_character_already_added">All entered characters have already been added.</string>
+    <string name="submit_character_fetch_failed">Could not load some characters. Only failed IDs remain below; check them and retry.</string>
 </resources>

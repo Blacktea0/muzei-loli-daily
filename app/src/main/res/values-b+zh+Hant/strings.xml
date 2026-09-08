@@ -394,4 +394,11 @@
     <string name="comment_editor_emoji">表情</string>
     <string name="comment_editor_expand">展開</string>
     <string name="comment_editor_collapse">收起</string>
+    <string name="submit_action_manual_character">手動輸入</string>
+    <string name="submit_character_url_title">手動新增角色</string>
+    <string name="submit_character_url_label">Bangumi 角色 URL 或 ID</string>
+    <string name="submit_character_url_hint">多個 URL 或 ID 以空格分隔，可混合輸入。支援 bgm.tv、bangumi.tv 和 chii.in。</string>
+    <string name="submit_character_url_invalid">請輸入有效的 Bangumi 角色 URL 或正整數 ID，多個角色以空格分隔。</string>
+    <string name="submit_character_already_added">輸入的角色均已新增。</string>
+    <string name="submit_character_fetch_failed">部分角色取得失敗，輸入框中僅保留失敗的 ID，請檢查後重試。</string>
 </resources>
