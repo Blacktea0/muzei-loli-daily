@@ -639,5 +639,6 @@ fun cleanCommentForQuote(content: String): String {
     clean = clean.replace(Regex("""\[img][\s\S]*?\[/img]""", RegexOption.IGNORE_CASE), "")
     clean = clean.replace(Regex("""\[mask][\s\S]*?\[/mask]""", RegexOption.IGNORE_CASE), "")
     clean = clean.replace(Regex("""\[/?[a-zA-Z]+(?:=[^]]*)?]"""), "")
+    clean = clean.replace(SmileyMapper.SMILEY_REGEX, "")
     return clean.trim()
 }

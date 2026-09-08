@@ -2,13 +2,15 @@ package me.eroi.lolidaily.muzei.ui.screen.components
 
 import android.content.Intent
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -21,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,9 +31,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,18 +43,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import coil3.compose.AsyncImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
@@ -61,16 +69,9 @@ import coil3.toBitmap
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.SessionManager
 import me.eroi.lolidaily.muzei.model.BangumiSubReply
-import me.eroi.lolidaily.muzei.util.CommentBlock
 import me.eroi.lolidaily.muzei.util.BBCodeParser
+import me.eroi.lolidaily.muzei.util.CommentBlock
 import kotlin.math.roundToInt
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.material.icons.filled.FormatQuote
-import androidx.core.net.toUri
 
 // ── Comment Header ───────────────────────────────────────────────
 
@@ -130,7 +131,6 @@ fun EmptyComments() {
     }
 }
 
-
 // ── Floor Comment Entry (sub-reply rendered as top-level) ────────
 
 @Composable
@@ -139,7 +139,7 @@ fun FloorCommentEntry(
     isLoggedIn: Boolean = false,
     onReplyClick: (() -> Unit)? = null,
     onReactionClick: (() -> Unit)? = null,
-    onReactionChipClick: ((Int) -> Unit)? = null
+    onReactionChipClick: ((Int) -> Unit)? = null,
 ) {
     if (reply.state != 0) return
 
@@ -173,7 +173,7 @@ fun FloorCommentEntry(
                 Spacer(Modifier.width(8.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
                         text = formatTimestamp(reply.createdAt, context),
@@ -185,9 +185,10 @@ fun FloorCommentEntry(
                             imageVector = Icons.AutoMirrored.Filled.Reply,
                             contentDescription = stringResource(R.string.comment_action_reply),
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .size(18.dp)
-                                .clickable { onReplyClick() }
+                            modifier =
+                                Modifier
+                                    .size(18.dp)
+                                    .clickable { onReplyClick() },
                         )
                     }
                     if (isLoggedIn && onReactionClick != null) {
@@ -221,8 +222,6 @@ fun FloorCommentEntry(
         }
     }
 }
-
-
 
 // ── User Avatar ──────────────────────────────────────────────────
 
@@ -277,8 +276,6 @@ fun UserAvatar(
 
 // ── Helpers ──────────────────────────────────────────────────────
 
-
-
 @Composable
 fun CommentText(
     rawContent: String,
@@ -303,11 +300,11 @@ private fun RenderBlocks(
     blocks: List<CommentBlock>,
     style: TextStyle,
     color: Color,
-    lineHeight: TextUnit
+    lineHeight: TextUnit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     ) {
         for (block in blocks) {
             when (block) {
@@ -316,58 +313,60 @@ private fun RenderBlocks(
                         Text(
                             text = block.annotatedString,
                             inlineContent = block.inlineContent,
-                            style = style.copy(lineHeight = lineHeight),
+                            style = commentTextStyle(style, lineHeight, block.inlineContent.isNotEmpty()),
                             color = color,
                         )
                     } else {
                         var revealedRanges by remember { mutableStateOf(emptySet<IntRange>()) }
                         var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
 
-                        val displayedText = remember(block.annotatedString, revealedRanges) {
-                            buildAnnotatedString {
-                                append(block.annotatedString)
+                        val displayedText =
+                            remember(block.annotatedString, revealedRanges) {
+                                buildAnnotatedString {
+                                    append(block.annotatedString)
 
-                                for (range in block.spoilerRanges) {
-                                    if (range in revealedRanges) {
-                                        addStyle(
-                                            SpanStyle(
-                                                background = Color.Gray.copy(alpha = 0.2f),
-                                                color = Color.Unspecified
-                                            ),
-                                            range.first,
-                                            range.last + 1
-                                        )
-                                    } else {
-                                        addStyle(
-                                            SpanStyle(
-                                                background = Color.Gray,
-                                                color = Color.Gray
-                                            ),
-                                            range.first,
-                                            range.last + 1
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        Text(
-                            text = displayedText,
-                            inlineContent = block.inlineContent,
-                            style = style.copy(lineHeight = lineHeight),
-                            color = color,
-                            onTextLayout = { textLayoutResult = it },
-                            modifier = Modifier.pointerInput(Unit) {
-                                detectTapGestures { offset ->
-                                    textLayoutResult?.let { layoutResult ->
-                                        val position = layoutResult.getOffsetForPosition(offset)
-                                        val clickedSpoiler = block.spoilerRanges.find { position in it }
-                                        if (clickedSpoiler != null) {
-                                            revealedRanges = revealedRanges + setOf(clickedSpoiler)
+                                    for (range in block.spoilerRanges) {
+                                        if (range in revealedRanges) {
+                                            addStyle(
+                                                SpanStyle(
+                                                    background = Color.Gray.copy(alpha = 0.2f),
+                                                    color = Color.Unspecified,
+                                                ),
+                                                range.first,
+                                                range.last + 1,
+                                            )
+                                        } else {
+                                            addStyle(
+                                                SpanStyle(
+                                                    background = Color.Gray,
+                                                    color = Color.Gray,
+                                                ),
+                                                range.first,
+                                                range.last + 1,
+                                            )
                                         }
                                     }
                                 }
                             }
+
+                        Text(
+                            text = displayedText,
+                            inlineContent = block.inlineContent,
+                            style = commentTextStyle(style, lineHeight, block.inlineContent.isNotEmpty()),
+                            color = color,
+                            onTextLayout = { textLayoutResult = it },
+                            modifier =
+                                Modifier.pointerInput(Unit) {
+                                    detectTapGestures { offset ->
+                                        textLayoutResult?.let { layoutResult ->
+                                            val position = layoutResult.getOffsetForPosition(offset)
+                                            val clickedSpoiler = block.spoilerRanges.find { position in it }
+                                            if (clickedSpoiler != null) {
+                                                revealedRanges = revealedRanges + setOf(clickedSpoiler)
+                                            }
+                                        }
+                                    }
+                                },
                         )
                     }
                 }
@@ -382,11 +381,21 @@ private fun RenderBlocks(
     }
 }
 
+internal fun commentTextStyle(
+    style: TextStyle,
+    lineHeight: TextUnit,
+    hasInlineContent: Boolean,
+): TextStyle =
+    style.copy(
+        // Let text layout reserve each smiley's full height, including on wrapped/middle lines.
+        lineHeight = if (hasInlineContent) TextUnit.Unspecified else lineHeight,
+    )
+
 @Composable
 private fun RenderQuoteBlock(
     blocks: List<CommentBlock>,
     style: TextStyle,
-    lineHeight: TextUnit
+    lineHeight: TextUnit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
     Surface(
@@ -410,12 +419,13 @@ private fun RenderQuoteBlock(
             Box(modifier = Modifier.weight(1f)) {
                 RenderBlocks(
                     blocks = blocks,
-                    style = style.copy(
-                        fontSize = (style.fontSize.value * 0.95f).sp,
-                        fontStyle = FontStyle.Italic
-                    ),
+                    style =
+                        style.copy(
+                            fontSize = (style.fontSize.value * 0.95f).sp,
+                            fontStyle = FontStyle.Italic,
+                        ),
                     color = colorScheme.onSurfaceVariant,
-                    lineHeight = lineHeight * 0.95f
+                    lineHeight = lineHeight * 0.95f,
                 )
             }
         }
@@ -439,7 +449,7 @@ private fun NormalBlockImage(url: String) {
                 .clip(RoundedCornerShape(8.dp))
                 .clickable { showFullscreenViewer = true },
         contentScale = ContentScale.Fit,
-        alignment = Alignment.Center
+        alignment = Alignment.Center,
     )
 
     if (showFullscreenViewer) {
@@ -450,8 +460,6 @@ private fun NormalBlockImage(url: String) {
         )
     }
 }
-
-
 
 @Composable
 internal fun PixelInlineImage(url: String) {
@@ -480,7 +488,7 @@ internal fun PixelInlineImage(url: String) {
         }
     }
 
-    Canvas(modifier = Modifier.size(20.dp)) {
+    Canvas(modifier = Modifier.fillMaxSize()) {
         imageBitmap.value?.let { bmp ->
             drawImage(
                 image = bmp,
@@ -503,7 +511,7 @@ internal fun NormalInlineImage(url: String) {
         contentDescription = null,
         modifier =
             Modifier
-                .size(60.dp)
+                .fillMaxSize()
                 .clickable { showFullscreenViewer = true },
         contentScale = ContentScale.Fit,
     )
@@ -564,6 +572,3 @@ private fun avatarGradient(userId: Int?): List<Color> {
         }
     return avatarGradients[index]
 }
-
-
-
