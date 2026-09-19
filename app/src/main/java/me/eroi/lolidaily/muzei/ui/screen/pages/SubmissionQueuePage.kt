@@ -8,22 +8,24 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -32,9 +34,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
@@ -43,16 +49,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
@@ -60,6 +67,7 @@ import coil3.request.ImageRequest
 import java.text.DateFormat
 import java.util.Date
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.api.LoliApiClient
@@ -88,12 +96,17 @@ fun SubmissionQueuePage(
     val esEntries = remember(entries) { entries.filter { it.queueGroup == SUBMISSION_QUEUE_ES } }
     val generalQueueTitle = stringResource(R.string.queue_section_general)
     val esQueueTitle = stringResource(R.string.queue_section_es)
+    val removeErrorMessage = stringResource(R.string.msg_remove_submission_failed)
 
     var status by remember { mutableStateOf<DailySubmitStatusResponse?>(null) }
     var statusError by remember { mutableStateOf(false) }
     var isStatusLoading by remember { mutableStateOf(true) }
     var statusRefreshKey by remember { mutableIntStateOf(0) }
     var fullscreenEntry by remember { mutableStateOf<SubmissionQueueEntity?>(null) }
+    var entryToRemove by remember(ownerUsername) { mutableStateOf<SubmissionQueueEntity?>(null) }
+    var isRemoving by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(ownerUsername, statusRefreshKey) {
         isStatusLoading = true
@@ -113,6 +126,7 @@ fun SubmissionQueuePage(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(R.string.title_submission_queue)) },
@@ -160,13 +174,50 @@ fun SubmissionQueuePage(
                 title = generalQueueTitle,
                 entries = generalEntries,
                 onImageClick = { fullscreenEntry = it },
+                onRemove = { entryToRemove = it },
             )
             queueSection(
                 title = esQueueTitle,
                 entries = esEntries,
                 onImageClick = { fullscreenEntry = it },
+                onRemove = { entryToRemove = it },
             )
         }
+    }
+
+    entryToRemove?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { if (!isRemoving) entryToRemove = null },
+            title = { Text(stringResource(R.string.title_remove_submission)) },
+            text = { Text(stringResource(R.string.msg_remove_submission_confirm)) },
+            confirmButton = {
+                TextButton(
+                    enabled = !isRemoving,
+                    onClick = {
+                        isRemoving = true
+                        scope.launch {
+                            val result =
+                                try {
+                                    SubmissionQueueStore.remove(context, entry)
+                                } finally {
+                                    isRemoving = false
+                                }
+                            entryToRemove = null
+                            if (result.isFailure) {
+                                snackbarHostState.showSnackbar(removeErrorMessage)
+                            }
+                        }
+                    },
+                ) {
+                    Text(stringResource(R.string.action_remove), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(enabled = !isRemoving, onClick = { entryToRemove = null }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
     }
 
     fullscreenEntry?.let { entry ->
@@ -182,6 +233,7 @@ private fun androidx.compose.foundation.lazy.grid.LazyGridScope.queueSection(
     title: String,
     entries: List<SubmissionQueueEntity>,
     onImageClick: (SubmissionQueueEntity) -> Unit,
+    onRemove: (SubmissionQueueEntity) -> Unit,
 ) {
     item(span = { GridItemSpan(maxLineSpan) }) {
         Row(
@@ -213,7 +265,11 @@ private fun androidx.compose.foundation.lazy.grid.LazyGridScope.queueSection(
         }
     } else {
         items(entries, key = { it.id }) { entry ->
-            SubmissionQueueCard(entry = entry, onClick = { onImageClick(entry) })
+            SubmissionQueueCard(
+                entry = entry,
+                onClick = { onImageClick(entry) },
+                onRemove = { onRemove(entry) },
+            )
         }
     }
 }
@@ -294,6 +350,7 @@ private fun QueueStatusCard(
 private fun SubmissionQueueCard(
     entry: SubmissionQueueEntity,
     onClick: () -> Unit,
+    onRemove: () -> Unit,
 ) {
     val context = LocalContext.current
     val submittedAt =
@@ -410,6 +467,33 @@ private fun SubmissionQueueCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+            ) {
+                ToggleButton(
+                    checked = false,
+                    onCheckedChange = { onRemove() },
+                    modifier = Modifier.size(40.dp),
+                    shapes = ToggleButtonDefaults.shapes(),
+                    colors =
+                        ToggleButtonDefaults.toggleButtonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            checkedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            checkedContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        ),
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    Icon(
+                        Icons.Default.DeleteOutline,
+                        contentDescription = stringResource(R.string.title_remove_submission),
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }

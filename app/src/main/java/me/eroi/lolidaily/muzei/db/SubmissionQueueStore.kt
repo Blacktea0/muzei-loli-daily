@@ -6,7 +6,9 @@ import java.io.File
 import java.time.LocalDate
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import me.eroi.lolidaily.muzei.api.LoliApiClient
 import me.eroi.lolidaily.muzei.api.link.SourceLinkParserRegistry
@@ -74,6 +76,29 @@ object SubmissionQueueStore {
         context: Context,
         entity: SubmissionQueueEntity,
     ): File = File(imageDirectory(context.applicationContext), entity.imageFileName)
+
+    suspend fun remove(
+        context: Context,
+        entity: SubmissionQueueEntity,
+    ): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                DatabaseProvider
+                    .getInstance(context.applicationContext)
+                    .submissionQueueDao()
+                    .delete(entity)
+                val file = imageFile(context, entity)
+                if (file.exists() && !file.delete()) {
+                    Log.w(TAG, "Failed to delete removed queue image ${entity.imageFileName}")
+                }
+                Result.success(Unit)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to remove local submission", e)
+                Result.failure(e)
+            }
+        }
 
     suspend fun recordSuccessfulSubmission(
         context: Context,

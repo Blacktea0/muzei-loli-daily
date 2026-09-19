@@ -1,6 +1,7 @@
 package me.eroi.lolidaily.muzei.db
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
@@ -9,6 +10,9 @@ import kotlinx.coroutines.flow.Flow
 interface SubmissionQueueDao {
     @Insert
     suspend fun insert(entity: SubmissionQueueEntity): Long
+
+    @Delete
+    suspend fun delete(entity: SubmissionQueueEntity)
 
     @Query(
         "SELECT * FROM submission_queue " +

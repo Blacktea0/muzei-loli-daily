@@ -348,6 +348,9 @@
     <string name="submit_action_cancel">取消</string>
     <string name="submit_success_queue_record_failed">投稿已成功，但無法儲存至本機投稿佇列。</string>
     <string name="title_submission_queue">投稿佇列</string>
+    <string name="title_remove_submission">從本機佇列中刪除</string>
+    <string name="msg_remove_submission_confirm">確定要從本機投稿佇列中刪除此畫作嗎？適用於審核未通過、確認不會出場的投稿。此操作僅刪除本機記錄和圖片，不會撤回伺服器上的投稿，且無法復原。</string>
+    <string name="msg_remove_submission_failed">無法刪除本機記錄，請重試。</string>
     <string name="content_desc_submission_queue">開啟投稿佇列</string>
     <string name="queue_login_required">請先登入 Bangumi 以查看投稿佇列。</string>
     <string name="queue_status_title">佇列狀態</string>

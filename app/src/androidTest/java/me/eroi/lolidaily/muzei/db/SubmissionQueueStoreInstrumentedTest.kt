@@ -14,6 +14,44 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class SubmissionQueueStoreInstrumentedTest {
     @Test
+    fun removingSubmissionOnlyDeletesSelectedLocalRecordAndImage() =
+        runBlocking {
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            val owner = "queue-remove-test-${System.nanoTime()}"
+            val otherOwner = "$owner-other"
+            val source = "https://example.com/rejected"
+            record(context, owner, "LC0", source)
+            record(context, owner, "LC0", source)
+            record(context, owner, "LC ES", source)
+            record(context, otherOwner, "LC0", source)
+            val entries = SubmissionQueueStore.observe(context, owner).first()
+            val otherEntries = SubmissionQueueStore.observe(context, otherOwner).first()
+            val removed = entries.first()
+            val retained = entries.drop(1) + otherEntries
+
+            try {
+                SubmissionQueueStore.remove(context, removed).getOrThrow()
+
+                assertEquals(entries.drop(1), SubmissionQueueStore.observe(context, owner).first())
+                assertEquals(otherEntries, SubmissionQueueStore.observe(context, otherOwner).first())
+                assertFalse(SubmissionQueueStore.imageFile(context, removed).exists())
+                assertTrue(retained.all { SubmissionQueueStore.imageFile(context, it).exists() })
+
+                // Retrying a removal, including a missing cached image, must be harmless.
+                SubmissionQueueStore.remove(context, removed).getOrThrow()
+                assertEquals(entries.drop(1), SubmissionQueueStore.observe(context, owner).first())
+                SubmissionQueueStore.imageFile(context, retained.first()).delete()
+                SubmissionQueueStore.remove(context, retained.first()).getOrThrow()
+                assertEquals(entries.takeLast(1), SubmissionQueueStore.observe(context, owner).first())
+                assertEquals(otherEntries, SubmissionQueueStore.observe(context, otherOwner).first())
+            } finally {
+                for (entry in entries + otherEntries) {
+                    SubmissionQueueStore.remove(context, entry).getOrThrow()
+                }
+            }
+        }
+
+    @Test
     fun publishedSubmissionStaysUntilNextDailyRefresh() =
         runBlocking {
             val context = InstrumentationRegistry.getInstrumentation().targetContext

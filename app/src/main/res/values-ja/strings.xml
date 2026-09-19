@@ -348,6 +348,9 @@
     <string name="submit_action_cancel">キャンセル</string>
     <string name="submit_success_queue_record_failed">投稿は成功しましたが、この端末の投稿キューに保存できませんでした。</string>
     <string name="title_submission_queue">投稿キュー</string>
+    <string name="title_remove_submission">この端末のキューから削除</string>
+    <string name="msg_remove_submission_confirm">この端末の投稿キューからこの作品を削除しますか？審査に通らず、掲載されないことを確認した投稿に使用してください。この端末の記録と画像のみが削除され、サーバー上の投稿は取り消されません。この操作は元に戻せません。</string>
+    <string name="msg_remove_submission_failed">この端末の記録を削除できませんでした。再試行してください。</string>
     <string name="content_desc_submission_queue">投稿キューを開く</string>
     <string name="queue_login_required">投稿キューを表示するにはBangumiにログインしてください。</string>
     <string name="queue_status_title">キューの状態</string>

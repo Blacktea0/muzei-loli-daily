@@ -349,6 +349,9 @@
     <string name="submit_action_cancel">Cancel</string>
     <string name="submit_success_queue_record_failed">Submission succeeded, but it could not be saved to this device\'s queue.</string>
     <string name="title_submission_queue">Submission Queue</string>
+    <string name="title_remove_submission">Remove from Local Queue</string>
+    <string name="msg_remove_submission_confirm">Remove this artwork from this device’s submission queue? Use this for rejected submissions you have confirmed will not be published. Only the local record and image will be deleted; the server submission will not be withdrawn. This action cannot be undone.</string>
+    <string name="msg_remove_submission_failed">Could not remove the local record. Please try again.</string>
     <string name="content_desc_submission_queue">Open submission queue</string>
     <string name="queue_login_required">Log in to view your submission queue.</string>
     <string name="queue_status_title">Queue status</string>
