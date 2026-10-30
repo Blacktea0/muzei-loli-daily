@@ -404,4 +404,15 @@
     <string name="submit_character_url_invalid">請輸入有效的 Bangumi 角色 URL 或正整數 ID，多個角色以空格分隔。</string>
     <string name="submit_character_already_added">輸入的角色均已新增。</string>
     <string name="submit_character_fetch_failed">部分角色取得失敗，輸入框中僅保留失敗的 ID，請檢查後重試。</string>
+    <string name="bookmark_date_filter">日期</string>
+    <string name="bookmark_previous_month">上個月</string>
+    <string name="bookmark_next_month">下個月</string>
+    <string name="bookmark_choose_year">選擇年份</string>
+    <string name="bookmark_choose_month">選擇月份</string>
+    <string name="bookmark_previous_year">上一年</string>
+    <string name="bookmark_next_year">下一年</string>
+    <string name="bookmark_clear_date_filter">清除篩選</string>
+    <string name="bookmark_calendar_day">%1$s，已收藏：%2$s</string>
+    <string name="bookmark_empty_date">這一天還沒有收藏</string>
+    <string name="bookmark_no_matches">沒有符合篩選的收藏</string>
 </resources>

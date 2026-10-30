@@ -684,6 +684,8 @@ class MainActivity : AppCompatActivity() {
                         sourceUrl = card?.sourceUrl ?: roomFields?.sourceUrl ?: "",
                         artistUrl = card?.artistUrl ?: roomFields?.artistUrl ?: "",
                         date = dateMap[token] ?: roomFields?.date ?: apiDate,
+                        downloadedAt = roomFields?.downloadedAt ?: 0L,
+                        bookmarkDate = roomFields?.bookmarkDate?.ifBlank { roomFields.date } ?: dateMap[token] ?: apiDate,
                         reactions = reactionsMap[token] ?: emptyList(),
                         userEmoji = userReactionsMap[token],
                         isBookmarked = roomFields?.bookmarked?.let { it != 0 } ?: false,
@@ -784,7 +786,12 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     val card = cachedCardsByToken[token] ?: return@Thread
                     val (_, apiDate) = loadCachedDaily()
-                    val entity = EntityMapper.cardToEntity(card, token, apiDate, if (bookmarked) 1 else 0)
+                    val entity = EntityMapper.cardToEntity(
+                        card,
+                        token,
+                        apiDate,
+                        if (bookmarked) 1 else 0,
+                    )
                     runBlocking { dao.upsert(entity) }
                 }
                 runOnUiThread { buildPreviews() }

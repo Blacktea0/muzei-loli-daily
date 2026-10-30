@@ -22,6 +22,9 @@ data class ArtworkPreview(
     val suggestedByUsername: String? = null,
     val discussionId: String? = null,
     val discussionCount: Int = 0,
+    val downloadedAt: Long = 0L,
+    /** The artwork date captured when bookmarking, independent of wall-clock time. */
+    val bookmarkDate: String = date,
 )
 
 /**

@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 
 @Dao
 interface CachedArtworkDao {
@@ -14,6 +15,24 @@ interface CachedArtworkDao {
     /** Batch upsert — all rows in a single transaction. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(entities: List<CachedArtworkEntity>)
+
+    /** Refresh metadata without overwriting a bookmark added while the worker was downloading. */
+    @Transaction
+    suspend fun refreshMetadata(entities: List<CachedArtworkEntity>) {
+        upsertAll(
+            entities.map { incoming ->
+                val existing = getByToken(incoming.token)
+                if (existing == null) {
+                    incoming
+                } else {
+                    incoming.copy(
+                        bookmarked = existing.bookmarked,
+                        bookmarkDate = existing.bookmarkDate,
+                    )
+                }
+            },
+        )
+    }
 
     /** Look up a single artwork by its image token (MD5 of imgUrl). */
     @Query("SELECT * FROM cached_artworks WHERE token = :token")
@@ -32,7 +51,11 @@ interface CachedArtworkDao {
     suspend fun deleteByTokens(tokens: List<String>)
 
     /** Update bookmark status for a single artwork. */
-    @Query("UPDATE cached_artworks SET bookmarked = :bookmarked WHERE token = :token")
+    @Query(
+        "UPDATE cached_artworks SET bookmarked = :bookmarked, bookmark_date = " +
+            "CASE WHEN :bookmarked = 0 THEN '' WHEN bookmarked != 0 THEN bookmark_date ELSE date END " +
+            "WHERE token = :token",
+    )
     suspend fun setBookmarked(
         token: String,
         bookmarked: Int,

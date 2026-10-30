@@ -1,12 +1,28 @@
 package me.eroi.lolidaily.muzei.ui.screen.pages
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,6 +31,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,21 +43,27 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import me.eroi.lolidaily.muzei.R
 import me.eroi.lolidaily.muzei.model.ArtworkPreview
 import me.eroi.lolidaily.muzei.ui.screen.components.ArtworkDetailBottomSheet
+import me.eroi.lolidaily.muzei.ui.screen.components.BookmarkCalendar
 import me.eroi.lolidaily.muzei.ui.screen.components.FullscreenImageViewer
 import me.eroi.lolidaily.muzei.util.exportArtwork
+import kotlin.math.roundToInt
 
 private const val GALLERY_PAGE_SIZE = 5
 
@@ -53,11 +76,17 @@ fun BookmarkPage(
     emptyMessage: String = "",
     searchQuery: String = "",
     selectedTag: String? = null,
+    selectedDate: String? = null,
+    onDateSelected: (String?) -> Unit = {},
     onSearchQueryChange: (String) -> Unit = {},
     onTagSelected: (String?) -> Unit = {},
     windowSizeClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
 ) {
-    val filteredArtwork =
+    var showCalendar by rememberSaveable { mutableStateOf(false) }
+    val calendarVisibility = remember { MutableTransitionState(showCalendar) }
+    calendarVisibility.targetState = showCalendar
+    BackHandler(enabled = showCalendar) { showCalendar = false }
+    val matchingArtwork =
         remember(cachedArtwork, searchQuery, selectedTag) {
             cachedArtwork.filter { preview ->
                 val matchesSearch =
@@ -70,11 +99,19 @@ fun BookmarkPage(
             }
         }
 
+    val filteredArtwork =
+        remember(matchingArtwork, selectedDate) {
+            matchingArtwork.filter { selectedDate == null || it.bookmarkDate == selectedDate }
+                .sortedWith(compareByDescending<ArtworkPreview> { it.bookmarkDate }.thenByDescending { it.downloadedAt })
+        }
+
     var visibleCount by remember { mutableIntStateOf(GALLERY_PAGE_SIZE) }
     val listState = rememberLazyListState()
+    val gridState = rememberLazyGridState()
     val density = LocalDensity.current
     var searchContentHeightPx by remember { mutableFloatStateOf(0f) }
     var searchBarOffsetY by remember { mutableFloatStateOf(0f) }
+    var calendarDragPx by remember { mutableFloatStateOf(0f) }
 
     val topPaddingPx by remember {
         derivedStateOf {
@@ -90,16 +127,51 @@ fun BookmarkPage(
                     source: NestedScrollSource,
                 ): Offset {
                     val delta = available.y
+                    if (calendarVisibility.currentState || calendarVisibility.targetState) {
+                        if (showCalendar && source == NestedScrollSource.UserInput) {
+                            calendarDragPx = (calendarDragPx - delta).coerceAtLeast(0f)
+                        }
+                        // This gesture belongs to the calendar; neither the gallery nor header scrolls.
+                        return Offset(0f, delta)
+                    }
                     val newOffset = (searchBarOffsetY + delta).coerceIn(-searchContentHeightPx, 0f)
                     val consumed = newOffset - searchBarOffsetY
                     searchBarOffsetY = newOffset
                     return Offset(0f, consumed)
                 }
+
+                override suspend fun onPreFling(available: Velocity): Velocity {
+                    if (calendarVisibility.currentState || calendarVisibility.targetState) {
+                        if (calendarDragPx > 0f) {
+                            listState.scrollToItem(0)
+                            gridState.scrollToItem(0)
+                            showCalendar = false
+                        }
+                        return Velocity(0f, available.y)
+                    }
+                    return Velocity.Zero
+                }
             }
         }
 
-    LaunchedEffect(filteredArtwork.size) {
+    LaunchedEffect(showCalendar) {
+        searchBarOffsetY = 0f
+        if (showCalendar) {
+            calendarDragPx = 0f
+            listState.scrollToItem(0)
+            gridState.scrollToItem(0)
+        }
+    }
+
+    LaunchedEffect(calendarVisibility.isIdle, calendarVisibility.currentState) {
+        if (calendarVisibility.isIdle && !calendarVisibility.currentState) calendarDragPx = 0f
+    }
+
+    LaunchedEffect(searchQuery, selectedTag, selectedDate, filteredArtwork.size) {
         visibleCount = minOf(GALLERY_PAGE_SIZE, filteredArtwork.size)
+        listState.scrollToItem(0)
+        gridState.scrollToItem(0)
+        searchBarOffsetY = 0f
     }
 
     val shouldLoadMore by remember {
@@ -117,7 +189,18 @@ fun BookmarkPage(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier =
+            Modifier.fillMaxSize().pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    do {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                    } while (event.changes.any { it.pressed })
+                    if (showCalendar && calendarDragPx > 0f) showCalendar = false
+                }
+            },
+    ) {
         // Content area — statusBarsPadding keeps content out of the status bar region
         Column(
             modifier =
@@ -126,16 +209,23 @@ fun BookmarkPage(
                     .statusBarsPadding()
                     .clipToBounds(),
         ) {
-            if (filteredArtwork.isEmpty() && searchQuery.isBlank() && selectedTag == null) {
+            if (filteredArtwork.isEmpty()) {
                 Box(
                     modifier =
                         Modifier
                             .fillMaxSize()
+                            .nestedScroll(nestedScrollConnection)
+                            .scrollable(rememberScrollableState { 0f }, Orientation.Vertical)
                             .padding(top = with(density) { searchContentHeightPx.toDp() }),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = emptyMessage.ifBlank { stringResource(R.string.msg_no_artwork) },
+                        text =
+                            when {
+                                searchQuery.isNotBlank() || selectedTag != null -> stringResource(R.string.bookmark_no_matches)
+                                selectedDate != null -> stringResource(R.string.bookmark_empty_date)
+                                else -> emptyMessage.ifBlank { stringResource(R.string.msg_no_artwork) }
+                            },
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -157,6 +247,7 @@ fun BookmarkPage(
                         val gridColumns = if (aspectRatio > 1.3f) 3 else 2
 
                         LazyVerticalGrid(
+                            state = gridState,
                             columns = GridCells.Fixed(gridColumns),
                             modifier =
                                 Modifier
@@ -268,7 +359,42 @@ fun BookmarkPage(
             ) {
                 BookmarkSearchField(query = searchQuery, onQueryChange = onSearchQueryChange)
                 Spacer(Modifier.height(8.dp))
-                BookmarkFilterRow(selectedTag = selectedTag, onTagSelected = onTagSelected)
+                BookmarkFilterRow(
+                    selectedTag = selectedTag,
+                    onTagSelected = onTagSelected,
+                    selectedDate = selectedDate,
+                    calendarExpanded = showCalendar,
+                    onDateClick = { showCalendar = !showCalendar },
+                )
+                AnimatedVisibility(
+                    visibleState = calendarVisibility,
+                    enter =
+                        expandVertically(
+                            spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow),
+                            expandFrom = Alignment.Top,
+                        ) + fadeIn(tween(180)),
+                    exit =
+                        shrinkVertically(
+                            spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMedium),
+                            shrinkTowards = Alignment.Top,
+                        ) + fadeOut(tween(180)),
+                ) {
+                    BookmarkCalendar(
+                        artwork = matchingArtwork,
+                        selectedDate = selectedDate,
+                        onDateSelected = onDateSelected,
+                        scrollConnection = nestedScrollConnection,
+                        modifier =
+                            Modifier.clipToBounds().layout { measurable, constraints ->
+                                val calendar = measurable.measure(constraints)
+                                // Increasing resistance keeps the calendar attached while the finger is down.
+                                val resistance = 1f + calendarDragPx / (calendar.height * 0.75f).coerceAtLeast(1f)
+                                layout(calendar.width, (calendar.height / resistance).roundToInt()) {
+                                    calendar.placeRelative(0, 0)
+                                }
+                            }.padding(top = 8.dp, bottom = 8.dp),
+                    )
+                }
             }
         }
 
@@ -331,7 +457,8 @@ fun ArtworkCard(
                 }
             }
 
-            if (preview.date.isNotBlank()) {
+            val collectionDate = preview.bookmarkDate
+            if (collectionDate.isNotBlank()) {
                 Surface(
                     modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
                     shape = RoundedCornerShape(50),
@@ -349,7 +476,7 @@ fun ArtworkCard(
                             tint = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
-                            text = preview.date,
+                            text = collectionDate,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
@@ -437,12 +564,13 @@ fun ArtworkCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
             ) {
-                val buttonColors = ToggleButtonDefaults.toggleButtonColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    checkedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    checkedContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
+                val buttonColors =
+                    ToggleButtonDefaults.toggleButtonColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        checkedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        checkedContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
 
                 ToggleButton(
                     checked = false,
@@ -580,14 +708,18 @@ private fun BookmarkSearchField(
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun BookmarkFilterRow(
     selectedTag: String?,
     onTagSelected: (String?) -> Unit,
+    selectedDate: String?,
+    calendarExpanded: Boolean,
+    onDateClick: () -> Unit,
 ) {
     val allLabel = stringResource(R.string.label_all)
     val tags = listOf(null to allLabel, "LC0" to "LC0", "LC YJ" to "LC YJ", "LC ES" to "LC ES")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         tags.forEach { (tagValue, label) ->
             FilterChip(
                 selected = selectedTag == tagValue,
@@ -595,5 +727,23 @@ private fun BookmarkFilterRow(
                 label = { Text(label, style = MaterialTheme.typography.labelMedium) },
             )
         }
+        FilterChip(
+            selected = selectedDate != null || calendarExpanded,
+            onClick = onDateClick,
+            label = {
+                Text(
+                    selectedDate?.substring(5)?.replace('-', '/') ?: stringResource(R.string.bookmark_date_filter),
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            },
+            leadingIcon = { Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(16.dp)) },
+            trailingIcon = {
+                Icon(
+                    if (calendarExpanded) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            },
+        )
     }
 }

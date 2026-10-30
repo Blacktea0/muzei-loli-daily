@@ -26,8 +26,10 @@ data class CachedArtworkEntity(
     @ColumnInfo(name = "suggested_by_username") val suggestedByUsername: String?,
     /** The API `date` field of the batch this artwork came from. */
     @ColumnInfo(name = "date") val date: String,
-    /** Unix-epoch millis when this record was inserted (not the API date). */
+    /** Unix-epoch millis when this record was cached (not the API date). */
     @ColumnInfo(name = "downloaded_at") val downloadedAt: Long,
     /** Whether the user has bookmarked this artwork. 1 = bookmarked, 0 = not. */
     @ColumnInfo(name = "bookmarked") val bookmarked: Int = 1,
+    /** Snapshot of [date] when the current bookmark was added. */
+    @ColumnInfo(name = "bookmark_date", defaultValue = "''") val bookmarkDate: String = "",
 )

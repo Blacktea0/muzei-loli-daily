@@ -80,6 +80,14 @@ object DatabaseProvider {
             }
         }
 
+    val MIGRATION_5_6 =
+        object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE cached_artworks ADD COLUMN bookmark_date TEXT NOT NULL DEFAULT ''")
+                db.execSQL("UPDATE cached_artworks SET bookmark_date = date WHERE bookmarked != 0")
+            }
+        }
+
     fun getInstance(context: Context): AppDatabase {
         return instance
             ?: synchronized(this) {
@@ -89,7 +97,7 @@ object DatabaseProvider {
                         AppDatabase::class.java,
                         "lolidaily_artwork_cache.db",
                     )
-                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                         .build()
                         .also { instance = it }
             }

@@ -39,6 +39,7 @@ object EntityMapper {
             date = date,
             downloadedAt = System.currentTimeMillis(),
             bookmarked = bookmarked,
+            bookmarkDate = if (bookmarked != 0) date else "",
         )
     }
 
@@ -62,6 +63,8 @@ object EntityMapper {
             suggestedByUsername = entity.suggestedByUsername,
             date = entity.date,
             bookmarked = entity.bookmarked,
+            downloadedAt = entity.downloadedAt,
+            bookmarkDate = entity.bookmarkDate,
         )
     }
 
@@ -84,6 +87,8 @@ object EntityMapper {
         val suggestedByUsername: String?,
         val date: String,
         val bookmarked: Int = 1,
+        val downloadedAt: Long = 0L,
+        val bookmarkDate: String = "",
     ) {
         val characterNames: List<String> get() = characters.map { it.name }
         val characterIds: List<Long> get() = characters.map { it.id }

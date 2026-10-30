@@ -99,6 +99,29 @@ class DatabaseMigrationTest {
             }
     }
 
+    @Test
+    fun migrate5To6InitializesBookmarksFromArtworkDate() {
+        helper.createDatabase(TEST_DATABASE, 5).apply {
+            execSQL(
+                "INSERT INTO cached_artworks (token, artist_name, source_url, artist_url, comment, tags, characters, " +
+                    "date, downloaded_at, bookmarked) VALUES ('saved', '', '', '', '', 'LC0', '[]', '2026-10-23', 1234, 1), " +
+                    "('cached', '', '', '', '', 'LC ES', '[]', '2026-10-24', 5678, 0)",
+            )
+            close()
+        }
+        helper.runMigrationsAndValidate(TEST_DATABASE, 6, true, DatabaseProvider.MIGRATION_5_6).use { database ->
+            database.query("SELECT bookmark_date, downloaded_at FROM cached_artworks WHERE token = 'saved'").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("2026-10-23", cursor.getString(0))
+                assertEquals(1234L, cursor.getLong(1))
+            }
+            database.query("SELECT bookmark_date FROM cached_artworks WHERE token = 'cached'").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("", cursor.getString(0))
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DATABASE = "room-migration-test"
     }

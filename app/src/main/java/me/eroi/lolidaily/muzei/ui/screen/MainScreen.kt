@@ -14,6 +14,7 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -90,6 +91,7 @@ fun MainScreen(
     var fullscreenPreview by remember { mutableStateOf<ArtworkPreview?>(null) }
     var bookmarkSearchQuery by remember { mutableStateOf("") }
     var bookmarkSelectedTag by remember { mutableStateOf<String?>(null) }
+    var bookmarkSelectedDate by rememberSaveable { mutableStateOf<String?>(null) }
     var submissionQueueOwner by remember { mutableStateOf<String?>(null) }
     val railState = rememberWideNavigationRailState()
 
@@ -189,6 +191,8 @@ fun MainScreen(
                                 emptyMessage = stringResource(R.string.msg_no_bookmarks),
                                 searchQuery = bookmarkSearchQuery,
                                 selectedTag = bookmarkSelectedTag,
+                                selectedDate = bookmarkSelectedDate,
+                                onDateSelected = { bookmarkSelectedDate = it },
                                 onSearchQueryChange = { bookmarkSearchQuery = it },
                                 onTagSelected = { bookmarkSelectedTag = it },
                                 windowSizeClass = windowSizeClass.widthSizeClass,
@@ -348,6 +352,8 @@ fun MainScreen(
                             emptyMessage = stringResource(R.string.msg_no_bookmarks),
                             searchQuery = bookmarkSearchQuery,
                             selectedTag = bookmarkSelectedTag,
+                            selectedDate = bookmarkSelectedDate,
+                            onDateSelected = { bookmarkSelectedDate = it },
                             onSearchQueryChange = { bookmarkSearchQuery = it },
                             onTagSelected = { bookmarkSelectedTag = it },
                             windowSizeClass = windowSizeClass.widthSizeClass,
