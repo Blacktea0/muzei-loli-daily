@@ -86,17 +86,27 @@ fun BookmarkPage(
     val calendarVisibility = remember { MutableTransitionState(showCalendar) }
     calendarVisibility.targetState = showCalendar
     BackHandler(enabled = showCalendar) { showCalendar = false }
-    val matchingArtwork =
-        remember(cachedArtwork, searchQuery, selectedTag) {
+    val searchedArtwork =
+        remember(cachedArtwork, searchQuery) {
             cachedArtwork.filter { preview ->
                 val matchesSearch =
                     searchQuery.isBlank() ||
                         preview.artistName.contains(searchQuery, ignoreCase = true) ||
                         preview.comment.contains(searchQuery, ignoreCase = true) ||
                         (preview.suggestedByName?.contains(searchQuery, ignoreCase = true) == true)
-                val matchesTag = selectedTag == null || preview.tags == selectedTag
-                matchesSearch && matchesTag
+                matchesSearch
             }
+        }
+    val availableTags =
+        remember(searchedArtwork, selectedDate) {
+            searchedArtwork.filter { selectedDate == null || it.bookmarkDate == selectedDate }.map { it.tags }.toSet()
+        }
+    LaunchedEffect(selectedTag, availableTags) {
+        if (selectedTag != null && selectedTag !in availableTags) onTagSelected(null)
+    }
+    val matchingArtwork =
+        remember(searchedArtwork, selectedTag) {
+            searchedArtwork.filter { selectedTag == null || it.tags == selectedTag }
         }
 
     val filteredArtwork =
@@ -360,6 +370,7 @@ fun BookmarkPage(
                 BookmarkSearchField(query = searchQuery, onQueryChange = onSearchQueryChange)
                 Spacer(Modifier.height(8.dp))
                 BookmarkFilterRow(
+                    availableTags = availableTags,
                     selectedTag = selectedTag,
                     onTagSelected = onTagSelected,
                     selectedDate = selectedDate,
@@ -382,7 +393,10 @@ fun BookmarkPage(
                     BookmarkCalendar(
                         artwork = matchingArtwork,
                         selectedDate = selectedDate,
-                        onDateSelected = onDateSelected,
+                        onDateSelected = { date ->
+                            onDateSelected(date)
+                            if (date == null) showCalendar = false
+                        },
                         scrollConnection = nestedScrollConnection,
                         modifier =
                             Modifier.clipToBounds().layout { measurable, constraints ->
@@ -711,6 +725,7 @@ private fun BookmarkSearchField(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun BookmarkFilterRow(
+    availableTags: Set<String>,
     selectedTag: String?,
     onTagSelected: (String?) -> Unit,
     selectedDate: String?,
@@ -720,7 +735,7 @@ private fun BookmarkFilterRow(
     val allLabel = stringResource(R.string.label_all)
     val tags = listOf(null to allLabel, "LC0" to "LC0", "LC YJ" to "LC YJ", "LC ES" to "LC ES")
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        tags.forEach { (tagValue, label) ->
+        tags.filter { (tagValue, _) -> tagValue == null || tagValue in availableTags }.forEach { (tagValue, label) ->
             FilterChip(
                 selected = selectedTag == tagValue,
                 onClick = { onTagSelected(tagValue) },
